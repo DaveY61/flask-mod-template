@@ -29,6 +29,9 @@ def init_db():
 
     print("Creating new database.")
 
+    # Ensure the directory for the database exists
+    os.makedirs(os.path.dirname(USER_DATABASE), exist_ok=True)
+
     conn = sqlite3.connect(USER_DATABASE, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
     cursor = conn.cursor()
 

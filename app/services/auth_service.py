@@ -1,4 +1,4 @@
-from flask import Blueprint, request, session, render_template, redirect, url_for,current_app
+from flask import Blueprint, request, session, render_template, redirect, url_for, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
 from app.services.email_service import EmailService
@@ -8,7 +8,6 @@ import uuid
 
 blueprint = Blueprint('auth', __name__, template_folder='auth_templates')
 
-@blueprint.before_app_request
 def initialize_services():
     if not hasattr(current_app, 'services_initialized'):
         # Initialize services that require application context here
@@ -22,6 +21,7 @@ def initialize_services():
 
 @blueprint.route('/register', methods=['GET', 'POST'])
 def register():
+    initialize_services()
     if request.method == 'GET':
         form = RegisterForm(request.form)
         return render_template('forms/register.html', form=form)
@@ -55,6 +55,7 @@ def register():
 
 @blueprint.route('/activate/<token>', methods=['GET'])
 def activate_account(token):
+    initialize_services()
     token_data = get_token(token, 'activation')
     if not token_data or token_data['expires_at'] < datetime.now():
         return render_template('pages/activate_failure.html', response_color="red"), 400
@@ -66,6 +67,7 @@ def activate_account(token):
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
+    initialize_services()
     if request.method == 'GET':
         form = LoginForm(request.form)
         return render_template('forms/login.html', form=form)
@@ -89,11 +91,13 @@ def login():
 
 @blueprint.route('/logout', methods=['GET'])
 def logout():
+    initialize_services()
     session.clear()
     return redirect(url_for('home'))
 
 @blueprint.route('/forgot', methods=['GET', 'POST'])
 def forgot():
+    initialize_services()
     if request.method == 'GET':
         form = ForgotForm(request.form)
         return render_template('forms/forgot.html', form=form)
@@ -118,6 +122,7 @@ def forgot():
 
 @blueprint.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):  
+    initialize_services()
     if request.method == 'GET':
         form = ResetForm(request.form)
         return render_template('forms/reset.html', token=token, form=form)
@@ -141,6 +146,7 @@ def reset_password(token):
 
 @blueprint.route('/delete', methods=['GET', 'POST'])
 def delete():
+    initialize_services()
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('auth.login'))
