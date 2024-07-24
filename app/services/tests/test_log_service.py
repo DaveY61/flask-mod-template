@@ -36,4 +36,9 @@ def test_log_service(config):
     log_service.clean_old_logs()
 
 if __name__ == "__main__":
-    test_log_service(Config)
+    # Create the Flask app with the specified template folder
+    from flask import Flask
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    test_log_service(app.config)

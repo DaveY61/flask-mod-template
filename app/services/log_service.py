@@ -7,10 +7,10 @@ from app.services.email_service import EmailService
 class LogService:
     def __init__(self, config):
         self.config = config
-        self.log_file_directory = config.LOG_FILE_DIRECTORY
-        self.retention_days = config.LOG_RETENTION_DAYS
-        self.enable_error_email = config.EMAIL_ENABLE_ERROR 
-        self.admin_emails = config.ADMIN_ERROR_ROUTING
+        self.log_file_directory = config['LOG_FILE_DIRECTORY']
+        self.retention_days = config['LOG_RETENTION_DAYS']
+        self.enable_error_email = config['EMAIL_ENABLE_ERROR']
+        self.admin_emails = config['ADMIN_ERROR_ROUTING']
 
         if not os.path.exists(self.log_file_directory):
             os.makedirs(self.log_file_directory)

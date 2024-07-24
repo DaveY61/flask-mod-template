@@ -7,7 +7,7 @@ USER_DATABASE = None
 
 def setup_database(config):
     global USER_DATABASE
-    USER_DATABASE = config.USER_DATABASE_PATH
+    USER_DATABASE = config['USER_DATABASE_PATH']
 
 def adapt_datetime(dt):
     return dt.isoformat()

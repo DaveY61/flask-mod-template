@@ -20,8 +20,8 @@ sys.path.insert(0, project_path)
 from app.app_config import Config
 from app.services.email_service import EmailService
 
-def test_email_service_success():
-    email_service = EmailService(Config)
+def test_email_service_success(config):
+    email_service = EmailService(config)
     email_service.send_email(
         to=["test@example.com"],
         subject="Test Email",
@@ -33,10 +33,10 @@ def test_email_service_success():
     )
     email_service.check_and_resend_failed_emails()
 
-def test_email_service_fail():
+def test_email_service_fail(config):
     # Cause a failed email by an invalid smtp server
-    Config.SMTP_SERVER = "xxxx"
-    email_service = EmailService(Config)
+    config['SMTP_SERVER'] = "xxxx"
+    email_service = EmailService(config)
     email_service.send_email(
         to=["test@example.com"],
         subject="Test Email",
@@ -48,5 +48,10 @@ def test_email_service_fail():
     )
 
 if __name__ == "__main__":
-    test_email_service_success()
-    #test_email_service_fail()
+    # Create the Flask app with the specified template folder
+    from flask import Flask
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    test_email_service_success(app.config)
+    #test_email_service_fail(app.config)

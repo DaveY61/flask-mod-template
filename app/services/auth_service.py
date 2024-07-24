@@ -49,7 +49,7 @@ def register():
     
     # Render the email template with the provided username and activation link
     email_body = render_template('email/activation_email.html', username=username, activation_link=activation_link)
-    send_email([email], f"Activate your {current_app.config.PROJECT_NAME} Account", email_body, html=True)
+    send_email([email], f"Activate your {current_app.config['PROJECT_NAME']} Account", email_body, html=True)
 
     return render_template('pages/register_success.html', response_color="green"), 201
 
@@ -116,7 +116,7 @@ def forgot():
 
         # Render the email template with the provided username and reset link
         email_body = render_template('email/forgot_password_email.html', username=user['username'], activation_link=reset_link)
-        send_email([email], f"Reset your {current_app.config.PROJECT_NAME} Password", email_body, html=True)
+        send_email([email], f"Reset your {current_app.config['PROJECT_NAME']} Password", email_body, html=True)
 
     return render_template('pages/forgot_success.html', response_color="green"), 200
 
