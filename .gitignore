@@ -1,0 +1,16 @@
+# Ignore application data and logs
+app_logs/
+app_data/
+app_test_results/
+
+# Ignore Python files
+*.pyo
+*.pyc
+__pycache__
+.pytest_cache
+.DS_Store
+
+# Ignore secrets and environment
+.env
+env
+venv

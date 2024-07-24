@@ -1,0 +1,14 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Registration Failed!" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>Email address already registered.<br>Please login or reset your password.</p>
+<div style="border-top: 1px solid gray; padding:10px; font-size:smaller; color:#428bca">
+<p class="pull-left"><a href="{{ url_for('auth.forgot') }}">Forgot Password?</a></p>
+<p class="pull-right"><a href="{{ url_for('auth.login') }}">Login</a></p>
+</div>
+{% endblock %}

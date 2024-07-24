@@ -1,0 +1,13 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Thank you for registering!" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>Check your email to activate your account.</p>
+<div style="border-top: 1px solid gray; padding:10px; font-size:smaller; color:#428bca">
+<a href="/" class="btn btn-primary">Go to {{ config.PROJECT_NAME }} Home</a>
+</div>
+{% endblock %}

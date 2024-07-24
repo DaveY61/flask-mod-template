@@ -1,0 +1,14 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Account Removed!" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>Your {{ config.PROJECT_NAME }} account has been removed.</p>
+<p>Close this page.<br>- or -<br>Register to make a new account.</p>
+<div style="border-top: 1px solid gray; padding:10px; font-size:smaller; color:#428bca">
+<p class="pull-right"><a href="{{ url_for('auth.register') }}">Register</a></p>
+</div>
+{% endblock %}

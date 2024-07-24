@@ -1,0 +1,13 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Reset Success!" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>Your password has been reset.  Proceed to the page below to login.</p>
+<div style="border-top: 1px solid gray; padding:10px; font-size:smaller; color:#428bca">
+<p class="pull-right"><a href="{{ url_for('auth.login') }}">Login</a></p>
+</div>
+{% endblock %}

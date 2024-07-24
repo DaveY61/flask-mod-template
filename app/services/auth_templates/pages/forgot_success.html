@@ -1,0 +1,10 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Reset Link Sent!" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>If the email address matches our records, then check your email for the password reset link.</p>
+{% endblock %}
