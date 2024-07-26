@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, request
 import json
 
-blueprint = Blueprint('module_1', __name__, template_folder='templates')
+blueprint = Blueprint('module_1', __name__, 
+                      static_folder='static', 
+                      static_url_path='/modules/module_1/static',
+                      template_folder='templates')
 
 @blueprint.route('/pie_chart', methods=['GET', 'POST'])
 def pie_chart():
