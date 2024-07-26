@@ -43,35 +43,7 @@
 <!-- scripts -->
 <script src="/static/js/libs/modernizr-2.8.2.min.js"></script>
 <!--[if lt IE 9]><script src="/static/js/libs/respond-1.4.2.min.js"></script><![endif]-->
-<!-- /scripts -->
 
-<script>
-  document.addEventListener('DOMContentLoaded', (event) => {
-      // Get the last selected menu item from sessionStorage
-      const lastSelected = sessionStorage.getItem('lastSelectedMenuItem');
-  
-      if (lastSelected) {
-          // Remove the active class from all menu items
-          document.querySelectorAll('#menu a').forEach(link => {
-              link.classList.remove('active');
-          });
-  
-          // Apply the active class to the last selected menu item
-          const lastSelectedElement = document.querySelector(`#${lastSelected}`);
-          if (lastSelectedElement) {
-              lastSelectedElement.classList.add('active');
-          }
-      }
-  
-      // Add event listeners to menu items to update sessionStorage
-      document.querySelectorAll('#menu a').forEach(link => {
-          link.addEventListener('click', () => {
-              sessionStorage.setItem('lastSelectedMenuItem', link.id);
-          });
-      });
-  });
-  </script>
-  
 </head>
 <body>
 
@@ -91,8 +63,8 @@
 
             <!-- Menu Area -->
             <ul id="menu" class="nav navbar-nav navbar-center">
-                <li><a class="navbar-menu" href="{{ url_for('home') }}"" id="home-link">Home</a></li>
-                <li><a class="navbar-menu" href="{{ url_for('about') }}" id="about-link">About</a></li>
+                <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %} href="{{ url_for('home') }}">Home</a></li>
+                <li class="navbar-menu"><a {% if request.endpoint == 'about' %} class="active" {% endif %} href="{{ url_for('about') }}">About</a></li>
                 {% block menu %}{% endblock %}
             </ul>
 

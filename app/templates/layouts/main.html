@@ -1,9 +1,9 @@
 {% extends 'layouts/main_layout.html' %}
 {% block menu %}
 {% if session.get('user_id') %}
-      <li><a class="navbar-menu"  id="a1-link">Action</a></li>
-      <li><a class="navbar-menu"  id="a2-link">AnotherAction</a></li>
-      <li><a class="navbar-menu"  id="a3-link">3rdAction</a></li>
-      <li><a class="navbar-menu"  id="a4-link">4thAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>Action</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>AnotherAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>3rdAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>4thAction</a></li>
 {% endif %}
 {% endblock %}
