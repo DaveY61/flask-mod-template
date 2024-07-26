@@ -3,30 +3,36 @@
 {% block title %}Pie Chart Display {{ config.PROJECT_NAME }}{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container" style="margin-top: 20px;">
+    <h2 class="text-center">Pie Chart Display</h2>
     <div class="row">
-        <div class="col-md-6">
-            <form method="POST">
+        <!-- Left Panel (Form) -->
+        <div class="col-md-5 panel-container">
+            <h3>Input Data</h3>
+            <form method="post" action="{{ url_for('module_1.pie_chart') }}">
                 <div class="form-group">
-                    <label for="value1">Value 1</label>
-                    <input type="number" class="form-control" id="value1" name="value1" value="{{ values.value1 }}">
+                    <label for="value1">Value 1:</label>
+                    <input type="number" id="value1" name="value1" class="form-control" value="{{ values['value1'] }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="value2">Value 2</label>
-                    <input type="number" class="form-control" id="value2" name="value2" value="{{ values.value2 }}">
+                    <label for="value2">Value 2:</label>
+                    <input type="number" id="value2" name="value2" class="form-control" value="{{ values['value2'] }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="value3">Value 3</label>
-                    <input type="number" class="form-control" id="value3" name="value3" value="{{ values.value3 }}">
+                    <label for="value3">Value 3:</label>
+                    <input type="number" id="value3" name="value3" class="form-control" value="{{ values['value3'] }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="value4">Value 4</label>
-                    <input type="number" class="form-control" id="value4" name="value4" value="{{ values.value4 }}">
+                    <label for="value4">Value 4:</label>
+                    <input type="number" id="value4" name="value4" class="form-control" value="{{ values['value4'] }}" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
         </div>
-        <div class="col-md-6">
+
+        <!-- Right Panel (Pie Chart) -->
+        <div class="col-md-7 panel-container">
+            <h3>Pie Chart</h3>
             <canvas id="pieChart"></canvas>
         </div>
     </div>
