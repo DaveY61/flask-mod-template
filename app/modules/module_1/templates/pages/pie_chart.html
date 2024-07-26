@@ -42,7 +42,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', (event) => {
-        // Convert values to a JSON object and escape it to prevent injection issues
         const values = JSON.parse('{{ values|tojson|safe }}');
         createPieChart(values);
     });
@@ -57,6 +56,10 @@
                     data: [values.value1, values.value2, values.value3, values.value4],
                     backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
     }
