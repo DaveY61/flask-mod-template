@@ -1,9 +1,9 @@
 {% extends 'layouts/main_layout.html' %}
 {% block menu %}
 {% if session.get('user_id') %}
-      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>Action</a></li>
-      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>AnotherAction</a></li>
-      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>3rdAction</a></li>
-      <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %}>4thAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'pie_chart' %} class="active" {% endif %} href="{{ url_for('module_1.pie_chart') }}">Pie Chart</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'mod2' %} class="active" {% endif %}>AnotherAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'mod3' %} class="active" {% endif %}>3rdAction</a></li>
+      <li class="navbar-menu"><a {% if request.endpoint == 'mod4' %} class="active" {% endif %}>4thAction</a></li>
 {% endif %}
 {% endblock %}

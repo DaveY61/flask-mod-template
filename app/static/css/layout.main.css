@@ -160,6 +160,10 @@ code {
     }
 }
 
+.navbar-menu {
+  white-space:nowrap;
+}
+
 .navbar-menu:hover {
   margin-top:1px;
   border:1px solid silver;

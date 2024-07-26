@@ -1,0 +1,57 @@
+{% extends 'layouts/main.html' %}
+
+{% block title %}Pie Chart Display {{ config.PROJECT_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="value1">Value 1</label>
+                    <input type="number" class="form-control" id="value1" name="value1" value="{{ values.value1 }}">
+                </div>
+                <div class="form-group">
+                    <label for="value2">Value 2</label>
+                    <input type="number" class="form-control" id="value2" name="value2" value="{{ values.value2 }}">
+                </div>
+                <div class="form-group">
+                    <label for="value3">Value 3</label>
+                    <input type="number" class="form-control" id="value3" name="value3" value="{{ values.value3 }}">
+                </div>
+                <div class="form-group">
+                    <label for="value4">Value 4</label>
+                    <input type="number" class="form-control" id="value4" name="value4" value="{{ values.value4 }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // Convert values to a JSON object and escape it to prevent injection issues
+        const values = JSON.parse('{{ values|tojson|safe }}');
+        createPieChart(values);
+    });
+
+    function createPieChart(values) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Value 1', 'Value 2', 'Value 3', 'Value 4'],
+                datasets: [{
+                    data: [values.value1, values.value2, values.value3, values.value4],
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+                }]
+            }
+        });
+    }
+</script>
+{% endblock %}
