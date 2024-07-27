@@ -75,12 +75,14 @@ def login():
     initialize_services()
     if request.method == 'GET':
         form = LoginForm(request.form)
-        return render_template('forms/login.html', form=form)
+        next_url = request.args.get('next')
+        return render_template('forms/login.html', form=form, next=next_url)
     
     # Otherwise handle the POST
     data = request.form
     email = data.get('email')
     password = data.get('password')
+    next_url = data.get('next')
 
     if not email or not password:
         return render_template('pages/login_failure.html', response_color='red'), 400
@@ -91,7 +93,8 @@ def login():
 
     login_user(user)
 
-    return redirect(url_for('home'))
+    # Redirect to the next URL or home if next is not provided
+    return redirect(next_url or url_for('home'))
 
 @blueprint.route('/logout', methods=['GET'])
 @login_required
