@@ -1,0 +1,58 @@
+{% extends 'layouts/main.html' %}
+
+{% block title %}CSV Upload Display {{ config.PROJECT_NAME }}{% endblock %}
+
+{% block content %}
+<link type="text/css" rel="stylesheet" href="{{ url_for('csv.static', filename='css/style.css') }}" />
+<div class="container" style="margin-top: 20px;">
+    <h2 class="text-center">CSV Upload Display</h2>
+    <div class="row">
+        <!-- CSV Upload Form -->
+        <div class="col-md-12 panel-container">
+            <h3>Upload CSV File</h3>
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('csv.upload_csv') }}">
+                <div class="form-group">
+                    <input type="file" name="file" accept=".csv" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    {% if uploaded_data %}
+    <div class="row" style="margin-top: 20px;">
+        <!-- CSV Data Table -->
+        <div class="col-md-12 panel-container">
+            <h3>CSV Data</h3>
+            <table id="csvTable" class="display">
+                <thead>
+                    <tr>
+                        {% for column in uploaded_data[0] %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in uploaded_data[1:] %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<script>
+    $(document).ready(function() {
+        $('#csvTable').DataTable();
+    });
+</script>
+{% endblock %}
