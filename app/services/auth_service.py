@@ -1,8 +1,9 @@
-from flask import Blueprint, request, session, render_template, redirect, url_for, current_app
+from flask import Blueprint, request, render_template, redirect, url_for, current_app
+from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
 from app.services.email_service import EmailService
-from app.services.auth_service_db import setup_database, generate_token, create_user, get_user_by_email, update_user_activation, delete_user, get_token, delete_token, update_user_password
+from app.services.auth_service_db import setup_database, User
 from datetime import datetime
 import uuid
 
@@ -35,16 +36,17 @@ def register():
     if not username or not email or not password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    if get_user_by_email(email):
+    if User.get_by_email(email):
         return render_template('pages/register_failure.html', response_color="red"), 400
 
     hashed_password = generate_password_hash(password)
     user_id = str(uuid.uuid4())
     created_at = datetime.now()
 
-    create_user(user_id, username, email, hashed_password, created_at)
+    user = User(user_id, username, email, hashed_password, is_active=False, created_at=created_at)
+    user.save()
 
-    token = generate_token(user_id, 'activation')
+    token = User.generate_token(user_id, 'activation')
     activation_link = url_for('auth.activate_account', token=token, _external=True)
     
     # Render the email template with the provided username and activation link
@@ -56,14 +58,17 @@ def register():
 @blueprint.route('/activate/<token>', methods=['GET'])
 def activate_account(token):
     initialize_services()
-    token_data = get_token(token, 'activation')
+    token_data = User.get_token(token, 'activation')
     if not token_data or token_data['expires_at'] < datetime.now():
         return render_template('pages/activate_failure.html', response_color="red"), 400
 
-    update_user_activation(token_data['user_id'])
-    delete_token(token)
+    user = User.get(token_data['user_id'])
+    if user:
+        user.update_activation()
+        User.delete_token(token)
+        return render_template('pages/activate_success.html', response_color="green"), 200
 
-    return render_template('pages/activate_success.html', response_color="green"), 200
+    return render_template('pages/activate_failure.html', response_color="red"), 400
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
@@ -80,19 +85,19 @@ def login():
     if not email or not password:
         return render_template('pages/login_failure.html', response_color='red'), 400
 
-    user = get_user_by_email(email)
-    if not user or not check_password_hash(user['password'], password) or not user['is_active']:
+    user = User.get_by_email(email)
+    if not user or not user.check_password(password) or not user.is_active:
         return render_template('pages/login_failure.html', response_color='red'), 400
 
-    session['user_id'] = user['id']
-    session['username'] = user['username']
+    login_user(user)
 
     return redirect(url_for('home'))
 
 @blueprint.route('/logout', methods=['GET'])
+@login_required
 def logout():
     initialize_services()
-    session.clear()
+    logout_user()
     return redirect(url_for('home'))
 
 @blueprint.route('/forgot', methods=['GET', 'POST'])
@@ -109,13 +114,13 @@ def forgot():
     if not email:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    user = get_user_by_email(email)
+    user = User.get_by_email(email)
     if user:
-        token = generate_token(user['id'], 'reset')
+        token = User.generate_token(user.id, 'reset')
         reset_link = url_for('auth.reset_password', token=token, _external=True)
 
         # Render the email template with the provided username and reset link
-        email_body = render_template('email/forgot_password_email.html', username=user['username'], activation_link=reset_link)
+        email_body = render_template('email/forgot_password_email.html', username=user.username, activation_link=reset_link)
         send_email([email], f"Reset your {current_app.config['PROJECT_NAME']} Password", email_body, html=True)
 
     return render_template('pages/forgot_success.html', response_color="green"), 200
@@ -134,30 +139,29 @@ def reset_password(token):
     if not new_password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    token_data = get_token(token, 'reset')
+    token_data = User.get_token(token, 'reset')
     if not token_data or token_data['expires_at'] < datetime.now():
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
     hashed_password = generate_password_hash(new_password)
-    update_user_password(token_data['user_id'], hashed_password)
-    delete_token(token)
+    user = User.get(token_data['user_id'])
+    if user:
+        user.update_password(hashed_password)
+        User.delete_token(token)
+        return render_template('pages/reset_success.html', response_color="green"), 200
 
-    return render_template('pages/reset_success.html', response_color="green"), 200
+    return render_template('pages/invalid_input.html', response_color="red"), 400
 
 @blueprint.route('/delete', methods=['GET', 'POST'])
+@login_required
 def delete():
     initialize_services()
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('auth.login'))
-    
     if request.method == 'GET':
         form = RemoveForm(request.form)
         return render_template('forms/delete.html', form=form)
 
     # Otherwise handle the POST
-    
-    delete_user(user_id)
-    session.clear()
+    current_user.delete()
+    logout_user()
 
     return render_template('pages/delete_success.html', response_color="green"), 200

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-import json
+from flask_login import login_required
 
 blueprint = Blueprint('module_1', __name__, 
                       static_folder='static', 
@@ -7,6 +7,7 @@ blueprint = Blueprint('module_1', __name__,
                       template_folder='templates')
 
 @blueprint.route('/pie_chart', methods=['GET', 'POST'])
+@login_required
 def pie_chart():
     values = {'value1': 25, 'value2': 25, 'value3': 25, 'value4': 25}
     

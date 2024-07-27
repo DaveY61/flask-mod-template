@@ -65,12 +65,14 @@
             <ul id="menu" class="nav navbar-nav navbar-center">
                 <li class="navbar-menu"><a {% if request.endpoint == 'home' %} class="active" {% endif %} href="{{ url_for('home') }}">Home</a></li>
                 <li class="navbar-menu"><a {% if request.endpoint == 'about' %} class="active" {% endif %} href="{{ url_for('about') }}">About</a></li>
+                {% if current_user.is_authenticated %}
                 {% block menu %}{% endblock %}
+                {% endif %}
             </ul>
 
             <!-- User Account Menu (or register/login) -->
             <ul class="nav navbar-nav navbar-right">
-                {% if not session.get('user_id') %}
+                {% if not current_user.is_authenticated %}
                     <li><a href="{{ url_for('auth.register') }}">Signup</a></li>
                     <li><a href="{{ url_for('auth.login') }}">Login</a></li>
                 {% else %}

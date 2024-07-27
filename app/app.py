@@ -2,6 +2,8 @@
 # Imports
 #----------------------------------------------------------------------------#
 from flask import Flask, render_template
+from flask_login import LoginManager
+from app.services.auth_service_db import User
 import pkgutil
 import importlib
 from dotenv import load_dotenv
@@ -43,6 +45,17 @@ def register_modules_conditionally(app):
 app = create_app()
 
 #----------------------------------------------------------------------------#
+# Establish Flask User Mgmt
+#----------------------------------------------------------------------------#
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+#----------------------------------------------------------------------------#
 # Inject Config for calls to "render_template"
 #----------------------------------------------------------------------------#
 @app.context_processor
@@ -63,7 +76,6 @@ def about():
 # Error handlers
 @app.errorhandler(500)
 def internal_error(error):
-    #db_session.rollback()
     return render_template('errors/500.html', response_color="red"), 500
 
 @app.errorhandler(404)

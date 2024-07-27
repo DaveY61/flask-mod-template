@@ -2,6 +2,8 @@ import sqlite3
 import os
 import uuid
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 USER_DATABASE = None
 
@@ -70,51 +72,93 @@ def get_db():
     conn.execute('PRAGMA journal_mode=WAL')  # Enable WAL mode for better concurrency
     return conn
 
-def generate_token(user_id, token_type):
-    token = str(uuid.uuid4())
-    expires_at = datetime.now() + timedelta(minutes=20)
-    with get_db() as db:
-        db.execute('''
-            INSERT INTO tokens (user_id, token, token_type, expires_at)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, token, token_type, expires_at))
-    return token
+class User(UserMixin):
+    def __init__(self, id, username, email, password, is_active, created_at):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.password = password
+        self._is_active = is_active
+        self.created_at = created_at
 
-def create_user(user_id, username, email, password, created_at):
-    with get_db() as db:
-        db.execute('''
-            INSERT INTO users (id, username, email, password, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, username, email, password, created_at))
+    @property
+    def is_active(self):
+        return self._is_active
 
-def get_user_by_email(email):
-    with get_db() as db:
-        cur = db.execute('SELECT id, username, password, is_active FROM users WHERE email = ?', (email,))
-        return cur.fetchone()
+    @is_active.setter
+    def is_active(self, value):
+        self._is_active = value
 
-def get_user_by_id(user_id):
-    with get_db() as db:
-        cur = db.execute('SELECT id, username, password, is_active FROM users WHERE id = ?', (user_id,))
-        return cur.fetchone()
+    def get_id(self):
+        return self.id
 
-def update_user_activation(user_id):
-    with get_db() as db:
-        db.execute('UPDATE users SET is_active = 1 WHERE id = ?', (user_id,))
+    @property
+    def is_authenticated(self):
+        return True
 
-def delete_user(user_id):
-    with get_db() as db:
-        db.execute('DELETE FROM users WHERE id = ?', (user_id,))
-        db.execute('DELETE FROM tokens WHERE user_id = ?', (user_id,))
+    @property
+    def is_anonymous(self):
+        return False
 
-def get_token(token, token_type):
-    with get_db() as db:
-        cur = db.execute('SELECT user_id, expires_at FROM tokens WHERE token = ? AND token_type = ?', (token, token_type))
-        return cur.fetchone()
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
 
-def delete_token(token):
-    with get_db() as db:
-        db.execute('DELETE FROM tokens WHERE token = ?', (token,))
+    def save(self):
+        with get_db() as db:
+            db.execute('''
+                INSERT INTO users (id, username, email, password, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (self.id, self.username, self.email, self.password, self._is_active, self.created_at))
 
-def update_user_password(user_id, hashed_password):
-    with get_db() as db:
-        db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user_id))
+    @classmethod
+    def get(cls, user_id):
+        with get_db() as db:
+            cur = db.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+            row = cur.fetchone()
+            if row:
+                return cls(**row)
+
+    @classmethod
+    def get_by_email(cls, email):
+        with get_db() as db:
+            cur = db.execute('SELECT * FROM users WHERE email = ?', (email,))
+            row = cur.fetchone()
+            if row:
+                return cls(**row)
+
+    def update_activation(self):
+        self.is_active = 1
+        with get_db() as db:
+            db.execute('UPDATE users SET is_active = ? WHERE id = ?', (self.is_active, self.id))
+
+    def update_password(self, hashed_password):
+        self.password = hashed_password
+        with get_db() as db:
+            db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, self.id))
+
+    def delete(self):
+        with get_db() as db:
+            db.execute('DELETE FROM users WHERE id = ?', (self.id,))
+            db.execute('DELETE FROM tokens WHERE user_id = ?', (self.id,))
+
+    @classmethod
+    def generate_token(cls, user_id, token_type):
+        token = str(uuid.uuid4())
+        expires_at = datetime.now() + timedelta(minutes=20)
+        with get_db() as db:
+            db.execute('''
+                INSERT INTO tokens (user_id, token, token_type, expires_at)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, token, token_type, expires_at))
+        return token
+
+    @classmethod
+    def get_token(cls, token, token_type):
+        with get_db() as db:
+            cur = db.execute('SELECT user_id, expires_at FROM tokens WHERE token = ? AND token_type = ?', (token, token_type))
+            return cur.fetchone()
+
+    @classmethod
+    def delete_token(cls, token):
+        with get_db() as db:
+            db.execute('DELETE FROM tokens WHERE token = ?', (token,))
