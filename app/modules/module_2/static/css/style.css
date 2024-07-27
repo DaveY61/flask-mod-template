@@ -28,3 +28,12 @@ th {
     cursor: pointer;
     background-color: #f4f4f4;
 }
+
+td {
+    background-color: #ffffff;
+}
+
+th.sorting, th.sorting_asc, th.sorting_desc {
+    cursor: pointer;
+    background-color: #e2e2e2;
+}
