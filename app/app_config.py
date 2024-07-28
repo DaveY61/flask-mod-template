@@ -29,7 +29,7 @@ class Config:
     SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
     SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
     SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
-    ADMIN_ERROR_ROUTING = os.environ.get('ADMIN_ERROR_ROUTING', '').split(',')
+    ADMIN_USER_LIST = os.environ.get('ADMIN_USER_LIST', '').split(',')
 
     # User Database Settings
     USER_DATABASE_FILENAME = os.environ.get('USER_DATABASE_FILENAME') or 'users.db'
