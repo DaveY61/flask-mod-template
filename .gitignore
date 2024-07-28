@@ -3,6 +3,9 @@ app_logs/
 app_data/
 app_test_results/
 
+# Ignore other support files
+project_tree.txt
+
 # Ignore Python files
 *.pyo
 *.pyc
