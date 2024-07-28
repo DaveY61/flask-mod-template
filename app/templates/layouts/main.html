@@ -2,6 +2,4 @@
 {% block menu %}
       <li class="navbar-menu"><a {% if request.endpoint == 'pie_chart' %} class="active" {% endif %} href="{{ url_for('pie.pie_chart') }}">Pie Chart</a></li>
       <li class="navbar-menu"><a {% if request.endpoint == 'upload_csv' %} class="active" {% endif %} href="{{ url_for('csv.upload_csv') }}">CSV Upload</a></li>
-      <li class="navbar-menu"><a {% if request.endpoint == 'mod3' %} class="active" {% endif %}>3rd Action</a></li>
-      <li class="navbar-menu"><a {% if request.endpoint == 'mod4' %} class="active" {% endif %}>4th Action</a></li>
 {% endblock %}

@@ -1,9 +1,11 @@
 import sqlite3
 import os
 import uuid
+from functools import wraps
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
+from flask import  redirect, url_for, flash
+from flask_login import UserMixin, current_user
 
 USER_DATABASE = None
 
@@ -23,6 +25,12 @@ def convert_datetime(s):
 
 sqlite3.register_adapter(datetime, adapt_datetime)
 sqlite3.register_converter('timestamp', convert_datetime)
+
+def add_column_if_not_exists(db, table_name, column_name, column_definition):
+    cur = db.execute(f"PRAGMA table_info({table_name})")
+    columns = [row['name'] for row in cur.fetchall()]
+    if column_name not in columns:
+        db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
 
 def init_db():
     if os.path.exists(USER_DATABASE):
@@ -45,6 +53,7 @@ def init_db():
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             is_active INTEGER NOT NULL DEFAULT 0,
+            is_admin INTEGER NOT NULL DEFAULT 0,
             created_at timestamp NOT NULL
         )
     ''')
@@ -57,6 +66,9 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+
+    # Add the is_admin column if it does not exist
+    add_column_if_not_exists(cursor, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0')
 
     conn.commit()
     conn.close()
@@ -72,14 +84,26 @@ def get_db():
     conn.execute('PRAGMA journal_mode=WAL')  # Enable WAL mode for better concurrency
     return conn
 
+def admin_required(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        if not current_user.is_admin:
+            flash("Access to Administer pages is restricted", "error")
+            return redirect(url_for('home'))
+        return func(*args, **kwargs)
+    return decorated_view
+
 class User(UserMixin):
-    def __init__(self, id, username, email, password, is_active, created_at):
+    def __init__(self, id, username, email, password, is_active, created_at, is_admin=False):
         self.id = id
         self.username = username
         self.email = email
         self.password = password
         self._is_active = is_active
         self.created_at = created_at
+        self._is_admin = is_admin
 
     @property
     def is_active(self):
@@ -88,6 +112,14 @@ class User(UserMixin):
     @is_active.setter
     def is_active(self, value):
         self._is_active = value
+
+    @property
+    def is_admin(self):
+        return self._is_admin
+
+    @is_admin.setter
+    def is_admin(self, value):
+        self._is_admin = value
 
     def get_id(self):
         return self.id
@@ -106,9 +138,16 @@ class User(UserMixin):
     def save(self):
         with get_db() as db:
             db.execute('''
-                INSERT INTO users (id, username, email, password, is_active, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (self.id, self.username, self.email, self.password, self._is_active, self.created_at))
+                INSERT INTO users (id, username, email, password, is_active, is_admin, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    username=excluded.username,
+                    email=excluded.email,
+                    password=excluded.password,
+                    is_active=excluded.is_active,
+                    is_admin=excluded.is_admin,
+                    created_at=excluded.created_at
+            ''', (self.id, self.username, self.email, self.password, self._is_active, self._is_admin, self.created_at))
 
     @classmethod
     def get(cls, user_id):
@@ -129,12 +168,12 @@ class User(UserMixin):
     def update_activation(self):
         self.is_active = 1
         with get_db() as db:
-            db.execute('UPDATE users SET is_active = ? WHERE id = ?', (self.is_active, self.id))
+            db.execute('UPDATE users SET is_active = ?, is_admin = ? WHERE id = ?', (self.is_active, self.is_admin, self.id))
 
     def update_password(self, hashed_password):
         self.password = hashed_password
         with get_db() as db:
-            db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, self.id))
+            db.execute('UPDATE users SET password = ?, is_admin = ? WHERE id = ?', (hashed_password, self.is_admin, self.id))
 
     def delete(self):
         with get_db() as db:

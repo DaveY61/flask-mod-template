@@ -85,6 +85,8 @@
                             <li><a href="{{ url_for('auth.forgot') }}">Reset Password</a></li>
                             <li class="divider"></li>
                             <li><a href="{{ url_for('auth.delete') }}">Remove Account</a></li>
+                            <li class="divider"></li>
+                            <li><a href="{{ url_for('admin_setup') }}">Admin Setup</a></li>
                         </ul>
                     </li>
                 {% endif %}
@@ -98,7 +100,7 @@
       {% with messages = get_flashed_messages() %}
         {% if messages %}
           {% for message in messages %}
-            <div class="alert alert-block alert-error fade in">
+            <div class="alert alert-warning fade in">
               <a class="close" data-dismiss="alert">&times;</a>
               {{ message }}
             </div>

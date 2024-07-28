@@ -42,8 +42,9 @@ def register():
     hashed_password = generate_password_hash(password)
     user_id = str(uuid.uuid4())
     created_at = datetime.now()
+    is_admin = email in current_app.config['ADMIN_USER_LIST']
 
-    user = User(user_id, username, email, hashed_password, is_active=False, created_at=created_at)
+    user = User(user_id, username, email, hashed_password, is_active=False, created_at=created_at, is_admin=is_admin)
     user.save()
 
     token = User.generate_token(user_id, 'activation')
