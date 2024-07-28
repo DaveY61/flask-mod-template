@@ -84,9 +84,11 @@
                             <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
                             <li><a href="{{ url_for('auth.forgot') }}">Reset Password</a></li>
                             <li class="divider"></li>
-                            <li><a href="{{ url_for('auth.delete') }}">Remove Account</a></li>
+                            <li style="background-color:#FFCCCC"><a href="{{ url_for('auth.delete') }}">Remove Account</a></li>
+                            {% if is_admin %}
                             <li class="divider"></li>
-                            <li><a href="{{ url_for('admin_setup') }}">Admin Setup</a></li>
+                            <li style="background-color:yellow"><a href="{{ url_for('admin_setup') }}">Admin Setup</a></li>
+                            {% endif %}
                         </ul>
                     </li>
                 {% endif %}

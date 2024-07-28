@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, current_app
+from flask import Blueprint, request, render_template, redirect, url_for, current_app, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
@@ -92,10 +92,17 @@ def login():
     if not user or not user.check_password(password) or not user.is_active:
         return render_template('pages/login_failure.html', response_color='red'), 400
 
+    # Update is_admin status based on ADMIN_USER_LIST
+    is_admin = email in current_app.config['ADMIN_USER_LIST']
+    user.update_admin_status(is_admin)
+
     login_user(user)
 
-    # Redirect to the next URL or home if next is not provided
-    return redirect(next_url or url_for('home'))
+    # Redirect to the next URL or home if next is not provided or is invalid
+    if not next_url or next_url == 'None':
+        next_url = url_for('home')
+
+    return redirect(next_url)
 
 @blueprint.route('/logout', methods=['GET'])
 @login_required

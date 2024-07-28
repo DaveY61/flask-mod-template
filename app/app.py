@@ -2,7 +2,7 @@
 # Imports
 #----------------------------------------------------------------------------#
 from flask import Flask, render_template
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager, login_required, current_user
 from app.services.auth_service_db import User, admin_required
 import pkgutil
 import importlib
@@ -61,6 +61,16 @@ def load_user(user_id):
 @app.context_processor
 def inject_config():
    return dict(config=app.config)
+
+#----------------------------------------------------------------------------#
+# Inject User Status for calls to "render_template"
+#----------------------------------------------------------------------------#
+@app.context_processor
+def inject_user():
+    is_admin = False
+    if current_user.is_authenticated:
+        is_admin = current_user.is_admin
+    return dict(is_admin=is_admin)
 
 #----------------------------------------------------------------------------#
 # Define App Route Endpoints

@@ -175,6 +175,21 @@ class User(UserMixin):
         with get_db() as db:
             db.execute('UPDATE users SET password = ?, is_admin = ? WHERE id = ?', (hashed_password, self.is_admin, self.id))
 
+    def update_admin_status(self, is_admin):
+        self.is_admin = is_admin
+        with get_db() as db:
+            cursor = db.cursor()
+            self.add_column_if_not_exists(cursor, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0')
+            cursor.execute('UPDATE users SET is_admin = ? WHERE id = ?', (is_admin, self.id))
+            db.commit()
+
+    @staticmethod
+    def add_column_if_not_exists(cursor, table_name, column_name, column_definition):
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [info[1] for info in cursor.fetchall()]
+        if column_name not in columns:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+
     def delete(self):
         with get_db() as db:
             db.execute('DELETE FROM users WHERE id = ?', (self.id,))
