@@ -41,18 +41,41 @@
     .module-item.enabled {
         background-color: #e6f3ff;
     }
+    .module-checkbox-name {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        margin-right: 10px;
+        min-width: 200px;
+    }
     .module-name {
         font-weight: bold;
-        margin-right: 10px;
+        margin-left: 5px;
+        margin-top: 3px;
     }
     .module-menu-name {
         flex-grow: 1;
         margin-right: 10px;
+        height: 34px;
     }
     .drag-handle {
         cursor: move;
         padding: 5px;
         margin-right: 10px;
+        display: flex;
+        align-items: center;
+    }
+    .form-check-input {
+        margin-top: 0;
+    }
+    .form-check {
+        display: flex;
+        align-items: center;
+    }
+    .form-check-label {
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
     }
 </style>
 
@@ -98,11 +121,12 @@
         {% for module in modules %}
           <div class="module-item {% if module.enabled %}enabled{% endif %}" data-module-name="{{ module.name }}">
             <span class="drag-handle">&#9776;</span>
-            <div class="form-check">
+            <div class="module-checkbox-name">
               <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
                      {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
               <label class="form-check-label module-name" for="{{ module.name }}">
-                {{ module.name }}
+                {% set parts = module.name.split('.') %}
+                {{ parts[-2] }}.{{ parts[-1] }}
               </label>
             </div>
             <input type="text" class="form-control module-menu-name" name="menu_name_{{ module.name }}" 
