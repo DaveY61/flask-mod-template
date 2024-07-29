@@ -12,7 +12,7 @@ def setup():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('home'))
 
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'gui_config.cnf')
+    config_path = current_app.config['GUI_CONFIG_PATH']
     
     if request.method == 'POST':
         # Get the new values from the form

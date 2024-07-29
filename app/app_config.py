@@ -1,7 +1,6 @@
 import os
 import binascii
 import json
-from app.mod_config import MODULE_LIST
 
 class Config:
     # Set debug mode
@@ -37,14 +36,21 @@ class Config:
     USER_DATABASE_PATH = os.path.join(USER_DATABASE_DIRECTORY, USER_DATABASE_FILENAME)
 
     #----------------------------------------------------------------------------
-    # Module Configuration from "mod_config.py"
-    MODULE_LIST = MODULE_LIST
+    # Module Configuration from "mod_config.cnf"
+    MOD_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'mod_config.cnf')
+
+    with open(MOD_CONFIG_PATH, 'r') as f:
+        mod_config = json.load(f)
+
+    MODULE_LIST = mod_config['MODULE_LIST']
+
+    # Define the GUI config path to part of the Config class
+    GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
 
 #----------------------------------------------------------------------------
 # Integrate GUI Config attributes from "gui_config.cnf"
-GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
-
-with open(GUI_CONFIG_PATH, 'r') as f:
+# Must be done AFTER the class has been defined
+with open(Config.GUI_CONFIG_PATH, 'r') as f:
     gui_config = json.load(f)
 
 for key, value in gui_config.items():
