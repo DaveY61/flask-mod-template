@@ -1,0 +1,30 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Admin Setup {{ config.PROJECT_NAME }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Admin Setup</h1>
+</div>
+<p class="lead">Administrator setup page for the application.</p>
+
+<form method="POST">
+  <div class="form-group">
+    <label for="company_name">Company Name:</label>
+    <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}">
+  </div>
+  <div class="form-group">
+    <label for="body_color">Body Color:</label>
+    <input type="color" class="form-control" id="body_color" name="body_color" value="{{ form_data.body_color }}">
+  </div>
+  <div class="form-group">
+    <label for="project_name">Project Name:</label>
+    <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}">
+  </div>
+  <div class="form-group">
+    <label for="project_name_color">Project Name Color:</label>
+    <input type="color" class="form-control" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}">
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+{% endblock %}

@@ -2,8 +2,8 @@
 # Imports
 #----------------------------------------------------------------------------#
 from flask import Flask, render_template
-from flask_login import LoginManager, login_required, current_user
-from app.services.auth_service_db import User, admin_required
+from flask_login import LoginManager, current_user
+from app.services.auth_service_db import User
 import pkgutil
 import importlib
 from dotenv import load_dotenv
@@ -82,12 +82,6 @@ def home():
 @app.route('/about')
 def about():
     return render_template('pages/about.html')
-
-@app.route('/admin_setup')
-@login_required
-@admin_required
-def admin_setup():
-    return render_template('pages/admin_setup.html')
 
 # Error handlers
 @app.errorhandler(500)
