@@ -1,0 +1,25 @@
+/* Box styling for form and pie chart */
+.panel-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    height: 450px; /* Ensure both boxes are of similar height */
+}
+
+/* Center the panel titles */
+.panel-container h3 {
+    text-align: center;
+}
+
+/* Adjust the size of the form and chart to be similar */
+#pieChart {
+    width: 100%; /* Make it responsive */
+    height: 100%; /* Adjust as needed */
+    max-height: 300px; /* Ensure the chart does not exceed this height */
+}
+
+/* Center the title */
+.text-center {
+    text-align: center;
+}
