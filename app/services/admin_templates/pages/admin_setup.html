@@ -3,10 +3,17 @@
 {% block content %}
 
 <style>
+    .admin-setup-container {
+        display: flex;
+        justify-content: space-between;
+    }
+    .gui-setup, .module-setup {
+        width: 48%;
+    }
     .color-input-group {
         display: flex;
         align-items: center;
-        width: 300px; /* Adjust this value to change the overall width */
+        width: 300px;
     }
     .color-picker-wrapper {
         margin-right: 10px;
@@ -22,6 +29,15 @@
         flex-grow: 1;
         width: auto;
     }
+    .module-item {
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .module-name {
+        font-weight: bold;
+    }
 </style>
 
 <div class="page-header">
@@ -29,33 +45,59 @@
 </div>
 
 <form method="POST">
-  <div class="form-group">
-    <label for="company_name">Company Name:</label>
-    <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}" style="width: 300px;">
-  </div>
-  <div class="form-group">
-    <label for="body_color">Body Color:</label>
-    <div class="color-input-group">
-      <div class="color-picker-wrapper">
-        <input type="color" id="body_color_picker" class="color-picker" onchange="updateColorInput('body_color', this.value)">
+  <div class="admin-setup-container">
+    <div class="gui-setup">
+      <h2>GUI Setup</h2>
+      <div class="form-group">
+        <label for="company_name">Company Name:</label>
+        <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}" style="width: 300px;">
       </div>
-      <input type="text" class="form-control color-text-input" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
+      <div class="form-group">
+        <label for="body_color">Body Color:</label>
+        <div class="color-input-group">
+          <div class="color-picker-wrapper">
+            <input type="color" id="body_color_picker" class="color-picker" onchange="updateColorInput('body_color', this.value)">
+          </div>
+          <input type="text" class="form-control color-text-input" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="project_name">Project Name:</label>
+        <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}" style="width: 300px;">
+      </div>
+      <div class="form-group">
+        <label for="project_name_color">Project Name Color:</label>
+        <div class="color-input-group">
+          <div class="color-picker-wrapper">
+            <input type="color" id="project_name_color_picker" class="color-picker" onchange="updateColorInput('project_name_color', this.value)">
+          </div>
+          <input type="text" class="form-control color-text-input" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
+        </div>
+      </div>
+    </div>
+    
+    <div class="module-setup">
+      <h2>Module Setup</h2>
+      {% for module in modules %}
+        <div class="module-item">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
+                   {% if module.enabled %}checked{% endif %}>
+            <label class="form-check-label module-name" for="{{ module.name }}">
+              {{ module.name }}
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="menu_name_{{ module.name }}">Menu Name:</label>
+            <input type="text" class="form-control" id="menu_name_{{ module.name }}" name="menu_name_{{ module.name }}" 
+                   value="{{ module.menu_name }}" style="width: 200px;">
+          </div>
+        </div>
+      {% endfor %}
     </div>
   </div>
-  <div class="form-group">
-    <label for="project_name">Project Name:</label>
-    <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}" style="width: 300px;">
-  </div>
-  <div class="form-group">
-    <label for="project_name_color">Project Name Color:</label>
-    <div class="color-input-group">
-      <div class="color-picker-wrapper">
-        <input type="color" id="project_name_color_picker" class="color-picker" onchange="updateColorInput('project_name_color', this.value)">
-      </div>
-      <input type="text" class="form-control color-text-input" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
-    </div>
-  </div>
-  <button type="submit" class="btn btn-primary">Submit</button>
+  
+  <button type="submit" class="btn btn-primary">Save Configuration</button>
 </form>
 
 <script>

@@ -1,7 +1,19 @@
 {
     "MODULE_LIST": [
-        "app.modules.module_1.pie_module",
-        "app.modules.module_2.csv_module",
-        "app.modules.module_3.pie_module"
+        {
+            "name": "app.modules.module_1.pie_module",
+            "enabled": true,
+            "menu_name": "Pie Chart"
+        },
+        {
+            "name": "app.modules.module_2.csv_module",
+            "enabled": true,
+            "menu_name": "CSV Upload"
+        },
+        {
+            "name": "app.modules.module_3.pie_module",
+            "enabled": false,
+            "menu_name": "Pie Chart Number 2"
+        }
     ]
 }

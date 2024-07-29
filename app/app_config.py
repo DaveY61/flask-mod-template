@@ -42,8 +42,8 @@ class Config:
     with open(MOD_CONFIG_PATH, 'r') as f:
         mod_config = json.load(f)
 
-    MODULE_LIST = mod_config['MODULE_LIST']
-
+    MODULE_LIST = [module['name'] for module in mod_config['MODULE_LIST'] if module['enabled']]
+    
     # Define the GUI config path to part of the Config class
     GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
 
