@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 import os
+import json
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 
@@ -11,7 +12,7 @@ def setup():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('home'))
 
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'gui_config.py')
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'gui_config.cnf')
     
     if request.method == 'POST':
         # Get the new values from the form
@@ -22,21 +23,9 @@ def setup():
             'PROJECT_NAME_COLOR': request.form.get('project_name_color')
         }
 
-        # Update gui_config.py with new values
-        new_config = f"""# GUI Customized Labels and Colors
-class GUIConfig:
-    # Template Footer
-    COMPANY_NAME = "{new_values['COMPANY_NAME']}"
-
-    # Template Colors
-    BODY_COLOR = "{new_values['BODY_COLOR']}"
-
-    # Project Name
-    PROJECT_NAME = "{new_values['PROJECT_NAME']}"
-    PROJECT_NAME_COLOR = "{new_values['PROJECT_NAME_COLOR']}"
-"""
+        # Update gui_config.cnf with new values
         with open(config_path, 'w') as f:
-            f.write(new_config)
+            json.dump(new_values, f, indent=4)
         
         # Update current_app.config with new values
         for key, value in new_values.items():

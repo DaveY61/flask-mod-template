@@ -1,6 +1,6 @@
 import os
 import binascii
-from app.gui_config import GUIConfig
+import json
 from app.mod_config import MODULE_LIST
 
 class Config:
@@ -15,7 +15,7 @@ class Config:
     VS_PROJECT_FOLDER_NAME = os.environ.get('VS_PROJECT_FOLDER_NAME')
 
     #----------------------------------------------------------------------------
-    # Config the Log, Email, and Authentication Seervices
+    # Config the Log, Email, and Authentication Services
 
     # Log Settings
     LOG_FILE_DIRECTORY = os.environ.get('LOG_FILE_DIRECTORY') or './app_logs'
@@ -41,7 +41,11 @@ class Config:
     MODULE_LIST = MODULE_LIST
 
 #----------------------------------------------------------------------------
-# Integrate GUIConfig attributes from "gui_config.py"
-for key, value in vars(GUIConfig).items():
-    if not key.startswith('__'):
-        setattr(Config, key, value)
+# Integrate GUI Config attributes from "gui_config.cnf"
+GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
+
+with open(GUI_CONFIG_PATH, 'r') as f:
+    gui_config = json.load(f)
+
+for key, value in gui_config.items():
+    setattr(Config, key, value)
