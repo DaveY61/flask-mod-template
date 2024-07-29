@@ -30,13 +30,29 @@
         width: auto;
     }
     .module-item {
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 5px;
+        display: flex;
+        align-items: center;
+        cursor: move;
+    }
+    .module-item.enabled {
+        background-color: #e6f3ff;
     }
     .module-name {
         font-weight: bold;
+        margin-right: 10px;
+    }
+    .module-menu-name {
+        flex-grow: 1;
+        margin-right: 10px;
+    }
+    .drag-handle {
+        cursor: move;
+        padding: 5px;
+        margin-right: 10px;
     }
 </style>
 
@@ -44,7 +60,7 @@
   <h1>Admin Setup</h1>
 </div>
 
-<form method="POST">
+<form method="POST" id="admin-setup-form">
   <div class="admin-setup-container">
     <div class="gui-setup">
       <h2>GUI Setup</h2>
@@ -78,28 +94,29 @@
     
     <div class="module-setup">
       <h2>Module Setup</h2>
-      {% for module in modules %}
-        <div class="module-item">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
-                   {% if module.enabled %}checked{% endif %}>
-            <label class="form-check-label module-name" for="{{ module.name }}">
-              {{ module.name }}
-            </label>
+      <div id="module-list">
+        {% for module in modules %}
+          <div class="module-item {% if module.enabled %}enabled{% endif %}" data-module-name="{{ module.name }}">
+            <span class="drag-handle">&#9776;</span>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
+                     {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
+              <label class="form-check-label module-name" for="{{ module.name }}">
+                {{ module.name }}
+              </label>
+            </div>
+            <input type="text" class="form-control module-menu-name" name="menu_name_{{ module.name }}" 
+                   value="{{ module.menu_name }}" placeholder="Menu Name">
           </div>
-          <div class="form-group">
-            <label for="menu_name_{{ module.name }}">Menu Name:</label>
-            <input type="text" class="form-control" id="menu_name_{{ module.name }}" name="menu_name_{{ module.name }}" 
-                   value="{{ module.menu_name }}" style="width: 200px;">
-          </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
   </div>
   
   <button type="submit" class="btn btn-primary">Save Configuration</button>
 </form>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
 <script>
 function updateColorInput(inputId, colorValue) {
   document.getElementById(inputId).value = colorValue;
@@ -136,7 +153,37 @@ function initColorPickers() {
   projectNameColor.addEventListener('input', () => updateColorPicker(projectNameColor, projectNameColorPicker));
 }
 
-document.addEventListener('DOMContentLoaded', initColorPickers);
+function toggleModuleEnabled(checkbox) {
+  const moduleItem = checkbox.closest('.module-item');
+  if (checkbox.checked) {
+    moduleItem.classList.add('enabled');
+  } else {
+    moduleItem.classList.remove('enabled');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initColorPickers();
+
+  new Sortable(document.getElementById('module-list'), {
+    animation: 150,
+    handle: '.drag-handle',
+    onEnd: function(evt) {
+      const moduleOrder = Array.from(evt.to.children).map(item => item.dataset.moduleName);
+      document.getElementById('admin-setup-form').appendChild(
+        createHiddenInput('module_order', JSON.stringify(moduleOrder))
+      );
+    }
+  });
+});
+
+function createHiddenInput(name, value) {
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = name;
+  input.value = value;
+  return input;
+}
 </script>
 
 {% endblock %}

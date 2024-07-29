@@ -47,14 +47,31 @@ def setup():
         with open(mod_config_path, 'r') as f:
             mod_config = json.load(f)
 
+        # Get the new module order
+        module_order = json.loads(request.form.get('module_order', '[]'))
+        
+        # Create a dictionary of modules for easy lookup
+        module_dict = {module['name']: module for module in mod_config['MODULE_LIST']}
+        
+        # Create the new ordered list of modules
+        new_module_list = []
+        for module_name in module_order:
+            module = module_dict[module_name]
+            module['enabled'] = module_name in request.form.getlist('modules')
+            module['menu_name'] = request.form.get(f"menu_name_{module_name}", module['menu_name'])
+            new_module_list.append(module)
+        
+        # Add any modules that weren't in the order (shouldn't happen, but just in case)
         for module in mod_config['MODULE_LIST']:
-            module['enabled'] = module['name'] in request.form.getlist('modules')
-            module['menu_name'] = request.form.get(f"menu_name_{module['name']}", module['menu_name'])
+            if module['name'] not in module_order:
+                new_module_list.append(module)
+
+        mod_config['MODULE_LIST'] = new_module_list
 
         with open(mod_config_path, 'w') as f:
             json.dump(mod_config, f, indent=4)
         
-        current_app.config['MODULE_LIST'] = [module['name'] for module in mod_config['MODULE_LIST'] if module['enabled']]
+        current_app.config['MODULE_LIST'] = [module['name'] for module in new_module_list if module['enabled']]
 
         flash('Configuration updated successfully!', 'success')
 
