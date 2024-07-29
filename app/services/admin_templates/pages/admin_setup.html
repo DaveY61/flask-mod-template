@@ -139,7 +139,7 @@
     </div>
   </div>
   
-  <button type="submit" class="btn btn-primary">Save Configuration</button>
+  <button type="submit" class="btn btn-primary" id="saveButton">Save Configuration</button>
 </form>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
@@ -186,10 +186,32 @@ function toggleModuleEnabled(checkbox) {
   } else {
     moduleItem.classList.remove('enabled');
   }
+  checkModuleChanges();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   initColorPickers();
+
+  const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
+  const saveButton = document.getElementById('saveButton');
+  let originalState = Array.from(moduleCheckboxes).map(cb => cb.checked);
+
+  function checkModuleChanges() {
+    const currentState = Array.from(moduleCheckboxes).map(cb => cb.checked);
+    const hasChanges = currentState.some((state, index) => state !== originalState[index]);
+    
+    if (hasChanges) {
+      saveButton.textContent = 'Save and Restart';
+      saveButton.classList.add('btn-warning');
+    } else {
+      saveButton.textContent = 'Save Configuration';
+      saveButton.classList.remove('btn-warning');
+    }
+  }
+
+  moduleCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', checkModuleChanges);
+  });
 
   new Sortable(document.getElementById('module-list'), {
     animation: 150,

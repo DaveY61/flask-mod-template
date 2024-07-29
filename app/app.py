@@ -97,3 +97,6 @@ register_blueprints(app, 'services')
 
 # Register blueprint routes for 'modules' (conditionally)
 register_modules_conditionally(app)
+
+if __name__ == '__main__':
+    app.run(debug=True)

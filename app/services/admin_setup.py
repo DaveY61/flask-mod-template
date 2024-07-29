@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 import os
 import json
-import importlib
+import sys
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 
@@ -47,25 +47,38 @@ def setup():
         with open(mod_config_path, 'r') as f:
             mod_config = json.load(f)
 
-        # Get the new module order
+        # Get the new module order and enabled modules
         module_order = json.loads(request.form.get('module_order', '[]'))
+        enabled_modules = set(request.form.getlist('modules'))
         
-        # Create a dictionary of modules for easy lookup
-        module_dict = {module['name']: module for module in mod_config['MODULE_LIST']}
-        
-        # Create the new ordered list of modules
+        # Check if module configuration has changed
+        modules_enabled_disabled = False
         new_module_list = []
-        for module_name in module_order:
-            module = module_dict[module_name]
-            module['enabled'] = module_name in request.form.getlist('modules')
-            module['menu_name'] = request.form.get(f"menu_name_{module_name}", module['menu_name'])
-            new_module_list.append(module)
         
-        # Add any modules that weren't in the order (shouldn't happen, but just in case)
-        for module in mod_config['MODULE_LIST']:
-            if module['name'] not in module_order:
-                new_module_list.append(module)
+        # Create a dictionary of existing modules for easy lookup
+        existing_modules = {module['name']: module for module in mod_config['MODULE_LIST']}
+        
+        # If module_order is empty, use the existing order
+        if not module_order:
+            module_order = [module['name'] for module in mod_config['MODULE_LIST']]
 
+        for module_name in module_order:
+            if module_name in existing_modules:
+                module = existing_modules[module_name].copy()
+                new_enabled = module_name in enabled_modules
+                new_menu_name = request.form.get(f"menu_name_{module_name}", module['menu_name'])
+                
+                if new_enabled != module['enabled']:
+                    modules_enabled_disabled = True
+                    module['enabled'] = new_enabled
+                
+                module['menu_name'] = new_menu_name
+                
+                new_module_list.append(module)
+            else:
+                print(f"Warning: Module {module_name} not found in existing configuration")
+
+        # Update the module configuration
         mod_config['MODULE_LIST'] = new_module_list
 
         with open(mod_config_path, 'w') as f:
@@ -73,7 +86,11 @@ def setup():
         
         current_app.config['MODULE_LIST'] = [module['name'] for module in new_module_list if module['enabled']]
 
-        flash('Configuration updated successfully!', 'success')
+        if modules_enabled_disabled:
+            flash('Configuration updated. The application will restart to apply changes.', 'success')
+            os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+            flash('Configuration updated successfully!', 'success')
 
     # Read current values
     form_data = {
