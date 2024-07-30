@@ -6,29 +6,41 @@ import json
 import sys
 import importlib
 import inspect
+import re
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 
 def discover_module_info(module_name):
-    print(f"Discovering module: {module_name}")
     try:
         module = importlib.import_module(module_name)
         for name, obj in inspect.getmembers(module):
             if isinstance(obj, FlaskBlueprint):
                 blueprint_name = obj.name
-                print(f"Found blueprint: {blueprint_name}")
                 
-                routes = []
-                for func_name, func in inspect.getmembers(obj):
-                    if hasattr(func, '_rule'):
-                        routes.append(func._rule.lstrip('/'))  # Remove leading slash
+                # Get the file path of the module
+                module_file = inspect.getfile(module)
                 
-                print(f"Found routes: {routes}")
+                route = None
+                view_name = None
+                
+                # Read the file and look for the route decorator
+                with open(module_file, 'r') as file:
+                    content = file.read()
+                    # Look for the route decorator
+                    match = re.search(r'@blueprint\.route\([\'"](.+?)[\'"]\)', content)
+                    if match:
+                        route = match.group(1).lstrip('/')
+                    
+                    # Look for the function definition after the route decorator
+                    view_match = re.search(r'@blueprint\.route.*?\ndef\s+(\w+)', content, re.DOTALL)
+                    if view_match:
+                        view_name = view_match.group(1)
                 
                 return {
                     'name': module_name,
                     'blueprint_name': blueprint_name,
-                    'route': routes[0] if routes else None
+                    'route': route,
+                    'view_name': view_name
                 }
         print(f"No blueprint found in module: {module_name}")
         return None
@@ -115,7 +127,6 @@ def setup():
         current_app.config['MODULE_LIST'] = new_module_list
 
         if modules_enabled_disabled:
-            flash('Configuration updated. The application will restart to apply changes.', 'success')
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             flash('Configuration updated successfully!', 'success')
@@ -132,16 +143,45 @@ def setup():
         mod_config = json.load(f)
 
     available_modules = get_available_modules()
-    available_modules_dict = {m['name']: m for m in available_modules}
+    existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
     
-    # Merge available modules with existing configuration
-    for module in mod_config['MODULE_LIST']:
-        module_info = discover_module_info(module['name'])
-        if module_info:
-            module['route'] = module_info['route'] or module['view_name']
+    # Merge available modules with existing configuration and add new modules
+    updated_module_list = []
+    for module in available_modules:
+        if module['name'] in existing_modules:
+            existing_module = existing_modules[module['name']]
+            # Preserve existing information, update only if new info is available
+            if module['blueprint_name']:
+                existing_module['blueprint_name'] = module['blueprint_name']
+            if module['route']:
+                existing_module['route'] = module['route']
+            if module['view_name']:
+                existing_module['view_name'] = module['view_name']
+            updated_module_list.append(existing_module)
         else:
-            module['route'] = module['view_name']
-        print(f"Module {module['name']} route: {module['route']}")
+            # New module discovered
+            new_module = {
+                'name': module['name'],
+                'enabled': False,  # Default to disabled for new modules
+                'menu_name': module['name'].split('.')[-1],  # Default menu name to the last part of the module name
+                'blueprint_name': module['blueprint_name'],
+                'view_name': module['view_name'],
+                'route': module['route']
+            }
+            updated_module_list.append(new_module)
+
+    # Ensure all modules in the existing configuration are included
+    for module_name, module in existing_modules.items():
+        if module_name not in [m['name'] for m in updated_module_list]:
+            updated_module_list.append(module)
+
+    # Update the module configuration
+    mod_config['MODULE_LIST'] = updated_module_list
+
+    with open(mod_config_path, 'w') as f:
+        json.dump(mod_config, f, indent=4)
+    
+    current_app.config['MODULE_LIST'] = updated_module_list
 
     return render_template('pages/admin_setup.html', form_data=form_data, 
-                           modules=mod_config['MODULE_LIST'])
+                           modules=updated_module_list)
