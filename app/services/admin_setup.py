@@ -16,30 +16,18 @@ def discover_module_info(module_name):
         for name, obj in inspect.getmembers(module):
             if isinstance(obj, FlaskBlueprint):
                 blueprint_name = obj.name
-                
-                # Get the file path of the module
                 module_file = inspect.getfile(module)
-                
-                route = None
                 view_name = None
                 
-                # Read the file and look for the route decorator
                 with open(module_file, 'r') as file:
                     content = file.read()
-                    # Look for the route decorator
-                    match = re.search(r'@blueprint\.route\([\'"](.+?)[\'"]\)', content)
-                    if match:
-                        route = match.group(1).lstrip('/')
-                    
-                    # Look for the function definition after the route decorator
                     view_match = re.search(r'@blueprint\.route.*?\ndef\s+(\w+)', content, re.DOTALL)
-                    if view_name:
+                    if view_match:
                         view_name = view_match.group(1)
                 
                 return {
                     'name': module_name,
                     'blueprint_name': blueprint_name,
-                    'route': route,
                     'view_name': view_name
                 }
         return None
@@ -95,9 +83,11 @@ def setup():
         modules_enabled_disabled = False
         new_module_list = []
         
+        existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
+        
         for module_name in module_order:
-            module = next((m for m in mod_config['MODULE_LIST'] if m['name'] == module_name), None)
-            if module:
+            if module_name in existing_modules:
+                module = existing_modules[module_name]
                 new_enabled = module_name in enabled_modules
                 new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
                 
@@ -109,8 +99,7 @@ def setup():
                     'enabled': new_enabled,
                     'menu_name': new_menu_name,
                     'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name'],
-                    'route': module.get('route')  # Use .get() to avoid KeyError if 'route' is missing
+                    'view_name': module['view_name']
                 }
                 
                 new_module_list.append(new_module)
@@ -152,8 +141,6 @@ def setup():
             # Preserve existing information, update only if new info is available
             if module['blueprint_name']:
                 existing_module['blueprint_name'] = module['blueprint_name']
-            if module['route']:
-                existing_module['route'] = module['route']
             if module['view_name']:
                 existing_module['view_name'] = module['view_name']
             updated_module_list.append(existing_module)
@@ -164,8 +151,7 @@ def setup():
                 'enabled': False,  # Default to disabled for new modules
                 'menu_name': module['name'].split('.')[-1],  # Default menu name to the last part of the module name
                 'blueprint_name': module['blueprint_name'],
-                'view_name': module['view_name'],
-                'route': module['route']
+                'view_name': module['view_name']
             }
             updated_module_list.append(new_module)
 
