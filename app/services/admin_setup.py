@@ -58,6 +58,13 @@ def setup():
     gui_config_path = current_app.config['GUI_CONFIG_PATH']
     mod_config_path = current_app.config['MOD_CONFIG_PATH']
     
+    # Get available modules from the file system
+    available_modules = get_available_modules()
+    
+    # Read current configuration
+    with open(mod_config_path, 'r') as f:
+        mod_config = json.load(f)
+
     if request.method == 'POST':
         # Update GUI config
         new_gui_values = {
@@ -74,9 +81,6 @@ def setup():
             current_app.config[key] = value
 
         # Update MODULE_LIST
-        with open(mod_config_path, 'r') as f:
-            mod_config = json.load(f)
-
         module_order = json.loads(request.form.get('module_order', '[]'))
         enabled_modules = set(request.form.getlist('modules'))
         
@@ -84,27 +88,48 @@ def setup():
         new_module_list = []
         
         existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
+        available_modules_dict = {m['name']: m for m in available_modules}
         
+        # Use the module_order to sort the modules and include new modules
         for module_name in module_order:
             if module_name in existing_modules:
                 module = existing_modules[module_name]
-                new_enabled = module_name in enabled_modules
-                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
-                
-                if new_enabled != module.get('enabled', False):
-                    modules_enabled_disabled = True
-                
+            elif module_name in available_modules_dict:
+                module = available_modules_dict[module_name]
+                module['enabled'] = False
+                module['menu_name'] = module['name'].split('.')[-1]
+            else:
+                print(f"Warning: Module {module_name} not found in existing configuration or available modules")
+                continue
+
+            new_enabled = module_name in enabled_modules
+            new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
+            
+            if new_enabled != module.get('enabled', False):
+                modules_enabled_disabled = True
+            
+            new_module = {
+                'name': module_name,
+                'enabled': new_enabled,
+                'menu_name': new_menu_name,
+                'blueprint_name': module.get('blueprint_name'),
+                'view_name': module.get('view_name')
+            }
+            
+            new_module_list.append(new_module)
+
+        # Add any new modules that weren't in the module_order
+        for module in available_modules:
+            if module['name'] not in [m['name'] for m in new_module_list]:
                 new_module = {
-                    'name': module_name,
-                    'enabled': new_enabled,
-                    'menu_name': new_menu_name,
+                    'name': module['name'],
+                    'enabled': False,
+                    'menu_name': module['name'].split('.')[-1],
                     'blueprint_name': module['blueprint_name'],
                     'view_name': module['view_name']
                 }
                 
                 new_module_list.append(new_module)
-            else:
-                print(f"Warning: Module {module_name} not found in existing configuration")
 
         # Update the module configuration
         mod_config['MODULE_LIST'] = new_module_list
@@ -118,8 +143,32 @@ def setup():
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             flash('Configuration updated successfully!', 'success')
+    else:
+        # For GET requests, merge existing configuration with available modules
+        existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
+        merged_modules = []
+        
+        for module in available_modules:
+            if module['name'] in existing_modules:
+                merged_modules.append(existing_modules[module['name']])
+            else:
+                new_module = {
+                    'name': module['name'],
+                    'enabled': False,
+                    'menu_name': module['name'].split('.')[-1],
+                    'blueprint_name': module['blueprint_name'],
+                    'view_name': module['view_name']
+                }
+                merged_modules.append(new_module)
 
-    # Read current values
+        # Update the module configuration with any new modules
+        mod_config['MODULE_LIST'] = merged_modules
+        with open(mod_config_path, 'w') as f:
+            json.dump(mod_config, f, indent=4)
+        
+        current_app.config['MODULE_LIST'] = merged_modules
+
+    # Read current GUI values
     form_data = {
         'company_name': current_app.config['COMPANY_NAME'],
         'body_color': current_app.config['BODY_COLOR'],
@@ -127,46 +176,4 @@ def setup():
         'project_name_color': current_app.config['PROJECT_NAME_COLOR']
     }
 
-    with open(mod_config_path, 'r') as f:
-        mod_config = json.load(f)
-
-    available_modules = get_available_modules()
-    existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
-    
-    # Merge available modules with existing configuration and add new modules
-    updated_module_list = []
-    for module in available_modules:
-        if module['name'] in existing_modules:
-            existing_module = existing_modules[module['name']]
-            # Preserve existing information, update only if new info is available
-            if module['blueprint_name']:
-                existing_module['blueprint_name'] = module['blueprint_name']
-            if module['view_name']:
-                existing_module['view_name'] = module['view_name']
-            updated_module_list.append(existing_module)
-        else:
-            # New module discovered
-            new_module = {
-                'name': module['name'],
-                'enabled': False,  # Default to disabled for new modules
-                'menu_name': module['name'].split('.')[-1],  # Default menu name to the last part of the module name
-                'blueprint_name': module['blueprint_name'],
-                'view_name': module['view_name']
-            }
-            updated_module_list.append(new_module)
-
-    # Ensure all modules in the existing configuration are included
-    for module_name, module in existing_modules.items():
-        if module_name not in [m['name'] for m in updated_module_list]:
-            updated_module_list.append(module)
-
-    # Update the module configuration
-    mod_config['MODULE_LIST'] = updated_module_list
-
-    with open(mod_config_path, 'w') as f:
-        json.dump(mod_config, f, indent=4)
-    
-    current_app.config['MODULE_LIST'] = updated_module_list
-
-    return render_template('pages/admin_setup.html', form_data=form_data, 
-                           modules=updated_module_list)
+    return render_template('pages/admin_setup.html', form_data=form_data, modules=mod_config['MODULE_LIST'])
