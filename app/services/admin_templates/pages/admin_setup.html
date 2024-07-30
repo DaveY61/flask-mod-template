@@ -166,6 +166,7 @@
       </div>
     </div>
   </div>
+  <input type="hidden" id="module_order" name="module_order" value="">
   
   <button type="submit" class="btn btn-primary" id="saveButton">Save Configuration</button>
 </form>
@@ -231,6 +232,12 @@ function updateSaveButton() {
   }
 }
 
+function updateModuleOrder() {
+  const moduleOrder = Array.from(document.querySelectorAll('.module-item'))
+    .map(item => item.dataset.moduleName);
+  document.getElementById('module_order').value = JSON.stringify(moduleOrder);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   initColorPickers();
 
@@ -238,23 +245,13 @@ document.addEventListener('DOMContentLoaded', function() {
     animation: 150,
     handle: '.drag-handle',
     onEnd: function(evt) {
-      const moduleOrder = Array.from(evt.to.children).map(item => item.dataset.moduleName);
-      document.getElementById('admin-setup-form').appendChild(
-        createHiddenInput('module_order', JSON.stringify(moduleOrder))
-      );
+      updateModuleOrder();
     }
   });
 
   updateSaveButton();
+  updateModuleOrder(); // Initialize module order when page loads
 });
-
-function createHiddenInput(name, value) {
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = name;
-  input.value = value;
-  return input;
-}
 </script>
 
 {% endblock %}

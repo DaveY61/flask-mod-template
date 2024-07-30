@@ -17,7 +17,7 @@
         {
             "name": "app.modules.module_3.pie_module",
             "enabled": false,
-            "menu_name": "Pie Chart Number 2",
+            "menu_name": "Pie #2",
             "blueprint_name": "pie2",
             "view_name": "pie_chart2"
         }

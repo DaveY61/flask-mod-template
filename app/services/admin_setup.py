@@ -1,34 +1,36 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
 import os
 import json
 import sys
 import importlib
 import inspect
-from flask import Blueprint as FlaskBlueprint
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 
 def discover_module_info(module_name):
+    print(f"Discovering module: {module_name}")
     try:
         module = importlib.import_module(module_name)
         for name, obj in inspect.getmembers(module):
             if isinstance(obj, FlaskBlueprint):
                 blueprint_name = obj.name
+                print(f"Found blueprint: {blueprint_name}")
+                
                 routes = []
                 for func_name, func in inspect.getmembers(obj):
                     if hasattr(func, '_rule'):
-                        routes.append(func._rule)
-                    elif hasattr(func, 'view_class'):
-                        for method in func.view_class.methods:
-                            route = getattr(func.view_class, method.lower(), None)
-                            if route and hasattr(route, '_rule'):
-                                routes.append(route._rule)
+                        routes.append(func._rule.lstrip('/'))  # Remove leading slash
+                
+                print(f"Found routes: {routes}")
+                
                 return {
                     'name': module_name,
                     'blueprint_name': blueprint_name,
                     'route': routes[0] if routes else None
                 }
+        print(f"No blueprint found in module: {module_name}")
         return None
     except ImportError:
         print(f"Warning: Unable to import module {module_name}")
@@ -83,11 +85,9 @@ def setup():
         modules_enabled_disabled = False
         new_module_list = []
         
-        available_modules = {m['name']: m for m in get_available_modules()}
-        
         for module_name in module_order:
-            if module_name in [m['name'] for m in mod_config['MODULE_LIST']]:
-                module = next(m for m in mod_config['MODULE_LIST'] if m['name'] == module_name)
+            module = next((m for m in mod_config['MODULE_LIST'] if m['name'] == module_name), None)
+            if module:
                 new_enabled = module_name in enabled_modules
                 new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
                 
@@ -102,9 +102,6 @@ def setup():
                     'view_name': module['view_name']
                 }
                 
-                if module_name in available_modules:
-                    new_module['route'] = available_modules[module_name]['route']
-                
                 new_module_list.append(new_module)
             else:
                 print(f"Warning: Module {module_name} not found in existing configuration")
@@ -118,6 +115,7 @@ def setup():
         current_app.config['MODULE_LIST'] = new_module_list
 
         if modules_enabled_disabled:
+            flash('Configuration updated. The application will restart to apply changes.', 'success')
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             flash('Configuration updated successfully!', 'success')
@@ -138,12 +136,12 @@ def setup():
     
     # Merge available modules with existing configuration
     for module in mod_config['MODULE_LIST']:
-        available_module = available_modules_dict.get(module['name'])
-        if available_module:
-            module['route'] = available_module['route']
+        module_info = discover_module_info(module['name'])
+        if module_info:
+            module['route'] = module_info['route'] or module['view_name']
         else:
-            module['route'] = None
-            print(f"Warning: Module {module['name']} not found in available modules")
+            module['route'] = module['view_name']
+        print(f"Module {module['name']} route: {module['route']}")
 
     return render_template('pages/admin_setup.html', form_data=form_data, 
                            modules=mod_config['MODULE_LIST'])
