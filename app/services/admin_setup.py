@@ -33,7 +33,7 @@ def discover_module_info(module_name):
                     
                     # Look for the function definition after the route decorator
                     view_match = re.search(r'@blueprint\.route.*?\ndef\s+(\w+)', content, re.DOTALL)
-                    if view_match:
+                    if view_name:
                         view_name = view_match.group(1)
                 
                 return {
@@ -42,10 +42,8 @@ def discover_module_info(module_name):
                     'route': route,
                     'view_name': view_name
                 }
-        print(f"No blueprint found in module: {module_name}")
         return None
     except ImportError:
-        print(f"Warning: Unable to import module {module_name}")
         return None
 
 def get_available_modules():
@@ -111,7 +109,8 @@ def setup():
                     'enabled': new_enabled,
                     'menu_name': new_menu_name,
                     'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name']
+                    'view_name': module['view_name'],
+                    'route': module.get('route')  # Use .get() to avoid KeyError if 'route' is missing
                 }
                 
                 new_module_list.append(new_module)

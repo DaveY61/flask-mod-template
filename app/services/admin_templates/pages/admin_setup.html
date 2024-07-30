@@ -251,6 +251,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   updateSaveButton();
   updateModuleOrder(); // Initialize module order when page loads
+
+  // Add this: Update module order before form submission
+  document.getElementById('admin-setup-form').addEventListener('submit', function(e) {
+    updateModuleOrder();
+  });
 });
 </script>
 
