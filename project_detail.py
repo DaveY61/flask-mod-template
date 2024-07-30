@@ -1,0 +1,88 @@
+import os
+import json
+from pathlib import Path
+
+def should_exclude(path, exclude_list):
+    return any(exclude in path for exclude in exclude_list)
+
+def generate_project_tree(root_dir, output_file, exclude_list):
+    def write_tree(dir_path, file, prefix=''):
+        contents = sorted(os.listdir(dir_path))
+        for i, path in enumerate(contents):
+            full_path = os.path.join(dir_path, path)
+            if should_exclude(full_path, exclude_list):
+                continue
+            
+            is_last = (i == len(contents) - 1)
+            pointer = '└── ' if is_last else '├── '
+            file.write(f'{prefix}{pointer}{path}\n')
+            
+            if os.path.isdir(full_path):
+                extension = '    ' if is_last else '│   '
+                write_tree(full_path, file, prefix + extension)
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(f'{os.path.basename(root_dir)}/\n')
+        write_tree(root_dir, f, '')
+
+    print(f"Project tree has been generated and saved to {output_file}")
+
+def read_file_content(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.read()
+
+def generate_project_code(root_dir, output_file, exclude_list, skip_extensions):
+    project_structure = {}
+
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        # Apply exclusions
+        dirnames[:] = [d for d in dirnames if not should_exclude(os.path.join(dirpath, d), exclude_list)]
+
+        for filename in filenames:
+            full_path = os.path.join(dirpath, filename)
+            relative_path = os.path.relpath(full_path, root_dir)
+
+            if should_exclude(full_path, exclude_list) or any(filename.endswith(ext) for ext in skip_extensions):
+                continue
+
+            try:
+                content = read_file_content(full_path)
+                project_structure[relative_path] = content
+            except Exception as e:
+                print(f"Error reading {relative_path}: {str(e)}")
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(project_structure, f, indent=2)
+
+    print(f"Project code has been written to {output_file}")
+
+if __name__ == '__main__':
+    # Get the project root directory (assuming this script is in the root)
+    project_root = Path(__file__).parent.absolute()
+
+    # Define the output file paths
+    tree_file = project_root / 'project_tree.txt'
+    code_file = project_root / 'project_code.txt'
+
+    # Define the exclusion list
+    exclude_list = [
+        'venv',
+        '.git',
+        '__pycache__',
+        '.pytest_cache',
+        '.vscode',
+        '.idea',
+        'node_modules',
+        '.DS_Store',
+        'project_tree.txt',
+        'project_code.txt'
+    ]
+
+    # Define file extensions to skip for code extraction
+    skip_extensions = ['.pyc', '.pyo', '.pyd', '.db', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.ttf', '.eot']
+
+    # Generate the project tree
+    generate_project_tree(project_root, tree_file, exclude_list)
+
+    # Generate the project code
+    #generate_project_code(project_root, code_file, exclude_list, skip_extensions)
