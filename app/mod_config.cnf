@@ -3,17 +3,23 @@
         {
             "name": "app.modules.module_1.pie_module",
             "enabled": true,
-            "menu_name": "Pie Chart"
+            "menu_name": "Pie Chart",
+            "blueprint_name": "pie",
+            "view_name": "pie_chart"
         },
         {
             "name": "app.modules.module_2.csv_module",
             "enabled": true,
-            "menu_name": "CSV Upload"
+            "menu_name": "CSV Upload",
+            "blueprint_name": "csv",
+            "view_name": "upload_csv"
         },
         {
             "name": "app.modules.module_3.pie_module",
             "enabled": false,
-            "menu_name": "Pie Chart Number 2"
+            "menu_name": "Pie Chart Number 2",
+            "blueprint_name": "pie2",
+            "view_name": "pie_chart2"
         }
     ]
 }

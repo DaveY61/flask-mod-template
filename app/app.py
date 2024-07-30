@@ -34,10 +34,13 @@ def register_blueprints(app, package_name):
             app.register_blueprint(getattr(module, 'blueprint'))
 
 def register_modules_conditionally(app):
-    for module_name in app.config['MODULE_LIST']:
-        module = importlib.import_module(module_name)
-        if hasattr(module, 'blueprint'):
-            app.register_blueprint(getattr(module, 'blueprint'))
+    for module in app.config['MODULE_LIST']:
+        if module['enabled']:
+            module_name = module['name']
+            module = importlib.import_module(module_name)
+            if hasattr(module, 'blueprint'):
+                app.register_blueprint(getattr(module, 'blueprint'))
+
 
 #----------------------------------------------------------------------------#
 # Create App

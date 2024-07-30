@@ -4,16 +4,24 @@
 
 <style>
     .admin-setup-container {
-        display: flex;
-        justify-content: space-between;
+        display: table;
+        width: 100%;
     }
     .gui-setup, .module-setup {
-        width: 48%;
+        display: table-cell;
+        vertical-align: top;
+        padding: 10px;
+    }
+    .gui-setup {
+        width: 40%;
+    }
+    .module-setup {
+        width: 60%;
     }
     .color-input-group {
         display: flex;
         align-items: center;
-        width: 300px;
+        max-width: 300px;
     }
     .color-picker-wrapper {
         margin-right: 10px;
@@ -36,19 +44,19 @@
         border-radius: 5px;
         display: flex;
         align-items: center;
-        cursor: move;
-        background-color: #f5f5f5; /* Light gray background for disabled modules */
+        flex-wrap: nowrap;
+        background-color: #f5f5f5;
     }
     .module-item.enabled {
         background-color: #e6f3ff;
-        border: 2px solid #4a90e2; /* Darker border for enabled modules */
+        border: 2px solid #4a90e2;
     }
     .module-checkbox-name {
+        flex: 0 0 200px;
         display: flex;
         align-items: center;
         white-space: nowrap;
         margin-right: 10px;
-        min-width: 200px;
     }
     .module-name {
         font-weight: bold;
@@ -56,9 +64,27 @@
         margin-top: 3px;
     }
     .module-menu-name {
-        flex-grow: 1;
-        margin-right: 10px;
-        height: 34px;
+        flex: 0 0 150px;
+        max-width: 150px;
+    }
+    .module-blueprint-name {
+        flex: 0 0 75px;
+        max-width: 75px;
+        margin-left:5px;
+    }
+    .module-route {
+        flex: 0 0 150px;
+        max-width: 150px;
+        margin-left:5px;
+    }
+    .module-blueprint-name, .module-route {
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        padding: 0 5px;
+        border-radius: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .drag-handle {
         cursor: move;
@@ -91,7 +117,7 @@
       <h2>GUI Setup</h2>
       <div class="form-group">
         <label for="company_name">Company Name:</label>
-        <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}" style="width: 300px;">
+        <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}" style="max-width: 300px;">
       </div>
       <div class="form-group">
         <label for="body_color">Body Color:</label>
@@ -104,7 +130,7 @@
       </div>
       <div class="form-group">
         <label for="project_name">Project Name:</label>
-        <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}" style="width: 300px;">
+        <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}" style="max-width: 300px;">
       </div>
       <div class="form-group">
         <label for="project_name_color">Project Name Color:</label>
@@ -132,7 +158,9 @@
               </label>
             </div>
             <input type="text" class="form-control module-menu-name" name="menu_name_{{ module.name }}" 
-                   value="{{ module.menu_name }}" placeholder="Menu Name">
+                   value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20">
+            <span class="module-blueprint-name" title="Blueprint Name">{{ module.blueprint_name }}</span>
+            <span class="module-route" title="Module Route">{{ module.route or 'N/A' }}</span>
           </div>
         {% endfor %}
       </div>
@@ -186,32 +214,25 @@ function toggleModuleEnabled(checkbox) {
   } else {
     moduleItem.classList.remove('enabled');
   }
-  checkModuleChanges();
+  updateSaveButton();
+}
+
+function updateSaveButton() {
+  const saveButton = document.getElementById('saveButton');
+  const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
+  const hasChanges = Array.from(moduleCheckboxes).some(cb => cb.checked !== cb.defaultChecked);
+  
+  if (hasChanges) {
+    saveButton.textContent = 'Save and Restart';
+    saveButton.classList.add('btn-warning');
+  } else {
+    saveButton.textContent = 'Save Configuration';
+    saveButton.classList.remove('btn-warning');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   initColorPickers();
-
-  const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
-  const saveButton = document.getElementById('saveButton');
-  let originalState = Array.from(moduleCheckboxes).map(cb => cb.checked);
-
-  function checkModuleChanges() {
-    const currentState = Array.from(moduleCheckboxes).map(cb => cb.checked);
-    const hasChanges = currentState.some((state, index) => state !== originalState[index]);
-    
-    if (hasChanges) {
-      saveButton.textContent = 'Save and Restart';
-      saveButton.classList.add('btn-warning');
-    } else {
-      saveButton.textContent = 'Save Configuration';
-      saveButton.classList.remove('btn-warning');
-    }
-  }
-
-  moduleCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', checkModuleChanges);
-  });
 
   new Sortable(document.getElementById('module-list'), {
     animation: 150,
@@ -223,6 +244,8 @@ document.addEventListener('DOMContentLoaded', function() {
       );
     }
   });
+
+  updateSaveButton();
 });
 
 function createHiddenInput(name, value) {
