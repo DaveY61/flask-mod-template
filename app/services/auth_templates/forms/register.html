@@ -1,15 +1,18 @@
-{% extends 'layouts/form.html' %}
+{% extends 'forms/form_base.html' %}
 
 {% set purpose = "Register" %}
 
-{% block title %}{{ purpose }}{% endblock %}
-{% block content %}
-  <form method="post" class="form">
-    <h3 class="form-heading">{{ purpose }} <a href="{{ url_for('home') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
-    {{ form.username(class_ = 'form-control first-input', placeholder = form.username.label.text, required = true, autofocus = true) }}
-    {{ form.email(class_ = 'form-control', placeholder = form.email.label.text, required = true) }}
-    {{ form.password(class_ = 'form-control', placeholder = form.password.label.text, required = true) }}
-    <p class="pull-left"><a href="{{ url_for('auth.login') }}">Login</a></p>
-    <input type="submit" value="Register" class="btn btn-primary btn-lg btn-block">
-  </form>
+{% block form_content %}
+  <div class="mb-3">
+    {{ form.username(class_='form-control', placeholder=form.username.label.text, required=true, autofocus=true) }}
+  </div>
+  <div class="mb-3">
+    {{ form.email(class_='form-control', placeholder=form.email.label.text, required=true) }}
+  </div>
+  <div class="mb-3">
+    {{ form.password(class_='form-control', placeholder=form.password.label.text, required=true) }}
+  </div>
+  <div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('auth.login') }}">Already have an account? Login</a>
+  </div>
 {% endblock %}

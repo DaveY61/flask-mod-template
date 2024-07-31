@@ -7,8 +7,10 @@
 
 {% block content %}
 <p>Missing or invalid form data entry.<br>Please login or reset your password.</p>
-<div style="border-top: 1px solid gray; padding:10px; font-size:smaller; color:#428bca">
-<p class="pull-left"><a href="{{ url_for('auth.forgot') }}">Forgot Password?</a></p>
-<p class="pull-right"><a href="{{ url_for('auth.login') }}">Login</a></p>
+<div class="border-top mt-3 pt-3">
+  <div class="d-flex justify-content-between align-items-center" style="font-size: smaller; color: #428bca;">
+    <a href="{{ url_for('auth.forgot') }}">Forgot Password?</a>
+    <a href="{{ url_for('auth.login') }}">Login</a>
+  </div>
 </div>
 {% endblock %}

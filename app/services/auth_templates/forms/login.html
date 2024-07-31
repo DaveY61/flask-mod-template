@@ -1,16 +1,17 @@
-{% extends 'layouts/form.html' %}
+{% extends 'forms/form_base.html' %}
 
 {% set purpose = "Login" %}
 
-{% block title %}{{ purpose }}{% endblock %}
-{% block content %}
-  <form method="post" class="form">
-    <h3 class="form-heading">{{ purpose }} <a href="{{ url_for('home') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
-    <input type="hidden" name="next" value="{{ next }}">
-    {{ form.email(class_ = 'form-control first-input', placeholder = form.email.label.text, required = true, autofocus = true) }}
-    {{ form.password(class_ = 'form-control last-input', placeholder = form.password.label.text, required = true) }}
-    <p class="pull-left"><a href="{{ url_for('auth.forgot') }}">Forgot Password?</a></p>
-    <p class="pull-right"><a href="{{ url_for('auth.register') }}">Register</a></p>
-    <input type="submit" value="Submit" class="btn btn-primary btn-lg btn-block">
-  </form>
+{% block form_content %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="mb-3">
+    {{ form.email(class_='form-control', placeholder=form.email.label.text, required=true, autofocus=true) }}
+  </div>
+  <div class="mb-3">
+    {{ form.password(class_='form-control', placeholder=form.password.label.text, required=true) }}
+  </div>
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('auth.forgot') }}">Forgot Password?</a>
+    <a href="{{ url_for('auth.register') }}">Register</a>
+  </div>
 {% endblock %}
