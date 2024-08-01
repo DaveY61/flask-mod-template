@@ -94,86 +94,30 @@ code {
     z-index: 1030; /* Ensure it stays on top */
 }
 
-.navbar {
-    margin: 0;
-    border: none;
+.navbar-nav .nav-link {
+  position: relative;
+  transition: color 0.3s ease;
 }
 
-.navbar .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 50px; /* Adjust height as needed */
+.navbar-nav .nav-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--project-color);
+  visibility: hidden;
+  transform: scaleX(0);
+  transition: all 0.3s ease-in-out;
 }
 
-.navbar-header {
-    flex: 1;
-    display: flex;
-    align-items: center;
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+  visibility: visible;
+  transform: scaleX(1);
 }
 
-.navbar-header .navbar-brand {
-    display: flex;
-    align-items: center;
-}
-
-.navbar-header .navbar-brand img {
-    height: 30px;
-    margin-right: 10px; /* Adjust spacing as needed */
-}
-
-.navbar-header .brand-project-name {
-    line-height: 30px; /* Vertically center text with image */
-    font-size: 18px; /* Adjust font size as needed */
-}
-
-.navbar-nav {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.navbar-nav .nav > li {
-    float: none;
-}
-
-.navbar-nav .nav > li > a {
-    padding: 15px 20px; /* Adjust padding as needed */
-}
-
-.navbar-right {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-.navbar-right .dropdown-menu {
-    min-width: 150px; /* Adjust width as needed */
-}
-
-/* Ensure the menu and account area don't overlap */
-@media (max-width: 768px) {
-    .navbar-nav, .navbar-right {
-        flex: 1;
-    }
-}
-
-.navbar-menu {
-  white-space:nowrap;
-}
-
-.navbar-menu:hover {
-  margin-top:1px;
-  border:1px solid silver;
-}
-
-/* Example active class */
-.active {
-  font-weight: bold;
-  color:black; /* Change to your preferred active color */
-  background-color:white;
-  margin-top:1px;
-  border:1px solid black;
+.navbar-nav .nav-link.active {
+  color: var(--project-color);
 }
