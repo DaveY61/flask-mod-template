@@ -116,7 +116,7 @@ if __name__ == '__main__':
     skip_extensions = ['.pyc', '.pyo', '.pyd', '.db', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.ttf', '.eot']
 
     # Define specific files to skip for code extraction
-    skip_files = ['LICENSE', 'README.md', '__init__.py', '.env', 'project_detail.py', 'requirements.txt', 'plugins.js']
+    skip_files = ['LICENSE', 'README.md', '__init__.py', '.env', 'project_detail.py']
 
     # Generate the project tree
     generate_project_tree(project_root, tree_file, tree_exclude_list)
