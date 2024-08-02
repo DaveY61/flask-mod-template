@@ -52,7 +52,7 @@ def get_available_modules():
 @login_required
 def setup():
     if not current_user.is_admin:
-        flash('You must be an admin to access this page.', 'danger')
+        flash('Access to the Admin Setup page is restricted.', 'danger')
         return redirect(url_for('home'))
 
     gui_config_path = current_app.config['GUI_CONFIG_PATH']
