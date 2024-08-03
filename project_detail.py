@@ -106,10 +106,11 @@ if __name__ == '__main__':
         'app_data',
         'test_results',
         'static/js/libs',
-        'static/fonts',
+        'static/webfonts',
         'static/img',
         'static/ico',
-        'static/css'
+        'static/css/bootstrap',
+        'static/css/fontawesome'
     ]
 
     # Define file extensions to skip for code extraction
