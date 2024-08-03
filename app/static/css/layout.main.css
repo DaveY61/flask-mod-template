@@ -37,18 +37,6 @@ code {
   font-size: 80%;
 }
 
-/* Custom form CSS
--------------------------------------------------- */
-.form-entry-box {
-  border: 2px solid gray; 
-  background-color:#FFFFFF;
-  padding:20px;
-  padding-top:10px;
-  margin-top:20px; 
-  width:400px;
-  display:block;
-}
-
 /* Navbar header CSS
 -------------------------------------------------- */
 .navbar-brand img {
