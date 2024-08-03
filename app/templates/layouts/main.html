@@ -40,77 +40,77 @@
 </head>
 <body>
 
-  <!-- Wrap all page content here -->
-  <div id="wrap">
-
-    <!-- Fixed navbar -->
-    <nav class="navbar navbar-expand-sm navbar-light bg-light">
-      <div class="container-fluid">
-        <!-- Project Title -->
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
-          <img src="{{ url_for('static', filename='ico/favicon.png') }}" alt="Logo" height="30" class="me-2">
-          <span class="brand-project-name">{{ config.PROJECT_NAME }}</span>
-        </a>
-    
-        <!-- Toggler for mobile -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-    
-        <!-- Collapsible content -->
-        <div class="collapse navbar-collapse" id="navbarContent">
-          <!-- Dynamic Menu -->
-          <ul class="navbar-nav mx-auto">
+  <!-- Fixed navbar -->
+  <nav id="header" class="navbar navbar-expand-sm navbar-light bg-light">
+    <div class="container-fluid">
+      <!-- Project Title -->
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
+        <img src="{{ url_for('static', filename='ico/favicon.png') }}" alt="Logo" height="30" class="me-2">
+        <span class="brand-project-name">{{ config.PROJECT_NAME }}</span>
+      </a>
+  
+      <!-- Toggler for mobile -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+  
+      <!-- Collapsible content -->
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <!-- Dynamic Menu -->
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'home' %}active{% endif %}" href="{{ url_for('home') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}">About</a>
+          </li>
+          {% if current_user.is_authenticated %}
+            {% for module in config.MODULE_LIST %}
+              {% if module.enabled %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == module.blueprint_name + '.' + module.view_name %}active{% endif %}"
+                      href="{{ url_for(module.blueprint_name + '.' + module.view_name) }}">
+                    {{ module.menu_name }}
+                  </a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </ul>
+  
+        <!-- Account Dropdown -->
+        <ul class="navbar-nav ms-auto">
+          {% if not current_user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'home' %}active{% endif %}" href="{{ url_for('home') }}">Home</a>
+              <a class="nav-link" href="{{ url_for('auth.register') }}">Signup</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}">About</a>
+              <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
             </li>
-            {% if current_user.is_authenticated %}
-              {% for module in config.MODULE_LIST %}
-                {% if module.enabled %}
-                  <li class="nav-item">
-                    <a class="nav-link {% if request.endpoint == module.blueprint_name + '.' + module.view_name %}active{% endif %}"
-                        href="{{ url_for(module.blueprint_name + '.' + module.view_name) }}">
-                      {{ module.menu_name }}
-                    </a>
-                  </li>
-                {% endif %}
-              {% endfor %}
-            {% endif %}
-          </ul>
-    
-          <!-- Account Dropdown -->
-          <ul class="navbar-nav ms-auto">
-            {% if not current_user.is_authenticated %}
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('auth.register') }}">Signup</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-              </li>
-            {% else %}
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <img src="{{ url_for('static', filename='img/account_icon.png') }}" alt="Account" height="30">
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                  <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                  <li><a class="dropdown-item" href="{{ url_for('auth.forgot') }}">Reset Password</a></li>
+          {% else %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="{{ url_for('static', filename='img/account_icon.png') }}" alt="Account" height="30">
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.forgot') }}">Reset Password</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('auth.delete') }}">Remove Account</a></li>
+                {% if is_admin %}
                   <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="{{ url_for('auth.delete') }}">Remove Account</a></li>
-                  {% if is_admin %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-warning" href="{{ url_for('admin.setup') }}">Admin Setup</a></li>
-                  {% endif %}
-                </ul>
-              </li>
-            {% endif %}
-          </ul>
-        </div>
+                  <li><a class="dropdown-item text-warning" href="{{ url_for('admin.setup') }}">Admin Setup</a></li>
+                {% endif %}
+              </ul>
+            </li>
+          {% endif %}
+        </ul>
       </div>
-    </nav>
+    </div>
+  </nav>
+
+  <!-- Wrap page content here -->
+  <div id="wrap">
 
     <!-- Begin page content -->
     <main id="content" role="main" class="container">
