@@ -111,6 +111,7 @@ code {
 
 .navbar-nav .nav-link.active {
   color: var(--project-color);
+  background-color: white;
 }
 
 /* Flask "flash" alert message display CSS
