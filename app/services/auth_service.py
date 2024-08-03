@@ -30,7 +30,7 @@ def register():
     # Otherwise handle the POST
     data = request.form
     username = data.get('username')
-    email = data.get('email')
+    email = data.get('email').lower()
     password = data.get('password')
 
     if not username or not email or not password:
@@ -81,7 +81,7 @@ def login():
     
     # Otherwise handle the POST
     data = request.form
-    email = data.get('email')
+    email = data.get('email').lower()
     password = data.get('password')
     next_url = data.get('next')
 
@@ -120,7 +120,7 @@ def forgot():
     
     # Otherwise handle the POST
     data = request.form
-    email = data.get('email')
+    email = data.get('email').lower()
 
     if not email:
         return render_template('pages/invalid_input.html', response_color="red"), 400
