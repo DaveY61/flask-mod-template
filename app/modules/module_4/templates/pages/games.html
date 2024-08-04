@@ -1,0 +1,78 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Games {{ config.PROJECT_NAME }}{% endblock %}
+
+{% block additional_styles %}
+<link type="text/css" rel="stylesheet" href="{{ url_for('games.static', filename='css/game_styles.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <div class="sidebar">
+        <h3>Games</h3>
+        <ul>
+            <li><a href="#" onclick="window.showGame('tic-tac-toe')">Tic-Tac-Toe</a></li>
+            <li><a href="#" onclick="window.showGame('checkers')">Checkers</a></li>
+            <li><a href="#" onclick="window.showGame('pong')">Pong</a></li>
+        </ul>
+    </div>
+    <div class="game-area">
+        <div id="tic-tac-toe" class="game-board"></div>
+        <div id="checkers" class="game-board"></div>
+        <div id="pong" class="game-board"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('games.static', filename='js/tic_tac_toe.js') }}"></script>
+<script src="{{ url_for('games.static', filename='js/checkers.js') }}"></script>
+<script src="{{ url_for('games.static', filename='js/pong.js') }}"></script>
+<script>
+(function() {
+    console.log("All game scripts loaded.");
+    console.log("initTicTacToe is:", typeof window.initTicTacToe);
+    console.log("initCheckers is:", typeof window.initCheckers);
+    console.log("initPong is:", typeof window.initPong);
+
+    // Ensure all game initialization functions are defined
+    if (typeof window.initTicTacToe !== 'function') {
+        window.initTicTacToe = function() {
+            console.error("Tic-Tac-Toe initialization function not loaded properly.");
+        }
+    }
+
+    if (typeof window.initCheckers !== 'function') {
+        window.initCheckers = function() {
+            console.error("Checkers initialization function not loaded properly.");
+        }
+    }
+
+    if (typeof window.initPong !== 'function') {
+        window.initPong = function() {
+            console.error("Pong initialization function not loaded properly.");
+        }
+    }
+
+    // Define showGame in the global scope
+    window.showGame = function(gameName) {
+        console.log("Showing game:", gameName);
+        document.querySelectorAll('.game-board').forEach(board => board.style.display = 'none');
+        document.getElementById(gameName).style.display = 'grid';
+        
+        if (gameName === 'tic-tac-toe') {
+            window.initTicTacToe();
+        } else if (gameName === 'checkers') {
+            window.initCheckers();
+        } else if (gameName === 'pong') {
+            window.initPong();
+        }
+    }
+
+    // Show Tic-Tac-Toe by default when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM fully loaded. Showing Tic-Tac-Toe.");
+        window.showGame('tic-tac-toe');
+    });
+})();
+</script>
+{% endblock %}

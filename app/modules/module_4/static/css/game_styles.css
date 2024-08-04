@@ -1,0 +1,166 @@
+.game-container {
+    display: flex;
+    height: calc(100vh - 100px);
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #f0f0f0;
+    padding: 20px;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin-bottom: 10px;
+}
+
+.sidebar a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+.game-area {
+    flex-grow: 1;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-board {
+    display: none;
+}
+
+#tic-tac-toe {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 5px;
+    width: 310px;
+    height: 310px;
+    margin: 0 auto;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+#tic-tac-toe .cell {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    cursor: pointer;
+    background-color: white;
+}
+
+#tic-tac-toe .cell:hover {
+    background-color: #e0e0e0;
+}
+
+.game-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+/* ... (checker styles) ... */
+
+#checkers {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    grid-template-rows: repeat(8, 50px);
+    gap: 0;
+    width: 400px;
+    height: 400px;
+    margin: 0 auto;
+    background-color: #f0f0f0;
+    border: 2px solid #333;
+    box-sizing: content-box;
+}
+
+#checkers .cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#checkers .cell.black {
+    background-color: #999;
+}
+
+#checkers .cell.white {
+    background-color: #fff;
+}
+
+#checkers .piece {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#checkers .piece.red {
+    background-color: #f00;
+}
+
+#checkers .piece.black {
+    background-color: #000;
+}
+
+#checkers .piece.selected {
+    box-shadow: 0 0 10px 3px yellow;
+}
+
+#checkers-instructions {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+}
+
+.highlight-move {
+    background-color: rgba(0, 255, 0, 0.3) !important;
+}
+
+/* ... (pong styles) ... */
+
+#pong {
+    width: 600px;
+    height: 400px;
+    border: 1px solid #000;
+    position: relative;
+}
+
+#pong .paddle {
+    width: 10px;
+    height: 80px;
+    background-color: #000;
+    position: absolute;
+}
+
+#pong #player-paddle {
+    left: 10px;
+}
+
+#pong #ai-paddle {
+    right: 10px;
+}
+
+#pong #ball {
+    width: 10px;
+    height: 10px;
+    background-color: #000;
+    position: absolute;
+    border-radius: 50%;
+}
