@@ -112,24 +112,42 @@
   <!-- Wrap page content here -->
   <div id="wrap">
 
-    <!-- Begin page content -->
-    <main id="content" role="main" class="container">
+  <!-- Sidebar (optional) -->
+  {% if use_sidebar %}
+  <div class="sidebar">
+    <div class="sidebar-toggle">
+      <i class="fas fa-bars"></i>
+    </div>
+    <ul class="sidebar-menu">
+      {% for item in sidebar_menu %}
+      <li>
+        <a href="#" 
+          data-action="{{ item.action }}" 
+          data-params="{{ item.params[0] }}">
+          <i class="{{ item.icon }}"></i>
+          <span>{{ item.text }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <!-- Begin page content -->
+    <main id="content" role="main" class="container {% if use_sidebar %}content-with-sidebar{% endif %}">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
       {% block content %}{% endblock %}
-      
     </main>
-
   </div>
 
   <footer id="footer">
@@ -142,6 +160,7 @@
   <script type="text/javascript" src="/static/js/libs/jquery-3.7.1.min.js"></script>
   <script type="text/javascript" src="/static/js/libs/bootstrap.bundle-5.3.3.min.js" defer></script>
   <script type="text/javascript" src="/static/js/libs/fontawesome-6.6.0.min.js" defer></script>
+  <script type="text/javascript" src="/static/js/sidebar.js" defer></script>
   {% block scripts %}{% endblock %}
   <!-- Scripts -->
 

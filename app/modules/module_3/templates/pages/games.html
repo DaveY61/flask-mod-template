@@ -3,49 +3,10 @@
 
 {% block additional_styles %}
 <link type="text/css" rel="stylesheet" href="{{ url_for('games.static', filename='css/game_styles.css') }}" />
-<style>
-    .game-container {
-        display: flex;
-        height: calc(100vh - 100px);
-    }
-    .sidebar {
-        width: 200px;
-        background-color: #f0f0f0;
-        padding: 20px;
-    }
-    .game-area {
-        flex-grow: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .game-board {
-        display: none;
-    }
-    #game-instructions {
-        width: 300px;
-        padding: 20px;
-        margin-left:20px;
-        background-color: #f9f9f9;
-        border-left: 1px solid #ddd;
-    }
-    .game-content {
-        display: flex;
-        align-items: flex-start;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
 <div class="game-container">
-    <div class="sidebar">
-        <h3>Games</h3>
-        <ul>
-            <li><a href="#" onclick="showGame('tic-tac-toe')">Tic-Tac-Toe</a></li>
-            <li><a href="#" onclick="showGame('checkers')">Checkers</a></li>
-            <li><a href="#" onclick="showGame('pong')">Pong</a></li>
-        </ul>
-    </div>
     <div class="game-area">
         <div class="game-content">
             <div id="tic-tac-toe" class="game-board"></div>
@@ -67,26 +28,30 @@ function showGame(gameName) {
     document.querySelectorAll('.game-board').forEach(board => board.style.display = 'none');
     
     const gameBoard = document.getElementById(gameName);
-    if (gameName === 'tic-tac-toe' || gameName === 'checkers') {
-        gameBoard.style.display = 'grid';
+    if (gameBoard) {
+        if (gameName === 'tic-tac-toe' || gameName === 'checkers') {
+            gameBoard.style.display = 'grid';
+        } else {
+            gameBoard.style.display = 'block';
+        }
+        
+        // Clear instructions
+        document.getElementById('game-instructions').innerHTML = '';
+
+        if (gameName === 'tic-tac-toe') {
+            window.initTicTacToe();
+        } else if (gameName === 'checkers') {
+            window.initCheckers();
+        } else if (gameName === 'pong') {
+            window.initPong();
+        }
+
+        // Show or hide instructions based on the game
+        const instructionsElement = document.getElementById('game-instructions');
+        instructionsElement.style.display = (gameName === 'checkers') ? 'block' : 'none';
     } else {
-        gameBoard.style.display = 'block';
+        console.error('Game board not found:', gameName);
     }
-    
-    // Clear instructions
-    document.getElementById('game-instructions').innerHTML = '';
-
-    if (gameName === 'tic-tac-toe') {
-        window.initTicTacToe();
-    } else if (gameName === 'checkers') {
-        window.initCheckers();
-    } else if (gameName === 'pong') {
-        window.initPong();
-    }
-
-    // Show or hide instructions based on the game
-    const instructionsElement = document.getElementById('game-instructions');
-    instructionsElement.style.display = (gameName === 'checkers') ? 'block' : 'none';
 }
 
 // Show Tic-Tac-Toe by default when the page loads
