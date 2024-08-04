@@ -15,11 +15,11 @@
             "view_name": "upload_csv"
         },
         {
-            "name": "app.modules.module_3.pie_module",
-            "enabled": false,
-            "menu_name": "Pie #2",
-            "blueprint_name": "pie2",
-            "view_name": "pie_chart2"
+            "name": "app.modules.module_3.games_module",
+            "enabled": true,
+            "menu_name": "Games",
+            "blueprint_name": "games",
+            "view_name": "games"
         }
     ]
 }
