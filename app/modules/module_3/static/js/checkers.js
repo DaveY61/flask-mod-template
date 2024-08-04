@@ -42,17 +42,22 @@
 
         console.log("Initial board state:", JSON.parse(JSON.stringify(board)));
 
-        // Add instructions
-        const instructions = document.createElement('div');
-        instructions.id = 'checkers-instructions';
-        instructions.innerHTML = `
-            <p>Instructions:</p>
-            <p>1. Click on a piece to select it.</p>
-            <p>2. Click on an empty black square to move the selected piece.</p>
-            <p>3. Jump over an opponent's piece to capture it.</p>
-            <p>4. Red moves first, then players alternate turns.</p>
+        // Update instructions
+        updateInstructions();
+    }
+
+    function updateInstructions() {
+        const instructionsElement = document.getElementById('game-instructions');
+        instructionsElement.innerHTML = `
+            <h4>Checkers Instructions:</h4>
+            <ol>
+                <li>Click on a piece to select it.</li>
+                <li>Click on an empty black square to move the selected piece.</li>
+                <li>Jump over an opponent's piece to capture it.</li>
+                <li>Red moves first, then players alternate turns.</li>
+            </ol>
         `;
-        boardElement.after(instructions);
+        instructionsElement.style.display = 'block';
     }
 
     function cellClickHandler(event) {
