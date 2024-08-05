@@ -1,0 +1,87 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Roles Setup {{ config.PROJECT_NAME }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Roles Setup</h1>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <h3>Add New Role</h3>
+    <form method="POST" id="add-role-form">
+      <input type="hidden" name="action" value="add_role">
+      <div class="mb-3">
+        <label for="role_name" class="form-label">Role Name</label>
+        <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required>
+      </div>
+      <div class="mb-3">
+        <label for="role_description" class="form-label">Role Description</label>
+        <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Associated Modules</label>
+        <div class="row">
+          {% for module in modules %}
+            <div class="col-md-4 mb-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
+                <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ loop.index }}">
+                  {{ module.menu_name }}
+                </label>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Add Role</button>
+    </form>
+  </div>
+  
+  <div class="col-md-6">
+    <h3>Existing Roles</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Role Name</th>
+          <th>Description</th>
+          <th>Associated Modules</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for role in roles %}
+          <tr>
+            <td>{{ role.name }}</td>
+            <td>{{ role.description }}</td>
+            <td>
+              {% for module_name in role.modules %}
+                {% set module = modules|selectattr('name', 'equalto', module_name)|first %}
+                {% if module %}
+                  <span class="badge {% if module.enabled %}bg-success{% else %}bg-secondary{% endif %}">{{ module.menu_name }}</span>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td>
+              <form method="POST" style="display: inline;">
+                <input type="hidden" name="action" value="delete_role">
+                <input type="hidden" name="role_name" value="{{ role.name }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+}
+</script>
+{% endblock %}

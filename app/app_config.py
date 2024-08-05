@@ -47,6 +47,9 @@ class Config:
     # Define the GUI config path to part of the Config class
     GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
 
+    # Define the Role config path as part of the Config class
+    ROLE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'role_config.cnf')
+
 #----------------------------------------------------------------------------
 # Integrate GUI Config attributes from "gui_config.cnf"
 # Must be done AFTER the class has been defined
@@ -55,3 +58,13 @@ with open(Config.GUI_CONFIG_PATH, 'r') as f:
 
 for key, value in gui_config.items():
     setattr(Config, key, value)
+
+#----------------------------------------------------------------------------
+# Integrate Role Config attributes from "role_config.cnf"
+# Must be done AFTER the class has been defined
+if os.path.exists(Config.ROLE_CONFIG_PATH):
+    with open(Config.ROLE_CONFIG_PATH, 'r') as f:
+        role_config = json.load(f)
+    setattr(Config, 'ROLE_LIST', role_config)
+else:
+    setattr(Config, 'ROLE_LIST', [])
