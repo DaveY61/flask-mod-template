@@ -7,86 +7,90 @@
 </div>
 
 <div class="row">
-  <div class="col-md-6">
-    <h3>Add New Role</h3>
-    <form method="POST" id="add-role-form">
-      <input type="hidden" name="action" value="add_role">
-      <div class="mb-3">
-        <label for="role_name" class="form-label">Role Name</label>
-        <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required style="width: 15ch;">
-      </div>
-      <div class="mb-3">
-        <label for="role_description" class="form-label">Role Description</label>
-        <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 40ch;">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Associated Modules</label>
-        <div class="form-check mb-2">
-          <input class="form-check-input" type="checkbox" id="all_modules" name="all_modules">
-          <label class="form-check-label" for="all_modules">
-            All Modules
-          </label>
+  <div class="col-md-4">
+    <div class="add-role-form" style="max-width: calc(40ch + 40px); margin: 0 auto;">
+      <h3>Add New Role</h3>
+      <form method="POST" id="add-role-form">
+        <input type="hidden" name="action" value="add_role">
+        <div class="mb-3">
+          <label for="role_name" class="form-label">Role Name</label>
+          <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required style="width: 15ch;">
         </div>
-        <div class="row" id="module_checkboxes">
-          {% for module in modules %}
-            <div class="col-md-4 mb-2">
+        <div class="mb-3">
+          <label for="role_description" class="form-label">Role Description</label>
+          <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 40ch;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Associated Modules</label>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="all_modules" name="all_modules">
+            <label class="form-check-label" for="all_modules">
+              All Modules
+            </label>
+          </div>
+          <div class="module-checkboxes" style="max-height: 200px; overflow-y: auto;">
+            {% for module in modules %}
               <div class="form-check">
                 <input class="form-check-input module-checkbox" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
                 <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ loop.index }}">
                   {{ module.menu_name }}
                 </label>
               </div>
-            </div>
-          {% endfor %}
+            {% endfor %}
+          </div>
         </div>
-      </div>
-      <button type="submit" class="btn btn-primary">Add Role</button>
-    </form>
+        <button type="submit" class="btn btn-primary">Add Role</button>
+      </form>
+    </div>
   </div>
   
-  <div class="col-md-6">
+  <div class="col-md-8">
     <h3>Existing Roles</h3>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th style="white-space: nowrap;">Role Name</th>
-          <th>Description</th>
-          <th>Associated Modules</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for role in roles %}
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
           <tr>
-            <td style="white-space: nowrap;">{{ role.name }}</td>
-            <td>{{ role.description }}</td>
-            <td>
-              <form method="POST" class="update-modules-form">
-                <input type="hidden" name="action" value="update_modules">
-                <input type="hidden" name="role_name" value="{{ role.name }}">
-                {% for module in modules %}
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
-                           {% if module.name in role.modules %}checked{% endif %}>
-                    <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ role.name }}_{{ loop.index }}">
-                      {{ module.menu_name }}
-                    </label>
-                  </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary btn-sm mt-2">Update Modules</button>
-              </form>
-            </td>
-            <td>
-              <form method="POST" style="display: inline;">
-                <input type="hidden" name="action" value="delete_role">
-                <input type="hidden" name="role_name" value="{{ role.name }}">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </td>
+            <th style="white-space: nowrap;">Role Name</th>
+            <th>Description</th>
+            <th>Associated Modules</th>
+            <th>Action</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for role in roles %}
+            <tr>
+              <td style="white-space: nowrap;">{{ role.name }}</td>
+              <td>{{ role.description }}</td>
+              <td>
+                <form method="POST" class="update-modules-form">
+                  <input type="hidden" name="action" value="update_modules">
+                  <input type="hidden" name="role_name" value="{{ role.name }}">
+                  <div style="max-height: 150px; overflow-y: auto;">
+                    {% for module in modules %}
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
+                               {% if module.name in role.modules %}checked{% endif %}>
+                        <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ role.name }}_{{ loop.index }}">
+                          {{ module.menu_name }}
+                        </label>
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-sm mt-2">Update Modules</button>
+                </form>
+              </td>
+              <td>
+                <form method="POST" style="display: inline;">
+                  <input type="hidden" name="action" value="delete_role">
+                  <input type="hidden" name="role_name" value="{{ role.name }}">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
