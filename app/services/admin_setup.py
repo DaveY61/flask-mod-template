@@ -55,6 +55,20 @@ def setup():
         flash('Access to the Admin Setup page is restricted.', 'danger')
         return redirect(url_for('home'))
 
+    sidebar_menu = [
+        {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
+        {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']}
+    ]
+
+    return render_template('pages/admin_setup.html', use_sidebar=True, sidebar_menu=sidebar_menu)
+
+@blueprint.route('/setup/<setup_type>', methods=['GET', 'POST'])
+@login_required
+def setup_type(setup_type):
+    if not current_user.is_admin:
+        flash('Access to the Admin Setup page is restricted.', 'danger')
+        return redirect(url_for('home'))
+
     gui_config_path = current_app.config['GUI_CONFIG_PATH']
     mod_config_path = current_app.config['MOD_CONFIG_PATH']
     
@@ -66,107 +80,88 @@ def setup():
         mod_config = json.load(f)
 
     if request.method == 'POST':
-        # Update GUI config
-        new_gui_values = {
-            'COMPANY_NAME': request.form.get('company_name'),
-            'BODY_COLOR': request.form.get('body_color'),
-            'PROJECT_NAME': request.form.get('project_name'),
-            'PROJECT_NAME_COLOR': request.form.get('project_name_color')
-        }
-
-        with open(gui_config_path, 'w') as f:
-            json.dump(new_gui_values, f, indent=4)
-        
-        for key, value in new_gui_values.items():
-            current_app.config[key] = value
-
-        # Update MODULE_LIST
-        module_order = json.loads(request.form.get('module_order', '[]'))
-        enabled_modules = set(request.form.getlist('modules'))
-        
-        modules_enabled_disabled = False
-        new_module_list = []
-        
-        existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
-        available_modules_dict = {m['name']: m for m in available_modules}
-        
-        # Use the module_order to sort the modules and include new modules
-        for module_name in module_order:
-            if module_name in existing_modules:
-                module = existing_modules[module_name]
-            elif module_name in available_modules_dict:
-                module = available_modules_dict[module_name]
-                module['enabled'] = False
-                module['menu_name'] = module['name'].split('.')[-1]
-            else:
-                print(f"Warning: Module {module_name} not found in existing configuration or available modules")
-                continue
-
-            new_enabled = module_name in enabled_modules
-            new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
-            
-            if new_enabled != module.get('enabled', False):
-                modules_enabled_disabled = True
-            
-            new_module = {
-                'name': module_name,
-                'enabled': new_enabled,
-                'menu_name': new_menu_name,
-                'blueprint_name': module.get('blueprint_name'),
-                'view_name': module.get('view_name')
+        if setup_type == 'gui':
+            # Update GUI config
+            new_gui_values = {
+                'COMPANY_NAME': request.form.get('company_name'),
+                'BODY_COLOR': request.form.get('body_color'),
+                'PROJECT_NAME': request.form.get('project_name'),
+                'PROJECT_NAME_COLOR': request.form.get('project_name_color')
             }
-            
-            new_module_list.append(new_module)
 
-        # Add any new modules that weren't in the module_order
-        for module in available_modules:
-            if module['name'] not in [m['name'] for m in new_module_list]:
+            with open(gui_config_path, 'w') as f:
+                json.dump(new_gui_values, f, indent=4)
+            
+            for key, value in new_gui_values.items():
+                current_app.config[key] = value
+
+            flash('GUI configuration updated successfully!', 'success')
+
+        elif setup_type == 'modules':
+            # Update MODULE_LIST
+            module_order = json.loads(request.form.get('module_order', '[]'))
+            enabled_modules = set(request.form.getlist('modules'))
+            
+            modules_enabled_disabled = False
+            new_module_list = []
+            
+            existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
+            available_modules_dict = {m['name']: m for m in available_modules}
+            
+            # Use the module_order to sort the modules and include new modules
+            for module_name in module_order:
+                if module_name in existing_modules:
+                    module = existing_modules[module_name]
+                elif module_name in available_modules_dict:
+                    module = available_modules_dict[module_name]
+                    module['enabled'] = False
+                    module['menu_name'] = module['name'].split('.')[-1]
+                else:
+                    print(f"Warning: Module {module_name} not found in existing configuration or available modules")
+                    continue
+
+                new_enabled = module_name in enabled_modules
+                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
+                
+                if new_enabled != module.get('enabled', False):
+                    modules_enabled_disabled = True
+                
                 new_module = {
-                    'name': module['name'],
-                    'enabled': False,
-                    'menu_name': module['name'].split('.')[-1],
-                    'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name']
+                    'name': module_name,
+                    'enabled': new_enabled,
+                    'menu_name': new_menu_name,
+                    'blueprint_name': module.get('blueprint_name'),
+                    'view_name': module.get('view_name')
                 }
                 
                 new_module_list.append(new_module)
 
-        # Update the module configuration
-        mod_config['MODULE_LIST'] = new_module_list
+            # Add any new modules that weren't in the module_order
+            for module in available_modules:
+                if module['name'] not in [m['name'] for m in new_module_list]:
+                    new_module = {
+                        'name': module['name'],
+                        'enabled': False,
+                        'menu_name': module['name'].split('.')[-1],
+                        'blueprint_name': module['blueprint_name'],
+                        'view_name': module['view_name']
+                    }
+                    
+                    new_module_list.append(new_module)
 
-        with open(mod_config_path, 'w') as f:
-            json.dump(mod_config, f, indent=4)
-        
-        current_app.config['MODULE_LIST'] = new_module_list
+            # Update the module configuration
+            mod_config['MODULE_LIST'] = new_module_list
 
-        if modules_enabled_disabled:
-            os.execv(sys.executable, ['python'] + sys.argv)
-        else:
-            flash('Configuration updated successfully!', 'success')
-    else:
-        # For GET requests, merge existing configuration with available modules
-        existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
-        merged_modules = []
-        
-        for module in available_modules:
-            if module['name'] in existing_modules:
-                merged_modules.append(existing_modules[module['name']])
+            with open(mod_config_path, 'w') as f:
+                json.dump(mod_config, f, indent=4)
+            
+            current_app.config['MODULE_LIST'] = new_module_list
+
+            if modules_enabled_disabled:
+                flash('Module configuration updated. The application will restart for changes to take effect.', 'warning')
+                os.execv(sys.executable, ['python'] + sys.argv)
             else:
-                new_module = {
-                    'name': module['name'],
-                    'enabled': False,
-                    'menu_name': module['name'].split('.')[-1],
-                    'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name']
-                }
-                merged_modules.append(new_module)
-
-        # Update the module configuration with any new modules
-        mod_config['MODULE_LIST'] = merged_modules
-        with open(mod_config_path, 'w') as f:
-            json.dump(mod_config, f, indent=4)
-        
-        current_app.config['MODULE_LIST'] = merged_modules
+                flash('Module configuration updated successfully!', 'success')
 
     # Read current GUI values
     form_data = {
@@ -176,4 +171,11 @@ def setup():
         'project_name_color': current_app.config['PROJECT_NAME_COLOR']
     }
 
-    return render_template('pages/admin_setup.html', form_data=form_data, modules=mod_config['MODULE_LIST'])
+    return render_template(f'pages/admin_setup_{setup_type}.html', 
+                           form_data=form_data, 
+                           modules=mod_config['MODULE_LIST'],
+                           use_sidebar=True,
+                           sidebar_menu=[
+                               {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
+                               {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']}
+                           ])

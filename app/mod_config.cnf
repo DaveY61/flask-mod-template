@@ -16,7 +16,7 @@
         },
         {
             "name": "app.modules.module_3.games_module",
-            "enabled": true,
+            "enabled": false,
             "menu_name": "Games",
             "blueprint_name": "games",
             "view_name": "games"

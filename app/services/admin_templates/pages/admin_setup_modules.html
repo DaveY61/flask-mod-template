@@ -1,0 +1,91 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Module Setup {{ config.PROJECT_NAME }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Module Setup</h1>
+</div>
+
+<form method="POST" id="admin-setup-form">
+  <div id="module-list">
+    {% for module in modules %}
+      <div class="module-item {% if module.enabled %}enabled{% endif %}" data-module-name="{{ module.name }}">
+        <span class="drag-handle">&#9776;</span>
+        <div class="module-checkbox-name">
+          <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
+                 {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
+          <label class="form-check-label module-name" for="{{ module.name }}">
+            {% set parts = module.name.split('.') %}
+            {{ parts[-2] }}.{{ parts[-1] }}
+          </label>
+        </div>
+        <input type="text" class="form-control module-menu-name" name="menu_name_{{ module.name }}" 
+               value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20">
+        <span class="module-blueprint-name" title="Blueprint Name">{{ module.blueprint_name or 'N/A' }}</span>
+        <span class="module-route" title="Module Route">{{ module.view_name or 'N/A' }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  <input type="hidden" id="module_order" name="module_order" value="">
+  
+  <button type="submit" class="btn btn-primary" id="saveButton">Save Configuration</button>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+function toggleModuleEnabled(checkbox) {
+  const moduleItem = checkbox.closest('.module-item');
+  if (checkbox.checked) {
+    moduleItem.classList.add('enabled');
+  } else {
+    moduleItem.classList.remove('enabled');
+  }
+  updateSaveButton();
+}
+
+function updateSaveButton() {
+  const saveButton = document.getElementById('saveButton');
+  const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
+  const hasChanges = Array.from(moduleCheckboxes).some(cb => cb.checked !== cb.defaultChecked);
+  
+  if (hasChanges) {
+    saveButton.textContent = 'Save and Restart';
+    saveButton.classList.add('btn-warning');
+  } else {
+    saveButton.textContent = 'Save Configuration';
+    saveButton.classList.remove('btn-warning');
+  }
+}
+
+function updateModuleOrder() {
+  const moduleOrder = Array.from(document.querySelectorAll('.module-item'))
+    .map(item => item.dataset.moduleName);
+  document.getElementById('module_order').value = JSON.stringify(moduleOrder);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  new Sortable(document.getElementById('module-list'), {
+    animation: 150,
+    handle: '.drag-handle',
+    onEnd: function(evt) {
+      updateModuleOrder();
+    }
+  });
+
+  updateSaveButton();
+  updateModuleOrder(); // Initialize module order when page loads
+
+  // Add this: Update module order before form submission
+  document.getElementById('admin-setup-form').addEventListener('submit', function(e) {
+    updateModuleOrder();
+  });
+});
+
+function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+}
+</script>
+{% endblock %}
