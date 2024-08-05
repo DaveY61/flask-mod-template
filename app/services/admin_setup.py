@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
+from app.services.auth_service_db import User
 import os
 import json
 import sys
@@ -9,6 +10,14 @@ import inspect
 import re
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
+
+# Define the admin sidebar menu once
+ADMIN_SIDEBAR_MENU = [
+    {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
+    {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
+    {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']},
+    {'icon': 'fas fa-users', 'text': 'User Setup', 'action': 'showAdminSetup', 'params': ['users']}
+]
 
 def discover_module_info(module_name):
     try:
@@ -48,26 +57,25 @@ def get_available_modules():
                         available_modules.append(module_info)
     return available_modules
 
+# Helper function to check admin access
+def check_admin_access():
+    if not current_user.is_admin:
+        flash('Access to the Admin Setup page is restricted.', 'danger')
+        return False
+    return True
+
 @blueprint.route('/setup', methods=['GET', 'POST'])
 @login_required
 def setup():
-    if not current_user.is_admin:
-        flash('Access to the Admin Setup page is restricted.', 'danger')
+    if not check_admin_access():
         return redirect(url_for('home'))
 
-    sidebar_menu = [
-        {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
-        {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
-        {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']}
-    ]
-
-    return render_template('pages/admin_setup.html', use_sidebar=True, sidebar_menu=sidebar_menu)
+    return render_template('pages/admin_setup.html', use_sidebar=True, sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 @blueprint.route('/setup/<setup_type>', methods=['GET', 'POST'])
 @login_required
 def setup_type(setup_type):
-    if not current_user.is_admin:
-        flash('Access to the Admin Setup page is restricted.', 'danger')
+    if not check_admin_access():
         return redirect(url_for('home'))
 
     if setup_type == 'gui':
@@ -76,6 +84,8 @@ def setup_type(setup_type):
         return setup_modules()
     elif setup_type == 'roles':
         return setup_roles()
+    elif setup_type == 'users':
+        return setup_users()
     else:
         flash('Invalid setup type.', 'danger')
         return redirect(url_for('admin.setup'))
@@ -111,11 +121,7 @@ def setup_gui():
     return render_template('pages/admin_setup_gui.html', 
                            form_data=form_data, 
                            use_sidebar=True,
-                           sidebar_menu=[
-                               {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
-                               {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
-                               {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']}
-                           ])
+                           sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 def setup_modules():
     mod_config_path = current_app.config['MOD_CONFIG_PATH']
@@ -213,11 +219,7 @@ def setup_modules():
     return render_template('pages/admin_setup_modules.html', 
                            modules=mod_config['MODULE_LIST'],
                            use_sidebar=True,
-                           sidebar_menu=[
-                               {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
-                               {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
-                               {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']}
-                           ])
+                           sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 @blueprint.route('/setup/roles', methods=['GET', 'POST'])
 @login_required
@@ -288,8 +290,37 @@ def setup_roles():
                            roles=roles, 
                            modules=modules, 
                            use_sidebar=True,
-                           sidebar_menu=[
-                               {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
-                               {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
-                               {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']}
-                           ])
+                           sidebar_menu=ADMIN_SIDEBAR_MENU)
+
+@blueprint.route('/setup/users', methods=['GET', 'POST'])
+@login_required
+def setup_users():
+    if not check_admin_access():
+        return redirect(url_for('home'))
+
+    users = User.get_all_users()
+    roles = current_app.config['ROLE_LIST']
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_role':
+            user_id = request.form.get('user_id')
+            new_role = request.form.get('user_role')
+            user = User.get(user_id)
+            if user:
+                user.update_role(new_role)
+                flash(f'Role updated for user {user.username}', 'success')
+        
+        elif action == 'delete_user':
+            user_id = request.form.get('user_id')
+            User.delete_user(user_id)
+            flash('User deleted successfully', 'success')
+        
+        return redirect(url_for('admin.setup_type', setup_type='users'))
+
+    return render_template('pages/admin_setup_users.html', 
+                           users=users,
+                           roles=roles,
+                           use_sidebar=True,
+                           sidebar_menu=ADMIN_SIDEBAR_MENU)

@@ -70,6 +70,9 @@ def init_db():
     # Add the is_admin column if it does not exist
     add_column_if_not_exists(cursor, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0')
 
+    # Add the user_role column if it does not exist
+    add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
+
     conn.commit()
     conn.close()
     print("Database initialized")
@@ -96,7 +99,7 @@ def admin_required(func):
     return decorated_view
 
 class User(UserMixin):
-    def __init__(self, id, username, email, password, is_active, created_at, is_admin=False):
+    def __init__(self, id, username, email, password, is_active, created_at, is_admin=False, user_role=None):
         self.id = id
         self.username = username
         self.email = email
@@ -104,6 +107,7 @@ class User(UserMixin):
         self._is_active = is_active
         self.created_at = created_at
         self._is_admin = is_admin
+        self.user_role = user_role
 
     @property
     def is_active(self):
@@ -148,6 +152,53 @@ class User(UserMixin):
                     is_admin=excluded.is_admin,
                     created_at=excluded.created_at
             ''', (self.id, self.username, self.email, self.password, self._is_active, self._is_admin, self.created_at))
+
+    def save(self):
+        with get_db() as db:
+            cursor = db.cursor()
+            self.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
+            cursor.execute('''
+                INSERT INTO users (id, username, email, password, is_active, is_admin, created_at, user_role)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    username=excluded.username,
+                    email=excluded.email,
+                    password=excluded.password,
+                    is_active=excluded.is_active,
+                    is_admin=excluded.is_admin,
+                    created_at=excluded.created_at,
+                    user_role=excluded.user_role
+            ''', (self.id, self.username, self.email, self.password, self._is_active, self._is_admin, self.created_at, self.user_role))
+            db.commit()
+
+    @classmethod
+    def get_all_users(cls):
+        with get_db() as db:
+            cursor = db.cursor()
+            cls.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
+            cur = cursor.execute('SELECT * FROM users')
+            return [cls(**row) for row in cur.fetchall()]
+
+    def update_role(self, role):
+        self.user_role = role
+        with get_db() as db:
+            cursor = db.cursor()
+            self.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
+            cursor.execute('UPDATE users SET user_role = ? WHERE id = ?', (role, self.id))
+            db.commit()
+
+    @staticmethod
+    def add_column_if_not_exists(cursor, table_name, column_name, column_definition):
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [info[1] for info in cursor.fetchall()]
+        if column_name not in columns:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+
+    @classmethod
+    def delete_user(cls, user_id):
+        with get_db() as db:
+            db.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            db.execute('DELETE FROM tokens WHERE user_id = ?', (user_id,))
 
     @classmethod
     def get(cls, user_id):
