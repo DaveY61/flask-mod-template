@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask import Blueprint as FlaskBlueprint
-from flask_login import login_required, current_user
-from app.services.auth_service_db import User
+from flask_login import login_required
+from app.services.auth_service_db import User, admin_required
 import os
 import json
 import sys
@@ -57,27 +57,16 @@ def get_available_modules():
                         available_modules.append(module_info)
     return available_modules
 
-# Helper function to check admin access
-def check_admin_access():
-    if not current_user.is_admin:
-        flash('Access to the Admin Setup page is restricted.', 'danger')
-        return False
-    return True
-
 @blueprint.route('/setup', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def setup():
-    if not check_admin_access():
-        return redirect(url_for('home'))
-
     return render_template('pages/admin_setup.html', use_sidebar=True, sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 @blueprint.route('/setup/<setup_type>', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def setup_type(setup_type):
-    if not check_admin_access():
-        return redirect(url_for('home'))
-
     if setup_type == 'gui':
         return setup_gui()
     elif setup_type == 'modules':
@@ -223,11 +212,8 @@ def setup_modules():
 
 @blueprint.route('/setup/roles', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def setup_roles():
-    if not current_user.is_admin:
-        flash('Access to the Admin Setup page is restricted.', 'danger')
-        return redirect(url_for('home'))
-
     roles = current_app.config['ROLE_LIST']
     modules = current_app.config['MODULE_LIST']
 
@@ -294,10 +280,8 @@ def setup_roles():
 
 @blueprint.route('/setup/users', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def setup_users():
-    if not check_admin_access():
-        return redirect(url_for('home'))
-
     users = User.get_all_users()
     roles = current_app.config['ROLE_LIST']
 

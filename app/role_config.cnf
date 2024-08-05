@@ -1,10 +1,11 @@
 [
     {
         "name": "Power User",
-        "description": "Access any module in the application.",
+        "description": "User had access to all modules.",
         "modules": [
             "app.modules.module_1.pie_module",
-            "app.modules.module_2.csv_module"
+            "app.modules.module_2.csv_module",
+            "app.modules.module_3.games_module"
         ]
     }
 ]

@@ -1,13 +1,14 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, render_template
+from flask import Flask, render_template, flash, redirect, url_for
 from flask_login import LoginManager, current_user
 from app.services.auth_service_db import User
 import pkgutil
 import importlib
 from dotenv import load_dotenv
 from app.app_config import Config
+from functools import wraps
 
 #----------------------------------------------------------------------------#
 # Define App/Blueprint Functions for "create_app"
@@ -41,7 +42,6 @@ def register_modules_conditionally(app):
             if hasattr(module, 'blueprint'):
                 app.register_blueprint(getattr(module, 'blueprint'))
 
-
 #----------------------------------------------------------------------------#
 # Create App
 #----------------------------------------------------------------------------#
@@ -57,6 +57,24 @@ login_manager.login_view = 'auth.login'
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
+
+#----------------------------------------------------------------------------#
+# Method for User Module Access checking
+#----------------------------------------------------------------------------#
+def module_access_required(module_name):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return redirect(url_for('auth.login'))
+            
+            allowed_modules = current_user.get_allowed_modules()
+            if module_name not in allowed_modules:
+                flash('Access to this module is restricted.', 'danger')
+                return redirect(url_for('home'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 #----------------------------------------------------------------------------#
 # Inject Config for calls to "render_template"

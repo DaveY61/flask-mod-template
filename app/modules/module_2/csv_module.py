@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required
+from app.app import module_access_required
 import csv
 import io
 
@@ -12,6 +13,7 @@ uploaded_data = []
 
 @blueprint.route('/upload_csv', methods=['GET', 'POST'])
 @login_required
+@module_access_required('app.modules.module_2.csv_module')
 def upload_csv():
     global uploaded_data
     if request.method == 'POST':

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import login_required
+from app.app import module_access_required
 
 blueprint = Blueprint('games', __name__,
                       static_folder='static',
@@ -8,6 +9,7 @@ blueprint = Blueprint('games', __name__,
 
 @blueprint.route('/games', methods=['GET'])
 @login_required
+@module_access_required('app.modules.module_3.games_module')
 def games():
     sidebar_menu = [
         {'icon': 'fas fa-table', 'text': 'Tic-Tac-Toe', 'action': 'showGame', 'params': ['tic-tac-toe']},

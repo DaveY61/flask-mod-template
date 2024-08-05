@@ -4,7 +4,7 @@ import uuid
 from functools import wraps
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import  redirect, url_for, flash
+from flask import  redirect, url_for, flash, current_app
 from flask_login import UserMixin, current_user
 
 USER_DATABASE = None
@@ -138,6 +138,17 @@ class User(UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
+    
+    def get_allowed_modules(self):
+        allowed_modules = []
+        user_role = next((role for role in current_app.config['ROLE_LIST'] if role['name'] == self.user_role), None)
+        
+        if user_role:
+            for module in current_app.config['MODULE_LIST']:
+                if module['enabled'] and module['name'] in user_role['modules']:
+                    allowed_modules.append(module['name'])
+        
+        return allowed_modules
 
     def save(self):
         with get_db() as db:
