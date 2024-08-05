@@ -2,8 +2,8 @@ let playerY = 160;
 let aiY = 160;
 let ballX = 300;
 let ballY = 200;
-let ballSpeedX = 5;
-let ballSpeedY = 5;
+let ballSpeedX = 3;
+let ballSpeedY = 3;
 
 function initPong() {
     const pongElement = document.getElementById('pong');

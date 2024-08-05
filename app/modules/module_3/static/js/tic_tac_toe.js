@@ -10,8 +10,6 @@
             const cell = document.createElement('div');
             cell.classList.add('cell');
             cell.dataset.index = i;
-            cell.style.gridRow = Math.floor(i / 3) + 1;
-            cell.style.gridColumn = (i % 3) + 1;
             cell.addEventListener('click', () => makeMove(i));
             board.appendChild(cell);
         }

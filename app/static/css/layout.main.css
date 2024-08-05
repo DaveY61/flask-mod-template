@@ -196,6 +196,41 @@ code {
   width: 40px;
 }
 
+.sidebar.collapsed .sidebar-menu li {
+  padding: 10px 0;
+  text-align: center;
+}
+
+.sidebar.collapsed .sidebar-menu li a {
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-menu li a i {
+  margin-right: 0;
+}
+
+.sidebar.collapsed .sidebar-menu li a span {
+  display: none;
+}
+
+/* Update the hover effect for collapsed sidebar */
+.sidebar.collapsed .sidebar-menu li a:hover,
+.sidebar.collapsed .sidebar-toggle-row:hover {
+  background-color: #e9ecef;
+  width: 100%;
+}
+
+/* Ensure the hover effect covers the full width in collapsed state */
+.sidebar.collapsed .sidebar-menu li,
+.sidebar.collapsed .sidebar-toggle-row {
+  width: 100%;
+}
+
+.sidebar.collapsed .sidebar-menu li a {
+  width: 100%;
+  padding: 10px 0;
+}
+
 .sidebar-toggle-row {
   padding: 5px;
   cursor: pointer;
