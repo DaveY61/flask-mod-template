@@ -112,26 +112,32 @@
   <!-- Wrap page content here -->
   <div id="wrap">
 
-  <!-- Sidebar (optional) -->
-  {% if use_sidebar %}
-  <div class="sidebar">
-    <div class="sidebar-toggle">
-      <i class="fas fa-bars"></i>
+    {% if use_sidebar %}
+    <div class="sidebar">
+        <div class="sidebar-toggle-row">
+            <span class="sidebar-toggle-text">
+                <i class="fas fa-chevron-left"></i> Collapse
+            </span>
+        </div>
+        <ul class="sidebar-menu">
+            {% for item in sidebar_menu %}
+            <li>
+                <a href="#" 
+                   data-action="{{ item.action }}" 
+                   data-params="{{ item.params[0] }}">
+                    <i class="{{ item.icon }}"></i>
+                    <span>{{ item.text }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="sidebar-toggle-row">
+            <span class="sidebar-toggle-text">
+                <i class="fas fa-chevron-left"></i> Collapse
+            </span>
+        </div>
     </div>
-    <ul class="sidebar-menu">
-      {% for item in sidebar_menu %}
-      <li>
-        <a href="#" 
-          data-action="{{ item.action }}" 
-          data-params="{{ item.params[0] }}">
-          <i class="{{ item.icon }}"></i>
-          <span>{{ item.text }}</span>
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
+    {% endif %}
 
     <!-- Begin page content -->
     <main id="content" role="main" class="container {% if use_sidebar %}content-with-sidebar{% endif %}">

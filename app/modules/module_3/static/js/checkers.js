@@ -42,7 +42,9 @@
 
         console.log("Initial board state:", JSON.parse(JSON.stringify(board)));
 
-        // Update instructions
+        // Show instructions
+        const instructionsElement = document.getElementById('game-instructions');
+        instructionsElement.style.display = 'block';
         updateInstructions();
     }
 

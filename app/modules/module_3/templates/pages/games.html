@@ -10,9 +10,11 @@
     <div class="game-area">
         <div class="game-content">
             <div id="tic-tac-toe" class="game-board"></div>
-            <div id="checkers" class="game-board"></div>
+            <div id="checkers-container" class="game-board">
+                <div id="checkers"></div>
+                <div id="game-instructions"></div>
+            </div>
             <div id="pong" class="game-board"></div>
-            <div id="game-instructions"></div>
         </div>
     </div>
 </div>
@@ -27,16 +29,14 @@ function showGame(gameName) {
     console.log("Showing game:", gameName);
     document.querySelectorAll('.game-board').forEach(board => board.style.display = 'none');
     
-    const gameBoard = document.getElementById(gameName);
+    const gameBoard = document.getElementById(gameName === 'checkers' ? 'checkers-container' : gameName);
     if (gameBoard) {
-        if (gameName === 'tic-tac-toe' || gameName === 'checkers') {
-            gameBoard.style.display = 'grid';
-        } else {
-            gameBoard.style.display = 'block';
-        }
+        gameBoard.style.display = gameName === 'checkers' ? 'flex' : 'grid';
         
-        // Clear instructions
-        document.getElementById('game-instructions').innerHTML = '';
+        // Clear and hide instructions for non-checkers games
+        const instructionsElement = document.getElementById('game-instructions');
+        instructionsElement.innerHTML = '';
+        instructionsElement.style.display = gameName === 'checkers' ? 'block' : 'none';
 
         if (gameName === 'tic-tac-toe') {
             window.initTicTacToe();
@@ -45,10 +45,6 @@ function showGame(gameName) {
         } else if (gameName === 'pong') {
             window.initPong();
         }
-
-        // Show or hide instructions based on the game
-        const instructionsElement = document.getElementById('game-instructions');
-        instructionsElement.style.display = (gameName === 'checkers') ? 'block' : 'none';
     } else {
         console.error('Game board not found:', gameName);
     }

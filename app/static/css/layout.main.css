@@ -193,14 +193,26 @@ code {
 }
 
 .sidebar.collapsed {
-  width: 60px;
+  width: 40px;
 }
 
-.sidebar-toggle {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+.sidebar-toggle-row {
+  padding: 5px;
   cursor: pointer;
+  text-align: center;
+}
+
+.sidebar-toggle-row:first-child {
+  border-bottom: 1px solid #ddd;
+}
+
+.sidebar-toggle-row:last-child {
+  border-top: 1px solid #ddd;
+}
+
+.sidebar.collapsed .sidebar-toggle-row {
+  width: 100%;
+  text-align: center;
 }
 
 .sidebar-menu {
@@ -237,5 +249,11 @@ code {
 }
 
 .content-with-sidebar.sidebar-collapsed {
-  margin-left: 60px;
+  margin-left: 40px;
+}
+
+/* Add hover effect for sidebar items and toggle rows */
+.sidebar-menu li a:hover,
+.sidebar-toggle-row:hover {
+  background-color: #e9ecef;
 }

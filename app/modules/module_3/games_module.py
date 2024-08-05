@@ -10,8 +10,8 @@ blueprint = Blueprint('games', __name__,
 @login_required
 def games():
     sidebar_menu = [
-        {'icon': 'fas fa-chess-board', 'text': 'Tic-Tac-Toe', 'action': 'showGame', 'params': ['tic-tac-toe']},
-        {'icon': 'fas fa-chess', 'text': 'Checkers', 'action': 'showGame', 'params': ['checkers']},
+        {'icon': 'fas fa-table', 'text': 'Tic-Tac-Toe', 'action': 'showGame', 'params': ['tic-tac-toe']},
+        {'icon': 'fas fa-chess-board', 'text': 'Checkers', 'action': 'showGame', 'params': ['checkers']},
         {'icon': 'fas fa-table-tennis', 'text': 'Pong', 'action': 'showGame', 'params': ['pong']}
     ]
     return render_template('pages/games.html', use_sidebar=True, sidebar_menu=sidebar_menu)
