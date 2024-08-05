@@ -16,9 +16,11 @@
     </div>
     <div class="gui-setup-row">
       <label for="body_color" class="gui-label">Body Color:</label>
-      <div class="gui-input d-flex">
-        <input type="color" id="body_color_picker" class="form-control form-control-color p-0 me-2" style="width: 38px; height: 38px;" onchange="updateColorInput('body_color', this.value)">
-        <input type="text" class="form-control form-control-sm color-text-input" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
+      <div class="gui-input">
+        <div class="d-flex">
+          <input type="color" id="body_color_picker" class="form-control form-control-color p-0 me-2" onchange="updateColorInput('body_color', this.value)">
+          <input type="text" class="form-control form-control-sm color-text-input" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
+        </div>
       </div>
     </div>
     <div class="gui-setup-row">
@@ -29,9 +31,11 @@
     </div>
     <div class="gui-setup-row">
       <label for="project_name_color" class="gui-label">Project Name Color:</label>
-      <div class="gui-input d-flex">
-        <input type="color" id="project_name_color_picker" class="form-control form-control-color p-0 me-2" style="width: 38px; height: 38px;" onchange="updateColorInput('project_name_color', this.value)">
-        <input type="text" class="form-control form-control-sm color-text-input" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
+      <div class="gui-input">
+        <div class="d-flex">
+          <input type="color" id="project_name_color_picker" class="form-control form-control-color p-0 me-2" onchange="updateColorInput('project_name_color', this.value)">
+          <input type="text" class="form-control form-control-sm color-text-input" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
+        </div>
       </div>
     </div>
   </div>
@@ -109,11 +113,16 @@ function showAdminSetup(setupType) {
     width: 100%;
     padding-bottom: 15px;
   }
-  .gui-input input[type="text"] {
+  .gui-input input[type="text"],
+  .gui-input .d-flex {
     width: 250px;
   }
+  .gui-input input[type="color"] {
+    width: 38px;
+    height: 38px;
+  }
   .gui-input .color-text-input {
-    width: 210px;  /* Adjusted to make the total width match other inputs */
+    width: calc(100% - 50px);  /* Subtracting color picker width and margin */
   }
 </style>
 {% endblock %}
