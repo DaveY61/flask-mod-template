@@ -48,7 +48,7 @@ class Config:
     GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
 
     # Define the Role config path as part of the Config class
-    ROLE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'role_config.cnf')
+    ROLE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'role_config.cnf')
 
 #----------------------------------------------------------------------------
 # Integrate GUI Config attributes from "gui_config.cnf"
