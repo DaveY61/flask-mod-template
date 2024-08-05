@@ -7,36 +7,50 @@
 </div>
 
 <form method="POST" id="admin-setup-form">
-  <div id="module-list">
-    {% for module in modules %}
-      <div class="module-item {% if module.enabled %}enabled{% endif %}" data-module-name="{{ module.name }}">
-        <div class="row align-items-center">
-          <div class="col-auto">
-            <span class="drag-handle">&#9776;</span>
-          </div>
-          <div class="col-auto">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
-                     {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
+  <div id="module-list" class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th style="width: 40px;"></th>
+          <th style="width: 40px;"></th>
+          <th>Module Name</th>
+          <th style="width: 200px;">Menu Name</th>
+          <th>Blueprint</th>
+          <th>Route</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for module in modules %}
+          <tr class="module-item {% if module.enabled %}table-active{% endif %}" data-module-name="{{ module.name }}">
+            <td>
+              <span class="drag-handle">&#9776;</span>
+            </td>
+            <td>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
+                       {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
+              </div>
+            </td>
+            <td>
               <label class="form-check-label" for="{{ module.name }}">
                 {% set parts = module.name.split('.') %}
                 {{ parts[-2] }}.{{ parts[-1] }}
               </label>
-            </div>
-          </div>
-          <div class="col">
-            <input type="text" class="form-control" name="menu_name_{{ module.name }}" 
-                   value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20">
-          </div>
-          <div class="col-auto">
-            <span class="badge bg-secondary" title="Blueprint Name">{{ module.blueprint_name or 'N/A' }}</span>
-          </div>
-          <div class="col-auto">
-            <span class="badge bg-info" title="Module Route">{{ module.view_name or 'N/A' }}</span>
-          </div>
-        </div>
-      </div>
-    {% endfor %}
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm" name="menu_name_{{ module.name }}" 
+                     value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20" style="max-width: 180px;">
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ module.blueprint_name or 'N/A' }}</span>
+            </td>
+            <td>
+              <span class="badge bg-info">{{ module.view_name or 'N/A' }}</span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   <input type="hidden" id="module_order" name="module_order" value="">
   
@@ -72,14 +86,8 @@ function updateSaveButton() {
   }
 }
 
-function updateModuleOrder() {
-  const moduleOrder = Array.from(document.querySelectorAll('.module-item'))
-    .map(item => item.dataset.moduleName);
-  document.getElementById('module_order').value = JSON.stringify(moduleOrder);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-  new Sortable(document.getElementById('module-list'), {
+  new Sortable(document.querySelector('#module-list tbody'), {
     animation: 150,
     handle: '.drag-handle',
     onEnd: function(evt) {
@@ -96,6 +104,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+function updateModuleOrder() {
+  const moduleOrder = Array.from(document.querySelectorAll('.module-item'))
+    .map(item => item.dataset.moduleName);
+  document.getElementById('module_order').value = JSON.stringify(moduleOrder);
+}
+
 function showAdminSetup(setupType) {
     window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
 }
@@ -104,23 +118,15 @@ function showAdminSetup(setupType) {
 
 {% block additional_styles %}
 <style>
-  .module-item {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    background-color: #f8f9fa;
-  }
-  .module-item.enabled {
-    background-color: #e9ecef;
-  }
   .drag-handle {
     cursor: move;
-    padding: 5px;
     color: #6c757d;
   }
   .badge {
     font-size: 0.8em;
+  }
+  .table > :not(caption) > * > * {
+    padding: 0.5rem;
   }
 </style>
 {% endblock %}
