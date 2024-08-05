@@ -217,6 +217,19 @@ def setup_roles():
     roles = current_app.config['ROLE_LIST']
     modules = current_app.config['MODULE_LIST']
 
+    # Get user count for each role
+    user_counts = User.get_role_user_counts()
+
+    # Function to add user counts to roles
+    def add_user_counts(roles_list):
+        return [
+            {**role, 'users_count': user_counts.get(role['name'], 0)}
+            for role in roles_list
+        ]
+
+    # Add user counts to roles
+    roles_with_counts = add_user_counts(roles)
+
     if request.method == 'POST':
         action = request.form.get('action')
         
@@ -225,7 +238,6 @@ def setup_roles():
             role_description = request.form.get('role_description')
             all_modules = request.form.get('all_modules') == 'on'
             
-            # Check if role name already exists
             if any(role['name'] == role_name for role in roles):
                 flash('A role with this name already exists. Please choose a different name.', 'danger')
             else:
@@ -244,8 +256,11 @@ def setup_roles():
         
         elif action == 'delete_role':
             role_name = request.form.get('role_name')
-            roles = [role for role in roles if role['name'] != role_name]
-            flash('Role deleted successfully.', 'success')
+            if user_counts.get(role_name, 0) == 0:
+                roles = [role for role in roles if role['name'] != role_name]
+                flash('Role deleted successfully.', 'success')
+            else:
+                flash('Cannot delete role while it\'s in use.', 'danger')
         
         elif action == 'update_modules':
             role_name = request.form.get('role_name')
@@ -272,8 +287,11 @@ def setup_roles():
         # Update the config
         current_app.config['ROLE_LIST'] = roles
 
+        # Refresh roles_with_counts after any changes
+        roles_with_counts = add_user_counts(roles)
+
     return render_template('pages/admin_setup_roles.html', 
-                           roles=roles, 
+                           roles=roles_with_counts, 
                            modules=modules, 
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)

@@ -53,6 +53,7 @@
             <th style="white-space: nowrap;">Role Name</th>
             <th>Description</th>
             <th>Associated Modules</th>
+            <th>Users</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -89,10 +90,18 @@
                 </form>
               </td>
               <td>
+                {{ role.users_count }}
+              </td>
+              <td>
                 <form method="POST" style="display: inline;">
                   <input type="hidden" name="action" value="delete_role">
                   <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  <button type="submit" class="btn btn-danger btn-sm {% if role.users_count > 0 %}disabled{% endif %}" 
+                          {% if role.users_count > 0 %}disabled{% endif %}
+                          data-bs-toggle="tooltip" data-bs-placement="top" 
+                          title="{% if role.users_count > 0 %}Cannot delete role while it's in use{% else %}Delete role{% endif %}">
+                    Delete
+                  </button>
                 </form>
               </td>
             </tr>
@@ -139,6 +148,16 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
             alert('A role with this name already exists. Please choose a different name.');
         }
+    });
+});
+</script>
+
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
 });
 </script>

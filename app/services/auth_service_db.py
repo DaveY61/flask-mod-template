@@ -152,20 +152,6 @@ class User(UserMixin):
 
     def save(self):
         with get_db() as db:
-            db.execute('''
-                INSERT INTO users (id, username, email, password, is_active, is_admin, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    username=excluded.username,
-                    email=excluded.email,
-                    password=excluded.password,
-                    is_active=excluded.is_active,
-                    is_admin=excluded.is_admin,
-                    created_at=excluded.created_at
-            ''', (self.id, self.username, self.email, self.password, self._is_active, self._is_admin, self.created_at))
-
-    def save(self):
-        with get_db() as db:
             cursor = db.cursor()
             self.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
             cursor.execute('''
@@ -198,6 +184,13 @@ class User(UserMixin):
             cursor.execute('UPDATE users SET user_role = ? WHERE id = ?', (role, self.id))
             db.commit()
 
+    @classmethod
+    def get_role_user_counts(cls):
+        with get_db() as db:
+            cursor = db.cursor()
+            cursor.execute('SELECT user_role, COUNT(*) as count FROM users GROUP BY user_role')
+            return {row['user_role']: row['count'] for row in cursor.fetchall()}
+        
     @staticmethod
     def add_column_if_not_exists(cursor, table_name, column_name, column_definition):
         cursor.execute(f"PRAGMA table_info({table_name})")

@@ -1,10 +1,17 @@
 [
     {
         "name": "Power User",
-        "description": "User had access to all modules.",
+        "description": "Access granted to all modules.",
         "modules": [
             "app.modules.module_1.pie_module",
             "app.modules.module_2.csv_module",
+            "app.modules.module_3.games_module"
+        ]
+    },
+    {
+        "name": "Gamer",
+        "description": "Game Module - ONLU",
+        "modules": [
             "app.modules.module_3.games_module"
         ]
     }
