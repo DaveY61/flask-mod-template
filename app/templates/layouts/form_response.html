@@ -46,6 +46,19 @@
 
 </head>
 <body>
+    <!-- Flash Alert message -->
+    <div id="flash-messages" class="flash-messages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
 
   <div class="d-flex justify-content-center">
 
@@ -56,17 +69,6 @@
         <div class="brand-project-name" style="font-size:3em; vertical-align:center">{{ config.PROJECT_NAME }}</div>
       </a>
     </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
 
     <div class="card mt-3" style="width: 400px;">
       <div class="card-body pt-2 pb-3 px-3">
@@ -81,6 +83,7 @@
   <script type="text/javascript" src="/static/js/libs/jquery-3.7.1.min.js"></script>
   <script type="text/javascript" src="/static/js/libs/bootstrap.bundle-5.3.3.min.js" defer></script>
   <script type="text/javascript" src="/static/js/libs/fontawesome-6.6.0.min.js" defer></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/flash-messages.js') }}" defer></script>
   {% block scripts %}{% endblock %}
   <!-- Scripts -->
 

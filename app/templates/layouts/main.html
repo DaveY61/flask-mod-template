@@ -39,6 +39,19 @@
 
 </head>
 <body>
+  <!-- Flash Alert message -->
+  <div id="flash-messages" class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
 
   <!-- Fixed navbar -->
   <nav id="header" class="navbar navbar-expand-sm navbar-light bg-light">
@@ -142,17 +155,6 @@
 
     <!-- Begin page content -->
     <main id="content" role="main" class="container {% if use_sidebar %}content-with-sidebar{% endif %}">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show custom-alert custom-alert-{{ category if category != 'message' else 'info' }}" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
       {% block content %}{% endblock %}
     </main>
   </div>
@@ -168,6 +170,7 @@
   <script type="text/javascript" src="/static/js/libs/bootstrap.bundle-5.3.3.min.js" defer></script>
   <script type="text/javascript" src="/static/js/libs/fontawesome-6.6.0.min.js" defer></script>
   <script type="text/javascript" src="/static/js/sidebar.js" defer></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/flash-messages.js') }}" defer></script>
   {% block scripts %}{% endblock %}
   <!-- Scripts -->
 

@@ -114,6 +114,23 @@ code {
   background-color: white;
 }
 
+/* Flask "flash" alert message pop-up CSS
+-------------------------------------------------- */
+.flash-messages {
+  position: fixed;
+  top: 20px; /* Adjust based on your navbar height */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  width: 80%;
+  max-width: 600px;
+}
+
+.flash-messages .alert {
+  margin-bottom: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Flask "flash" alert message display CSS
 -------------------------------------------------- */
  .custom-alert {
