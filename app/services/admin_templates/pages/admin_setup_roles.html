@@ -96,12 +96,18 @@
                 <form method="POST" style="display: inline;">
                   <input type="hidden" name="action" value="delete_role">
                   <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <button type="submit" class="btn btn-danger btn-sm {% if role.users_count > 0 %}disabled{% endif %}" 
-                          {% if role.users_count > 0 %}disabled{% endif %}
-                          data-bs-toggle="tooltip" data-bs-placement="top" 
-                          title="{% if role.users_count > 0 %}Cannot delete role while it's in use{% else %}Delete role{% endif %}">
-                    Delete
-                  </button>
+                  <div class="d-flex align-items-center">
+                    <button type="submit" class="btn btn-danger btn-sm me-2" 
+                            {% if role.users_count > 0 %}disabled{% endif %}>
+                      Delete
+                    </button>
+                    {% if role.users_count > 0 %}
+                      <i class="fas fa-exclamation-circle text-warning" 
+                         data-bs-toggle="tooltip" 
+                         data-bs-placement="top" 
+                         title="Cannot delete role while it's in use ({{ role.users_count }} user{{ 's' if role.users_count != 1 else '' }})"></i>
+                    {% endif %}
+                  </div>
                 </form>
               </td>
             </tr>
@@ -157,8 +163,43 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover focus'
+        });
+    });
+
+    console.log('Tooltips initialized:', tooltipList.length);
+
+    // Add event listener for form submission
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            tooltipList.forEach(function(tooltip) {
+                tooltip.dispose();
+            });
+        });
+    });
+
+    // Test tooltip functionality
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+        el.addEventListener('mouseenter', function() {
+            console.log('Tooltip content:', this.getAttribute('title'));
+        });
     });
 });
 </script>
+{% endblock %}
+
+{% block additional_styles %}
+{{ super() }}
+<style>
+    .fa-exclamation-circle {
+        font-size: 1.2em;
+        cursor: help;
+    }
+    .tooltip-inner {
+        background-color: #f8f9fa;
+        color: #212529;
+        border: 1px solid #dee2e6;
+    }
+</style>
 {% endblock %}
