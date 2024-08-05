@@ -28,8 +28,8 @@
     grid-template-columns: repeat(3, 100px);
     grid-template-rows: repeat(3, 100px);
     gap: 5px;
-    width: 320px;  /* Increased from 310px */
-    height: 320px; /* Increased from 310px */
+    width: 310px;  /* Increased from 310px */
+    height: 310px; /* Increased from 310px */
     margin: 0 auto;
     background-color: #f0f0f0;
     padding: 10px;
