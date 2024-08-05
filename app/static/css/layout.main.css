@@ -32,7 +32,7 @@ body {
 /* Custom page CSS
 -------------------------------------------------- */
 #wrap > .container {
-  padding: 60px 15px 0;
+  padding: 70px 15px 0;
 }
 .container .credit {
   margin: 20px 0;
@@ -180,10 +180,11 @@ code {
   opacity: 1;
 }
 
-/* Sidebar styles */
+/* Sidebar menu CSS
+-------------------------------------------------- */
 .sidebar {
   position: fixed;
-  top: 56px; /* Adjust based on your navbar height */
+  top: 60px; /* Adjust based on your navbar height */
   left: 0;
   height: calc(100vh - 56px);
   width: 250px;
@@ -287,6 +288,7 @@ code {
 
 .content-with-sidebar.sidebar-collapsed {
   margin-left: 40px;
+  padding-top: 70px;
 }
 
 /* Add hover effect for sidebar items and toggle rows */
