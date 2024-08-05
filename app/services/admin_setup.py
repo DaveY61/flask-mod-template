@@ -235,7 +235,12 @@ def setup_roles():
         if action == 'add_role':
             role_name = request.form.get('role_name')
             role_description = request.form.get('role_description')
-            selected_modules = request.form.getlist('modules')
+            all_modules = request.form.get('all_modules') == 'on'
+            
+            if all_modules:
+                selected_modules = [m['name'] for m in modules]
+            else:
+                selected_modules = request.form.getlist('modules')
             
             new_role = {
                 'name': role_name,
@@ -247,6 +252,14 @@ def setup_roles():
         elif action == 'delete_role':
             role_name = request.form.get('role_name')
             roles = [role for role in roles if role['name'] != role_name]
+        
+        elif action == 'update_modules':
+            role_name = request.form.get('role_name')
+            selected_modules = request.form.getlist('modules')
+            for role in roles:
+                if role['name'] == role_name:
+                    role['modules'] = selected_modules
+                    break
         
         # Save updated roles to file
         with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:

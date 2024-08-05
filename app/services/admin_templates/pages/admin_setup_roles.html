@@ -13,19 +13,25 @@
       <input type="hidden" name="action" value="add_role">
       <div class="mb-3">
         <label for="role_name" class="form-label">Role Name</label>
-        <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required>
+        <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required style="width: 15ch;">
       </div>
       <div class="mb-3">
         <label for="role_description" class="form-label">Role Description</label>
-        <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required>
+        <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 40ch;">
       </div>
       <div class="mb-3">
         <label class="form-label">Associated Modules</label>
-        <div class="row">
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="all_modules" name="all_modules">
+          <label class="form-check-label" for="all_modules">
+            All Modules
+          </label>
+        </div>
+        <div class="row" id="module_checkboxes">
           {% for module in modules %}
             <div class="col-md-4 mb-2">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
+                <input class="form-check-input module-checkbox" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
                 <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ loop.index }}">
                   {{ module.menu_name }}
                 </label>
@@ -43,7 +49,7 @@
     <table class="table table-striped">
       <thead>
         <tr>
-          <th>Role Name</th>
+          <th style="white-space: nowrap;">Role Name</th>
           <th>Description</th>
           <th>Associated Modules</th>
           <th>Action</th>
@@ -52,15 +58,23 @@
       <tbody>
         {% for role in roles %}
           <tr>
-            <td>{{ role.name }}</td>
+            <td style="white-space: nowrap;">{{ role.name }}</td>
             <td>{{ role.description }}</td>
             <td>
-              {% for module_name in role.modules %}
-                {% set module = modules|selectattr('name', 'equalto', module_name)|first %}
-                {% if module %}
-                  <span class="badge {% if module.enabled %}bg-success{% else %}bg-secondary{% endif %}">{{ module.menu_name }}</span>
-                {% endif %}
-              {% endfor %}
+              <form method="POST" class="update-modules-form">
+                <input type="hidden" name="action" value="update_modules">
+                <input type="hidden" name="role_name" value="{{ role.name }}">
+                {% for module in modules %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
+                           {% if module.name in role.modules %}checked{% endif %}>
+                    <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ role.name }}_{{ loop.index }}">
+                      {{ module.menu_name }}
+                    </label>
+                  </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Update Modules</button>
+              </form>
             </td>
             <td>
               <form method="POST" style="display: inline;">
@@ -83,5 +97,16 @@
 function showAdminSetup(setupType) {
     window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const allModulesCheckbox = document.getElementById('all_modules');
+    const moduleCheckboxes = document.querySelectorAll('.module-checkbox');
+
+    allModulesCheckbox.addEventListener('change', function() {
+        moduleCheckboxes.forEach(checkbox => {
+            checkbox.checked = allModulesCheckbox.checked;
+        });
+    });
+});
 </script>
 {% endblock %}

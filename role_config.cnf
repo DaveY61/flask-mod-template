@@ -7,5 +7,14 @@
             "app.modules.module_2.csv_module",
             "app.modules.module_3.games_module"
         ]
+    },
+    {
+        "name": "Power User",
+        "description": "Access any module in the system and be a",
+        "modules": [
+            "app.modules.module_1.pie_module",
+            "app.modules.module_2.csv_module",
+            "app.modules.module_3.games_module"
+        ]
     }
 ]
