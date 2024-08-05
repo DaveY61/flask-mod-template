@@ -157,36 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-
-{{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            trigger: 'hover focus'
-        });
-    });
-
-    console.log('Tooltips initialized:', tooltipList.length);
-
-    // Add event listener for form submission
-    document.querySelectorAll('form').forEach(function(form) {
-        form.addEventListener('submit', function() {
-            tooltipList.forEach(function(tooltip) {
-                tooltip.dispose();
-            });
-        });
-    });
-
-    // Test tooltip functionality
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() {
-            console.log('Tooltip content:', this.getAttribute('title'));
-        });
-    });
-});
-</script>
 {% endblock %}
 
 {% block additional_styles %}

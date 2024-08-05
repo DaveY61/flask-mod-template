@@ -53,5 +53,9 @@ if __name__ == "__main__":
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    test_email_service_success(app.config)
-    #test_email_service_fail(app.config)
+    # Toggle "test_success" to False to test a failed email
+    test_success = True
+    if ( test_success ):
+        test_email_service_success(app.config)
+    else:
+        test_email_service_fail(app.config)

@@ -69,5 +69,3 @@
     // Explicitly attach initTicTacToe to the global window object
     window.initTicTacToe = initTicTacToe;
 })();
-
-console.log("Tic-Tac-Toe script loaded, initTicTacToe is:", typeof window.initTicTacToe);

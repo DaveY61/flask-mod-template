@@ -210,5 +210,3 @@
     // Explicitly attach initCheckers to the global window object
     window.initCheckers = initCheckers;
 })();
-
-console.log("Checkers script loaded, initCheckers is:", typeof window.initCheckers);

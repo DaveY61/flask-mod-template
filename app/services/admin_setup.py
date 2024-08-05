@@ -142,7 +142,7 @@ def setup_modules():
                 module['enabled'] = False
                 module['menu_name'] = module['name'].split('.')[-1]
             else:
-                print(f"Warning: Module {module_name} not found in existing configuration or available modules")
+                # Module {module_name} not found in existing configuration or available modules
                 continue
 
             new_enabled = module_name in enabled_modules
