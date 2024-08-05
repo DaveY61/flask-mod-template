@@ -10,25 +10,37 @@
   <div id="module-list">
     {% for module in modules %}
       <div class="module-item {% if module.enabled %}enabled{% endif %}" data-module-name="{{ module.name }}">
-        <span class="drag-handle">&#9776;</span>
-        <div class="module-checkbox-name">
-          <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
-                 {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
-          <label class="form-check-label module-name" for="{{ module.name }}">
-            {% set parts = module.name.split('.') %}
-            {{ parts[-2] }}.{{ parts[-1] }}
-          </label>
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="drag-handle">&#9776;</span>
+          </div>
+          <div class="col-auto">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
+                     {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
+              <label class="form-check-label" for="{{ module.name }}">
+                {% set parts = module.name.split('.') %}
+                {{ parts[-2] }}.{{ parts[-1] }}
+              </label>
+            </div>
+          </div>
+          <div class="col">
+            <input type="text" class="form-control" name="menu_name_{{ module.name }}" 
+                   value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20">
+          </div>
+          <div class="col-auto">
+            <span class="badge bg-secondary" title="Blueprint Name">{{ module.blueprint_name or 'N/A' }}</span>
+          </div>
+          <div class="col-auto">
+            <span class="badge bg-info" title="Module Route">{{ module.view_name or 'N/A' }}</span>
+          </div>
         </div>
-        <input type="text" class="form-control module-menu-name" name="menu_name_{{ module.name }}" 
-               value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20">
-        <span class="module-blueprint-name" title="Blueprint Name">{{ module.blueprint_name or 'N/A' }}</span>
-        <span class="module-route" title="Module Route">{{ module.view_name or 'N/A' }}</span>
       </div>
     {% endfor %}
   </div>
   <input type="hidden" id="module_order" name="module_order" value="">
   
-  <button type="submit" class="btn btn-primary" id="saveButton">Save Configuration</button>
+  <button type="submit" class="btn btn-primary mt-3" id="saveButton">Save Configuration</button>
 </form>
 
 {% endblock %}
@@ -88,4 +100,27 @@ function showAdminSetup(setupType) {
     window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
 }
 </script>
+{% endblock %}
+
+{% block additional_styles %}
+<style>
+  .module-item {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+  }
+  .module-item.enabled {
+    background-color: #e9ecef;
+  }
+  .drag-handle {
+    cursor: move;
+    padding: 5px;
+    color: #6c757d;
+  }
+  .badge {
+    font-size: 0.8em;
+  }
+</style>
 {% endblock %}

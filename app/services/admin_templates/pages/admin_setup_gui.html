@@ -7,30 +7,34 @@
 </div>
 
 <form method="POST" id="admin-setup-form">
-  <div class="form-group">
-    <label for="company_name">Company Name:</label>
-    <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}" style="max-width: 300px;">
-  </div>
-  <div class="form-group">
-    <label for="body_color">Body Color:</label>
-    <div class="color-input-group">
-      <div class="color-picker-wrapper">
-        <input type="color" id="body_color_picker" class="color-picker" onchange="updateColorInput('body_color', this.value)">
-      </div>
-      <input type="text" class="form-control color-text-input" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
+  <div class="row mb-3">
+    <label for="company_name" class="col-sm-3 col-form-label">Company Name:</label>
+    <div class="col-sm-9">
+      <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form_data.company_name }}">
     </div>
   </div>
-  <div class="form-group">
-    <label for="project_name">Project Name:</label>
-    <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}" style="max-width: 300px;">
-  </div>
-  <div class="form-group">
-    <label for="project_name_color">Project Name Color:</label>
-    <div class="color-input-group">
-      <div class="color-picker-wrapper">
-        <input type="color" id="project_name_color_picker" class="color-picker" onchange="updateColorInput('project_name_color', this.value)">
+  <div class="row mb-3">
+    <label for="body_color" class="col-sm-3 col-form-label">Body Color:</label>
+    <div class="col-sm-9">
+      <div class="input-group">
+        <input type="color" id="body_color_picker" class="form-control form-control-color" onchange="updateColorInput('body_color', this.value)">
+        <input type="text" class="form-control" id="body_color" name="body_color" value="{{ form_data.body_color }}" placeholder="Color name or hex code">
       </div>
-      <input type="text" class="form-control color-text-input" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
+    </div>
+  </div>
+  <div class="row mb-3">
+    <label for="project_name" class="col-sm-3 col-form-label">Project Name:</label>
+    <div class="col-sm-9">
+      <input type="text" class="form-control" id="project_name" name="project_name" value="{{ form_data.project_name }}">
+    </div>
+  </div>
+  <div class="row mb-3">
+    <label for="project_name_color" class="col-sm-3 col-form-label">Project Name Color:</label>
+    <div class="col-sm-9">
+      <div class="input-group">
+        <input type="color" id="project_name_color_picker" class="form-control form-control-color" onchange="updateColorInput('project_name_color', this.value)">
+        <input type="text" class="form-control" id="project_name_color" name="project_name_color" value="{{ form_data.project_name_color }}" placeholder="Color name or hex code">
+      </div>
     </div>
   </div>
   
