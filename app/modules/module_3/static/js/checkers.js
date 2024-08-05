@@ -40,8 +40,6 @@
             }
         }
 
-        console.log("Initial board state:", JSON.parse(JSON.stringify(board)));
-
         // Show instructions
         const instructionsElement = document.getElementById('game-instructions');
         instructionsElement.style.display = 'block';
@@ -79,11 +77,6 @@
     }
 
     function selectPiece(row, col, pieceElement) {
-        console.log(`Attempting to select piece at (${row}, ${col})`);
-        console.log(`Current player: ${currentPlayer}`);
-        console.log(`Piece at (${row}, ${col}):`, board[row][col]);
-        console.log("Current board state:", JSON.parse(JSON.stringify(board)));
-
         // Clear previous highlights
         clearHighlights();
 
@@ -92,7 +85,6 @@
                 selectedPiece.classList.remove('selected');
             }
             const availableMoves = getAvailableMoves(row, col);
-            console.log(`Available moves for piece at (${row}, ${col}):`, availableMoves);
             
             // Always select the piece, even if there are no available moves
             selectedPiece = pieceElement;
@@ -104,21 +96,16 @@
                 cell.classList.add('highlight-move');
             });
         } else {
-            console.log('This piece does not belong to the current player');
-            console.log(`Board value at (${row}, ${col}):`, board[row][col]);
-            console.log(`Current player:`, currentPlayer);
             selectedPiece = null;
         }
     }
 
     function moveSelectedPiece(row, col) {
-        console.log(`Attempting to move to (${row}, ${col})`);
         if (selectedPiece && board[row][col] === null && (row + col) % 2 !== 0) {
             const oldRow = parseInt(selectedPiece.parentNode.dataset.row);
             const oldCol = parseInt(selectedPiece.parentNode.dataset.col);
 
             const availableMoves = getAvailableMoves(oldRow, oldCol);
-            console.log(`Available moves from (${oldRow}, ${oldCol}):`, availableMoves);
             
             if (availableMoves.some(move => move[0] === row && move[1] === col)) {
                 // Move the piece
@@ -144,13 +131,7 @@
 
                 // Switch players
                 currentPlayer = currentPlayer === 'red' ? 'black' : 'red';
-                console.log('Move successful. Current player:', currentPlayer);
-                console.log("Updated board state:", JSON.parse(JSON.stringify(board)));
-            } else {
-                console.log('Move not allowed');
             }
-        } else {
-            console.log('Invalid move attempt');
         }
     }
 
@@ -158,22 +139,15 @@
         const moves = [];
         const direction = (currentPlayer === 'red') ? 1 : -1;
 
-        console.log(`Checking moves for piece at (${row}, ${col})`);
-
         // Check normal moves
         [-1, 1].forEach(colDir => {
             let newRow = row + direction;
             let newCol = col + colDir;
-            console.log(`Checking normal move to (${newRow}, ${newCol})`);
+
             if (isInBounds(newRow, newCol)) {
                 if (board[newRow][newCol] === null) {
                     moves.push([newRow, newCol]);
-                    console.log(`Normal move available: (${newRow}, ${newCol})`);
-                } else {
-                    console.log(`Cell (${newRow}, ${newCol}) is occupied by:`, board[newRow][newCol]);
                 }
-            } else {
-                console.log(`Normal move (${newRow}, ${newCol}) is out of bounds`);
             }
         });
 
@@ -181,22 +155,15 @@
         [-1, 1].forEach(colDir => {
             let newRow = row + 2 * direction;
             let newCol = col + 2 * colDir;
-            console.log(`Checking capture move to (${newRow}, ${newCol})`);
+
             if (isInBounds(newRow, newCol)) {
                 if (board[newRow][newCol] === null) {
                     const jumpedRow = row + direction;
                     const jumpedCol = col + colDir;
                     if (board[jumpedRow][jumpedCol] === (currentPlayer === 'red' ? 'black' : 'red')) {
                         moves.push([newRow, newCol]);
-                        console.log(`Capture move available: (${newRow}, ${newCol})`);
-                    } else {
-                        console.log(`No opponent piece to capture at (${jumpedRow}, ${jumpedCol})`);
                     }
-                } else {
-                    console.log(`Capture destination (${newRow}, ${newCol}) is occupied`);
                 }
-            } else {
-                console.log(`Capture move (${newRow}, ${newCol}) is out of bounds`);
             }
         });
 

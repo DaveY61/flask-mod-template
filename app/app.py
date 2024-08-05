@@ -20,7 +20,6 @@ def create_app():
     # Create the Flask app with the specified template folder
     app = Flask(__name__)
     app.config.from_object(Config)
-    #app.config['EXPLAIN_TEMPLATE_LOADING'] = True
 
     return app
 

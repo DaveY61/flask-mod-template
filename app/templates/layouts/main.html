@@ -69,14 +69,19 @@
   
       <!-- Collapsible content -->
       <div class="collapse navbar-collapse" id="navbarContent">
-        <!-- Dynamic Menu -->
+
+        <!-- Top-Level Menu -->
         <ul class="navbar-nav mx-auto">
+          
+          <!-- 'Home' and 'About' options -->
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'home' %}active{% endif %}" href="{{ url_for('home') }}">Home</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}">About</a>
           </li>
+
+           <!-- Dynamic Menu -->
           {% if current_user.is_authenticated %}
             {% set allowed_modules = current_user.get_allowed_modules() %}
             {% for module in config.MODULE_LIST %}

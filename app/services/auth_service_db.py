@@ -34,10 +34,7 @@ def add_column_if_not_exists(db, table_name, column_name, column_definition):
 
 def init_db():
     if os.path.exists(USER_DATABASE):
-        print("Database already exists.")
-        return
-
-    print("Creating new database.")
+        return # No action, Database already exist
 
     # Ensure the directory for the database exists
     os.makedirs(os.path.dirname(USER_DATABASE), exist_ok=True)
