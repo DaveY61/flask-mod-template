@@ -237,21 +237,27 @@ def setup_roles():
             role_description = request.form.get('role_description')
             all_modules = request.form.get('all_modules') == 'on'
             
-            if all_modules:
-                selected_modules = [m['name'] for m in modules]
+            # Check if role name already exists
+            if any(role['name'] == role_name for role in roles):
+                flash('A role with this name already exists. Please choose a different name.', 'danger')
             else:
-                selected_modules = request.form.getlist('modules')
-            
-            new_role = {
-                'name': role_name,
-                'description': role_description,
-                'modules': selected_modules
-            }
-            roles.append(new_role)
+                if all_modules:
+                    selected_modules = [m['name'] for m in modules]
+                else:
+                    selected_modules = request.form.getlist('modules')
+                
+                new_role = {
+                    'name': role_name,
+                    'description': role_description,
+                    'modules': selected_modules
+                }
+                roles.append(new_role)
+                flash('New role added successfully.', 'success')
         
         elif action == 'delete_role':
             role_name = request.form.get('role_name')
             roles = [role for role in roles if role['name'] != role_name]
+            flash('Role deleted successfully.', 'success')
         
         elif action == 'update_modules':
             role_name = request.form.get('role_name')
@@ -260,6 +266,16 @@ def setup_roles():
                 if role['name'] == role_name:
                     role['modules'] = selected_modules
                     break
+            flash('Role modules updated successfully.', 'success')
+        
+        elif action == 'edit_description':
+            role_name = request.form.get('role_name')
+            new_description = request.form.get('role_description')
+            for role in roles:
+                if role['name'] == role_name:
+                    role['description'] = new_description
+                    break
+            flash('Role description updated successfully.', 'success')
         
         # Save updated roles to file
         with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:
@@ -267,8 +283,6 @@ def setup_roles():
         
         # Update the config
         current_app.config['ROLE_LIST'] = roles
-        
-        flash('Roles configuration updated successfully!', 'success')
 
     return render_template('pages/admin_setup_roles.html', 
                            roles=roles, 

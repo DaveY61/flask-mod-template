@@ -60,7 +60,16 @@
           {% for role in roles %}
             <tr>
               <td style="white-space: nowrap;">{{ role.name }}</td>
-              <td>{{ role.description }}</td>
+              <td>
+                <form method="POST" class="edit-description-form">
+                  <input type="hidden" name="action" value="edit_description">
+                  <input type="hidden" name="role_name" value="{{ role.name }}">
+                  <div class="input-group">
+                    <input type="text" class="form-control" name="role_description" value="{{ role.description }}" maxlength="40">
+                    <button type="submit" class="btn btn-outline-secondary">Update</button>
+                  </div>
+                </form>
+              </td>
               <td>
                 <form method="POST" class="update-modules-form">
                   <input type="hidden" name="action" value="update_modules">
@@ -97,6 +106,8 @@
 {% endblock %}
 
 {% block scripts %}
+<input type="hidden" id="existing-role-names" data-roles='{{ roles|map(attribute="name")|list|tojson }}'>
+
 <script>
 function showAdminSetup(setupType) {
     window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
@@ -110,6 +121,24 @@ document.addEventListener('DOMContentLoaded', function() {
         moduleCheckboxes.forEach(checkbox => {
             checkbox.checked = allModulesCheckbox.checked;
         });
+    });
+
+    // Add client-side validation for duplicate role names
+    const addRoleForm = document.getElementById('add-role-form');
+    const roleNameInput = document.getElementById('role_name');
+    const existingRoleNamesElement = document.getElementById('existing-role-names');
+    const existingRoleNames = JSON.parse(existingRoleNamesElement.dataset.roles);
+
+    addRoleForm.addEventListener('submit', function(event) {
+        const newRoleName = roleNameInput.value.trim().toLowerCase();
+        const isDuplicate = existingRoleNames.some(roleName => 
+            roleName.toLowerCase() === newRoleName
+        );
+
+        if (isDuplicate) {
+            event.preventDefault();
+            alert('A role with this name already exists. Please choose a different name.');
+        }
     });
 });
 </script>
