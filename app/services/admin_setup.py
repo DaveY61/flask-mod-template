@@ -15,7 +15,7 @@ blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 ADMIN_SIDEBAR_MENU = [
     {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
     {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
-    {'icon': 'fas fa-user-tag', 'text': 'Roles Setup', 'action': 'showAdminSetup', 'params': ['roles']},
+    {'icon': 'fas fa-user-tag', 'text': 'Role Setup', 'action': 'showAdminSetup', 'params': ['roles']},
     {'icon': 'fas fa-users', 'text': 'User Setup', 'action': 'showAdminSetup', 'params': ['users']}
 ]
 

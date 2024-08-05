@@ -1,15 +1,15 @@
 {% extends 'layouts/main.html' %}
-{% block title %}Roles Setup {{ config.PROJECT_NAME }}{% endblock %}
+{% block title %}Role Setup {{ config.PROJECT_NAME }}{% endblock %}
 {% block content %}
 
 <div class="page-header">
-  <h1>Roles Setup</h1>
+  <h2>Role Setup</h2>
 </div>
 
 <div class="row">
   <div class="col-md-4">
     <div class="add-role-form" style="max-width: calc(40ch + 40px); margin: 0 auto;">
-      <h3>Add New Role</h3>
+      <h4>Add New Role</h4>
       <form method="POST" id="add-role-form">
         <input type="hidden" name="action" value="add_role">
         <div class="mb-3">
@@ -45,7 +45,7 @@
   </div>
   
   <div class="col-md-8">
-    <h3>Existing Roles</h3>
+    <h4>Existing Roles</h4>
     <div class="table-responsive">
       <table class="table table-striped">
         <thead>

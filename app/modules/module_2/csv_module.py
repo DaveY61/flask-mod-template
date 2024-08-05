@@ -3,6 +3,10 @@ from flask_login import login_required
 from app.app import module_access_required
 import csv
 import io
+import os
+
+# Automatically determine the module name
+module_name = os.path.join('app', os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))).replace(os.path.sep, '.')[:-3]
 
 blueprint = Blueprint('csv', __name__,
                       static_folder='static',
@@ -13,7 +17,7 @@ uploaded_data = []
 
 @blueprint.route('/upload_csv', methods=['GET', 'POST'])
 @login_required
-@module_access_required('app.modules.module_2.csv_module')
+@module_access_required(module_name)
 def upload_csv():
     global uploaded_data
     if request.method == 'POST':
