@@ -10,7 +10,7 @@
     },
     {
         "name": "Gamer",
-        "description": "Game Module - ONLU",
+        "description": "Game Module - ONLY",
         "modules": [
             "app.modules.module_3.games_module"
         ]

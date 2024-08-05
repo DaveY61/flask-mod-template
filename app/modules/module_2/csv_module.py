@@ -5,12 +5,14 @@ import csv
 import io
 import os
 
-# Automatically determine the module name
-module_name = os.path.join('app', os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))).replace(os.path.sep, '.')[:-3]
+# Automatically determine the module name and path
+module_path = os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+module_name = f'app.{module_path[:-3].replace(os.path.sep, ".")}'
+static_url_path = f'/modules/{os.path.dirname(module_path)}/static'
 
 blueprint = Blueprint('csv', __name__,
                       static_folder='static',
-                      static_url_path='/modules/module_2/static',
+                      static_url_path=static_url_path,
                       template_folder='templates')
 
 uploaded_data = []
