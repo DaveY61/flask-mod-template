@@ -8,44 +8,44 @@
 
 <form method="POST" id="admin-setup-form">
   <div id="module-list" class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover table-sm">
       <thead>
-        <tr>
-          <th style="width: 40px;"></th>
-          <th style="width: 40px;"></th>
-          <th>Module Name</th>
-          <th style="width: 200px;">Menu Name</th>
-          <th>Blueprint</th>
-          <th>Route</th>
+        <tr class="table-dark">
+          <th style="width: 30px;"></th>
+          <th style="width: 30px;"></th>
+          <th style="width: 20%;">Module Name</th>
+          <th style="width: 150px;">Menu Name</th>
+          <th style="width: 15%;">Blueprint</th>
+          <th style="width: 15%;">Route</th>
         </tr>
       </thead>
       <tbody>
         {% for module in modules %}
           <tr class="module-item {% if module.enabled %}table-active{% endif %}" data-module-name="{{ module.name }}">
-            <td>
+            <td class="p-1">
               <span class="drag-handle">&#9776;</span>
             </td>
-            <td>
+            <td class="p-1">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
                        {% if module.enabled %}checked{% endif %} onchange="toggleModuleEnabled(this)">
               </div>
             </td>
-            <td>
+            <td class="p-1">
               <label class="form-check-label" for="{{ module.name }}">
                 {% set parts = module.name.split('.') %}
                 {{ parts[-2] }}.{{ parts[-1] }}
               </label>
             </td>
-            <td>
+            <td class="p-1">
               <input type="text" class="form-control form-control-sm" name="menu_name_{{ module.name }}" 
-                     value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20" style="max-width: 180px;">
+                     value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20" style="max-width: 140px;">
             </td>
-            <td>
-              <span class="badge bg-secondary">{{ module.blueprint_name or 'N/A' }}</span>
+            <td class="p-1">
+              <span class="badge bg-secondary fs-6">{{ module.blueprint_name or 'N/A' }}</span>
             </td>
-            <td>
-              <span class="badge bg-info">{{ module.view_name or 'N/A' }}</span>
+            <td class="p-1">
+              <span class="badge bg-info fs-6">{{ module.view_name or 'N/A' }}</span>
             </td>
           </tr>
         {% endfor %}
@@ -123,10 +123,16 @@ function showAdminSetup(setupType) {
     color: #6c757d;
   }
   .badge {
-    font-size: 0.8em;
+    font-size: 0.9em;
   }
-  .table > :not(caption) > * > * {
-    padding: 0.5rem;
+  .table > tbody > tr {
+    border-bottom: 1px solid #dee2e6;
+  }
+  .table > thead > tr {
+    border-bottom: 2px solid #212529;
+  }
+  #module-list {
+    max-width: 800px;
   }
 </style>
 {% endblock %}
