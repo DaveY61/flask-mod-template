@@ -1,0 +1,11 @@
+[
+    {
+        "name": "Power User",
+        "description": "access any module",
+        "modules": [
+            "app.modules.module_1.pie_module",
+            "app.modules.module_2.csv_module",
+            "app.modules.module_3.games_module"
+        ]
+    }
+]
