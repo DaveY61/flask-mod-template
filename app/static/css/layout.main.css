@@ -333,3 +333,37 @@ code {
   background-color: #e9ecef;
   width: 100%;
 }
+
+.sidebar-toggle-text {
+  transition: opacity 0.3s, width 0.3s;
+  opacity: 1;
+  width: auto;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .sidebar-toggle-text {
+  opacity: 0;
+  width: 0;
+}
+
+.sidebar-toggle-row {
+  transition: all 0.3s;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sidebar-toggle-icon {
+  transition: all 0.3s;
+  margin-right: 5px;
+}
+
+.sidebar.collapsed .sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.sidebar.collapsed .sidebar-toggle-row {
+  justify-content: center;
+}

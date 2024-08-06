@@ -3,13 +3,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const content = document.querySelector('.content-with-sidebar');
     const toggleRows = document.querySelectorAll('.sidebar-toggle-row');
 
-    function updateToggleText() {
+    function updateToggleContent() {
         const isCollapsed = sidebar.classList.contains('collapsed');
         toggleRows.forEach(row => {
+            const icon = row.querySelector('.sidebar-toggle-icon');
+            const text = row.querySelector('.sidebar-toggle-text');
+            
             if (isCollapsed) {
-                row.innerHTML = '<i class="fas fa-chevron-right"></i><i class="fas fa-chevron-right"></i>';
+                text.style.display = 'none';
             } else {
-                row.innerHTML = '<span class="sidebar-toggle-text"><i class="fas fa-chevron-left"></i><i class="fas fa-chevron-left"></i> Collapse</span>';
+                text.style.display = 'inline';
             }
         });
     }
@@ -17,15 +20,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleSidebar() {
         sidebar.classList.toggle('collapsed');
         content.classList.toggle('sidebar-collapsed');
-        updateToggleText();
+        updateToggleContent();
     }
 
     toggleRows.forEach(row => {
         row.addEventListener('click', toggleSidebar);
     });
 
-    // Initialize toggle text
-    updateToggleText();
+    // Initialize toggle content
+    updateToggleContent();
 
     // Add event listeners to sidebar menu items
     document.querySelectorAll('.sidebar-menu a').forEach(item => {
