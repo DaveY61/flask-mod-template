@@ -3,13 +3,27 @@
 #----------------------------------------------------------------------------#
 from flask import Flask, render_template, flash, redirect, url_for
 from flask_login import LoginManager, current_user
-from app.services.auth_service_db import User
+from app.services.auth_service_db import setup_database, init_db
 import pkgutil
 import importlib
 from dotenv import load_dotenv
 from app.app_config import Config
 from functools import wraps
 
+#----------------------------------------------------------------------------#
+# Establish Flask User Mgmt
+#----------------------------------------------------------------------------#
+login_manager = LoginManager()
+
+def init_login_manager(app):
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.services.auth_service_db import get_user
+        return get_user(user_id)
+    
 #----------------------------------------------------------------------------#
 # Define App/Blueprint Functions for "create_app"
 #----------------------------------------------------------------------------#
@@ -20,6 +34,14 @@ def create_app():
     # Create the Flask app with the specified template folder
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Setup and initialize the database
+    setup_database(app.config)
+    with app.app_context():
+        init_db()
+
+    # Initialize login manager
+    init_login_manager(app)
 
     return app
 
@@ -45,17 +67,6 @@ def register_modules_conditionally(app):
 # Create App
 #----------------------------------------------------------------------------#
 app = create_app()
-
-#----------------------------------------------------------------------------#
-# Establish Flask User Mgmt
-#----------------------------------------------------------------------------#
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.get(user_id)
 
 #----------------------------------------------------------------------------#
 # Method for User Module Access checking

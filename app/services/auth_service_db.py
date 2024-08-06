@@ -1,88 +1,68 @@
-import sqlite3
+from sqlalchemy import create_engine, Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.sql import func
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from flask import redirect, url_for, flash, current_app
+from flask_login import current_user
 import os
 import uuid
-from functools import wraps
 from datetime import datetime, timedelta
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import  redirect, url_for, flash, current_app
-from flask_login import UserMixin, current_user
 
-USER_DATABASE = None
+Base = declarative_base()
+
+class User(Base, UserMixin):
+    __tablename__ = 'users'
+    id = Column(String, primary_key=True)
+    username = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    user_role = Column(String)
+    tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
+    def get_allowed_modules(self):
+        allowed_modules = []
+        user_role = next((role for role in current_app.config['ROLE_LIST'] if role['name'] == self.user_role), None)
+        
+        if user_role:
+            for module in current_app.config['MODULE_LIST']:
+                if module['enabled'] and module['name'] in user_role['modules']:
+                    allowed_modules.append(module['name'])
+        
+        return allowed_modules
+
+class Token(Base):
+    __tablename__ = 'tokens'
+    id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey('users.id'))
+    token = Column(String, nullable=False)
+    token_type = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    user = relationship("User", back_populates="tokens")
+
+engine = None
+Session = None
 
 def setup_database(config):
-    global USER_DATABASE
-    USER_DATABASE = config['USER_DATABASE_PATH']
-
-def adapt_datetime(dt):
-    return dt.isoformat()
-
-def convert_datetime(s):
-    if isinstance(s, bytes):
-        s = s.decode('utf-8')  # Assuming UTF-8 encoding
-    if s:
-        return datetime.fromisoformat(s)
-    return None
-
-sqlite3.register_adapter(datetime, adapt_datetime)
-sqlite3.register_converter('timestamp', convert_datetime)
-
-def add_column_if_not_exists(db, table_name, column_name, column_definition):
-    cur = db.execute(f"PRAGMA table_info({table_name})")
-    columns = [row['name'] for row in cur.fetchall()]
-    if column_name not in columns:
-        db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+    global engine, Session
+    database_path = config['USER_DATABASE_PATH']
+    os.makedirs(os.path.dirname(database_path), exist_ok=True)
+    engine = create_engine(f'sqlite:///{database_path}', connect_args={'check_same_thread': False})
+    Session = sessionmaker(bind=engine)
 
 def init_db():
-    if os.path.exists(USER_DATABASE):
-        return # No action, Database already exist
-
-    # Ensure the directory for the database exists
-    os.makedirs(os.path.dirname(USER_DATABASE), exist_ok=True)
-
-    conn = sqlite3.connect(USER_DATABASE, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
-    cursor = conn.cursor()
-
-    # Create tables if they don't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            username TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            is_active INTEGER NOT NULL DEFAULT 0,
-            is_admin INTEGER NOT NULL DEFAULT 0,
-            created_at timestamp NOT NULL
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tokens (
-            user_id TEXT NOT NULL,
-            token TEXT NOT NULL,
-            token_type TEXT NOT NULL,
-            expires_at timestamp NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-
-    # Add the is_admin column if it does not exist
-    add_column_if_not_exists(cursor, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0')
-
-    # Add the user_role column if it does not exist
-    add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
-
-    conn.commit()
-    conn.close()
-    print("Database initialized")
+    Base.metadata.create_all(engine)
 
 def get_db():
-    if not os.path.exists(USER_DATABASE):
-        print("Database does not exist. Initializing...")
-        init_db()
-
-    conn = sqlite3.connect(USER_DATABASE, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')  # Enable WAL mode for better concurrency
-    return conn
+    return Session()
 
 def admin_required(func):
     @wraps(func)
@@ -95,176 +75,101 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_view
 
-class User(UserMixin):
-    def __init__(self, id, username, email, password, is_active, created_at, is_admin=False, user_role=None):
-        self.id = id
-        self.username = username
-        self.email = email
-        self.password = password
-        self._is_active = is_active
-        self.created_at = created_at
-        self._is_admin = is_admin
-        self.user_role = user_role
+def add_user(id, username, email, password, is_active=False, is_admin=False, user_role=None):
+    with get_db() as session:
+        user = User(
+            id=id,
+            username=username,
+            email=email,
+            password=generate_password_hash(password),
+            is_active=is_active,
+            is_admin=is_admin,
+            user_role=user_role
+        )
+        session.add(user)
+        session.commit()
+        return user
 
-    @property
-    def is_active(self):
-        return self._is_active
+def get_user(user_id):
+    with get_db() as session:
+        return session.query(User).filter(User.id == user_id).first()
 
-    @is_active.setter
-    def is_active(self, value):
-        self._is_active = value
+def get_user_by_email(email):
+    with get_db() as session:
+        return session.query(User).filter(User.email == email).first()
 
-    @property
-    def is_admin(self):
-        return self._is_admin
+def update_user(user):
+    with get_db() as session:
+        session.merge(user)
+        session.commit()
 
-    @is_admin.setter
-    def is_admin(self, value):
-        self._is_admin = value
+def delete_user(user_id):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            session.delete(user)
+            session.commit()
 
-    def get_id(self):
-        return self.id
+def get_all_users():
+    with get_db() as session:
+        return session.query(User).all()
 
-    @property
-    def is_authenticated(self):
-        return True
+def get_role_user_counts():
+    with get_db() as session:
+        return dict(session.query(User.user_role, func.count(User.id)).group_by(User.user_role).all())
 
-    @property
-    def is_anonymous(self):
-        return False
+def generate_token(user_id, token_type):
+    token = str(uuid.uuid4())
+    expires_at = datetime.now() + timedelta(minutes=20)
+    with get_db() as session:
+        new_token = Token(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            token=token,
+            token_type=token_type,
+            expires_at=expires_at
+        )
+        session.add(new_token)
+        session.commit()
+    return token
 
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
-    
-    def get_allowed_modules(self):
-        allowed_modules = []
-        user_role = next((role for role in current_app.config['ROLE_LIST'] if role['name'] == self.user_role), None)
-        
-        if user_role:
-            for module in current_app.config['MODULE_LIST']:
-                if module['enabled'] and module['name'] in user_role['modules']:
-                    allowed_modules.append(module['name'])
-        
-        return allowed_modules
+def get_token(token, token_type):
+    with get_db() as session:
+        return session.query(Token).filter(Token.token == token, Token.token_type == token_type).first()
 
-    def save(self):
-        with get_db() as db:
-            cursor = db.cursor()
-            self.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
-            cursor.execute('''
-                INSERT INTO users (id, username, email, password, is_active, is_admin, created_at, user_role)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    username=excluded.username,
-                    email=excluded.email,
-                    password=excluded.password,
-                    is_active=excluded.is_active,
-                    is_admin=excluded.is_admin,
-                    created_at=excluded.created_at,
-                    user_role=excluded.user_role
-            ''', (self.id, self.username, self.email, self.password, self._is_active, self._is_admin, self.created_at, self.user_role))
-            db.commit()
+def delete_token(token):
+    with get_db() as session:
+        token_obj = session.query(Token).filter(Token.token == token).first()
+        if token_obj:
+            session.delete(token_obj)
+            session.commit()
 
-    @classmethod
-    def get_all_users(cls):
-        with get_db() as db:
-            cursor = db.cursor()
-            cls.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
-            cur = cursor.execute('SELECT * FROM users')
-            return [cls(**row) for row in cur.fetchall()]
+# Additional helper functions
 
-    def update_role(self, role):
-        self.user_role = role
-        with get_db() as db:
-            cursor = db.cursor()
-            self.add_column_if_not_exists(cursor, 'users', 'user_role', 'TEXT')
-            cursor.execute('UPDATE users SET user_role = ? WHERE id = ?', (role, self.id))
-            db.commit()
+def update_user_role(user_id, role):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.user_role = role
+            session.commit()
 
-    @classmethod
-    def get_role_user_counts(cls):
-        with get_db() as db:
-            cursor = db.cursor()
-            cursor.execute('SELECT user_role, COUNT(*) as count FROM users GROUP BY user_role')
-            return {row['user_role']: row['count'] for row in cursor.fetchall()}
-        
-    @staticmethod
-    def add_column_if_not_exists(cursor, table_name, column_name, column_definition):
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns = [info[1] for info in cursor.fetchall()]
-        if column_name not in columns:
-            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+def update_user_activation(user_id):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.is_active = True
+            session.commit()
 
-    @classmethod
-    def delete_user(cls, user_id):
-        with get_db() as db:
-            db.execute('DELETE FROM users WHERE id = ?', (user_id,))
-            db.execute('DELETE FROM tokens WHERE user_id = ?', (user_id,))
+def update_user_password(user_id, new_password):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.password = generate_password_hash(new_password)
+            session.commit()
 
-    @classmethod
-    def get(cls, user_id):
-        with get_db() as db:
-            cur = db.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-            row = cur.fetchone()
-            if row:
-                return cls(**row)
-
-    @classmethod
-    def get_by_email(cls, email):
-        with get_db() as db:
-            cur = db.execute('SELECT * FROM users WHERE email = ?', (email,))
-            row = cur.fetchone()
-            if row:
-                return cls(**row)
-
-    def update_activation(self):
-        self.is_active = 1
-        with get_db() as db:
-            db.execute('UPDATE users SET is_active = ?, is_admin = ? WHERE id = ?', (self.is_active, self.is_admin, self.id))
-
-    def update_password(self, hashed_password):
-        self.password = hashed_password
-        with get_db() as db:
-            db.execute('UPDATE users SET password = ?, is_admin = ? WHERE id = ?', (hashed_password, self.is_admin, self.id))
-
-    def update_admin_status(self, is_admin):
-        self.is_admin = is_admin
-        with get_db() as db:
-            cursor = db.cursor()
-            self.add_column_if_not_exists(cursor, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0')
-            cursor.execute('UPDATE users SET is_admin = ? WHERE id = ?', (is_admin, self.id))
-            db.commit()
-
-    @staticmethod
-    def add_column_if_not_exists(cursor, table_name, column_name, column_definition):
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns = [info[1] for info in cursor.fetchall()]
-        if column_name not in columns:
-            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
-
-    def delete(self):
-        with get_db() as db:
-            db.execute('DELETE FROM users WHERE id = ?', (self.id,))
-            db.execute('DELETE FROM tokens WHERE user_id = ?', (self.id,))
-
-    @classmethod
-    def generate_token(cls, user_id, token_type):
-        token = str(uuid.uuid4())
-        expires_at = datetime.now() + timedelta(minutes=20)
-        with get_db() as db:
-            db.execute('''
-                INSERT INTO tokens (user_id, token, token_type, expires_at)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, token, token_type, expires_at))
-        return token
-
-    @classmethod
-    def get_token(cls, token, token_type):
-        with get_db() as db:
-            cur = db.execute('SELECT user_id, expires_at FROM tokens WHERE token = ? AND token_type = ?', (token, token_type))
-            return cur.fetchone()
-
-    @classmethod
-    def delete_token(cls, token):
-        with get_db() as db:
-            db.execute('DELETE FROM tokens WHERE token = ?', (token,))
+def update_user_admin_status(user_id, is_admin):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.is_admin = is_admin
+            session.commit()

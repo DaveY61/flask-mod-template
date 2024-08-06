@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required
-from app.services.auth_service_db import User, admin_required
+from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts
 import os
 import json
 import sys
@@ -218,7 +218,7 @@ def setup_roles():
     modules = current_app.config['MODULE_LIST']
 
     # Get user count for each role
-    user_counts = User.get_role_user_counts()
+    user_counts = get_role_user_counts()
 
     # Function to add user counts to roles
     def add_user_counts(roles_list):
@@ -300,7 +300,7 @@ def setup_roles():
 @login_required
 @admin_required
 def setup_users():
-    users = User.get_all_users()
+    users = get_all_users()
     roles = current_app.config['ROLE_LIST']
 
     if request.method == 'POST':
@@ -309,14 +309,16 @@ def setup_users():
         if action == 'update_role':
             user_id = request.form.get('user_id')
             new_role = request.form.get('user_role')
-            user = User.get(user_id)
+            user = get_user(user_id)
             if user:
-                user.update_role(new_role)
+                update_user_role(user_id, new_role)
                 flash(f'Role updated for user {user.username}', 'success')
+            else:
+                flash('User not found', 'error')
         
         elif action == 'delete_user':
             user_id = request.form.get('user_id')
-            User.delete_user(user_id)
+            delete_user(user_id)
             flash('User deleted successfully', 'success')
         
         return redirect(url_for('admin.setup_type', setup_type='users'))
