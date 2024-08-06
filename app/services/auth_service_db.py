@@ -54,7 +54,8 @@ Session = None
 def setup_database(config):
     global engine, Session
     database_path = config['USER_DATABASE_PATH']
-    os.makedirs(os.path.dirname(database_path), exist_ok=True)
+    if database_path != ':memory:':
+        os.makedirs(os.path.dirname(database_path), exist_ok=True)
     engine = create_engine(f'sqlite:///{database_path}', connect_args={'check_same_thread': False})
     Session = sessionmaker(bind=engine)
 
@@ -88,6 +89,7 @@ def add_user(id, username, email, password, is_active=False, is_admin=False, use
         )
         session.add(user)
         session.commit()
+        session.refresh(user)  # This line ensures the user object is refreshed with data from the database
         return user
 
 def get_user(user_id):
