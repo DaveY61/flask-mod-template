@@ -58,7 +58,7 @@ class EmailService:
             self.connect_to_smtp()  # Ensure SMTP connection is established
             recipients = to + (cc if cc else []) + (bcc if bcc else [])
             self.smtp_server.sendmail(self.config['EMAIL_FROM_ADDRESS'], recipients, msg.as_string())
-        except (smtplib.SMTPException, ConnectionRefusedError, OSError) as e:
+        except Exception as e:
             self.save_failed_email(msg)
             raise e
 
@@ -72,14 +72,20 @@ class EmailService:
     def check_and_resend_failed_emails(self):
         if not os.path.exists(self.config['EMAIL_FAIL_DIRECTORY']):
             return
-        for filename in os.listdir(self.config['EMAIL_FAIL_DIRECTORY']):
-            file_path = os.path.join(self.config['EMAIL_FAIL_DIRECTORY'], filename)
-            with open(file_path, 'r') as f:
-                msg = email.message_from_file(f)
-            try:
-                self.connect_to_smtp()  # Ensure SMTP connection is established
-                recipients = msg['To'].split(", ") + msg.get_all('Cc', []) + msg.get_all('Bcc', [])
-                self.smtp_server.sendmail(self.config['EMAIL_FROM_ADDRESS'], recipients, msg.as_string())
-                os.remove(file_path)
-            except (smtplib.SMTPException, ConnectionRefusedError, OSError):
-                continue
+        
+        try:
+            self.connect_to_smtp()  # Connect once at the beginning
+            for filename in os.listdir(self.config['EMAIL_FAIL_DIRECTORY']):
+                file_path = os.path.join(self.config['EMAIL_FAIL_DIRECTORY'], filename)
+                with open(file_path, 'r') as f:
+                    msg = email.message_from_file(f)
+                try:
+                    recipients = msg['To'].split(", ") + msg.get_all('Cc', []) + msg.get_all('Bcc', [])
+                    self.smtp_server.sendmail(self.config['EMAIL_FROM_ADDRESS'], recipients, msg.as_string())
+                    os.remove(file_path)
+                except Exception:
+                    continue  # Skip this email if there's an error, but continue with others
+        finally:
+            if self.smtp_server:
+                self.smtp_server.quit()  # Close the connection when done
+            self.smtp_server = None  # Reset the connection
