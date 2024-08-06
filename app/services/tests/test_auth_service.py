@@ -18,11 +18,13 @@ sys.path.insert(0, project_path)
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timedelta
 from app.services.auth_service_db import (
     get_base, setup_database, init_db, get_db,
     add_user, get_user, get_user_by_email,
     update_user, delete_user, generate_token, get_token, delete_token,
-    update_user_role, update_user_activation, update_user_password
+    update_user_role, update_user_activation, update_user_password,
+    update_user_admin_status, get_all_users, get_role_user_counts
 )
 
 @pytest.fixture(scope='function')
@@ -107,3 +109,80 @@ def test_update_user_password(db):
     update_user_password('password_id', 'newpassword')
     user = get_user('password_id')
     assert user.check_password('newpassword')
+
+def test_update_user_admin_status(db):
+    add_user('admin_id', 'adminuser', 'admin@example.com', 'password', is_admin=False)
+    update_user_admin_status('admin_id', True)
+    user = get_user('admin_id')
+    assert user.is_admin == True
+
+def test_get_all_users(db):
+    add_user('user1_id', 'user1', 'user1@example.com', 'password')
+    add_user('user2_id', 'user2', 'user2@example.com', 'password')
+    users = get_all_users()
+    assert len(users) == 2
+    assert set(user.username for user in users) == {'user1', 'user2'}
+
+def test_get_role_user_counts(db):
+    add_user('user1_id', 'user1', 'user1@example.com', 'password', user_role='role1')
+    add_user('user2_id', 'user2', 'user2@example.com', 'password', user_role='role1')
+    add_user('user3_id', 'user3', 'user3@example.com', 'password', user_role='role2')
+    counts = get_role_user_counts()
+    assert counts == {'role1': 2, 'role2': 1}
+
+def test_token_expiration(db, monkeypatch):
+    add_user('expire_id', 'expireuser', 'expire@example.com', 'password')
+
+    # Set the current time to a fixed value
+    current_time = datetime(2023, 1, 1, 12, 0, 0)
+    
+    # Mock datetime.now() to return our fixed time
+    class MockDatetime:
+        @classmethod
+        def now(cls):
+            return current_time
+
+    monkeypatch.setattr('app.services.auth_service_db.datetime', MockDatetime)
+
+    token = generate_token('expire_id', 'activation')
+    
+    # Verify the token is valid
+    assert get_token(token, 'activation') is not None
+    
+    # Fast-forward time by 21 minutes
+    future_time = current_time + timedelta(minutes=21)
+    
+    # Update the mock to return the future time
+    class MockFutureDateTime:
+        @classmethod
+        def now(cls):
+            return future_time
+
+    monkeypatch.setattr('app.services.auth_service_db.datetime', MockFutureDateTime)
+    
+    expired_token = get_token(token, 'activation')
+    assert expired_token is None
+
+def test_user_not_found(db):
+    assert get_user('nonexistent_id') is None
+    assert get_user_by_email('nonexistent@example.com') is None
+
+def test_duplicate_email(db):
+    add_user('user1_id', 'user1', 'duplicate@example.com', 'password')
+    with pytest.raises(Exception):  # Adjust this to the specific exception your code raises
+        add_user('user2_id', 'user2', 'duplicate@example.com', 'password')
+
+def test_user_activation_flow(db):
+    user = add_user('flow_id', 'flowuser', 'flow@example.com', 'password', is_active=False)
+    assert user.is_active == False
+    
+    token = generate_token('flow_id', 'activation')
+    token_data = get_token(token, 'activation')
+    assert token_data is not None
+    
+    update_user_activation('flow_id')
+    user = get_user('flow_id')
+    assert user.is_active == True
+    
+    # Token should be deleted after activation
+    assert get_token(token, 'activation') is None

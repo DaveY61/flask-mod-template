@@ -146,7 +146,10 @@ def generate_token(user_id, token_type):
 
 def get_token(token, token_type):
     with get_db() as session:
-        return session.query(Token).filter(Token.token == token, Token.token_type == token_type).first()
+        token_obj = session.query(Token).filter(Token.token == token, Token.token_type == token_type).first()
+        if token_obj and token_obj.expires_at > datetime.now():
+            return token_obj
+        return None
 
 def delete_token(token):
     with get_db() as session:
@@ -169,6 +172,8 @@ def update_user_activation(user_id):
         user = session.query(User).filter(User.id == user_id).first()
         if user:
             user.is_active = True
+            # Delete the activation token
+            session.query(Token).filter(Token.user_id == user_id, Token.token_type == 'activation').delete()
             session.commit()
 
 def update_user_password(user_id, new_password):
