@@ -215,11 +215,20 @@ code {
 }
 
 .sidebar.collapsed .sidebar-menu li {
-  padding: 10px 0;
+  padding: 0;
   text-align: center;
+  height: 40px; /* Adjust this value to match the height of expanded menu items */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar.collapsed .sidebar-menu li a {
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
@@ -265,9 +274,11 @@ code {
 }
 
 .sidebar.collapsed .sidebar-toggle-row {
-  width: 100%;
-  text-align: center;
-  padding-left: 5px;
+  height: 40px; /* Match this with the menu item height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .sidebar-menu {
