@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const isCollapsed = sidebar.classList.contains('collapsed');
         toggleRows.forEach(row => {
             if (isCollapsed) {
-                row.innerHTML = '&gt;&gt;';
+                row.innerHTML = '<i class="fas fa-chevron-right"></i>';
             } else {
-                row.innerHTML = '<span class="sidebar-toggle-text"><i class="fas fa-chevron-left"></i><i class="fas fa-chevron-left"></i> Collapse</span>';
+                row.innerHTML = '<span class="sidebar-toggle-text"><i class="fas fa-chevron-left"></i> Collapse</span>';
             }
         });
     }

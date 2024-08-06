@@ -199,86 +199,56 @@ code {
 
 /* Sidebar menu CSS
 -------------------------------------------------- */
+:root {
+  --sidebar-item-height: 40px; /* Base height for items */
+  --sidebar-item-padding: 1px; /* Padding top and bottom for items */
+}
+
 .sidebar {
   position: fixed;
   top: 60px; /* Adjust based on your navbar height */
   left: 0;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 60px);
   width: 250px;
   background-color: #f8f9fa;
   transition: all 0.3s;
   z-index: 1000;
+  overflow-x: hidden;
 }
 
 .sidebar.collapsed {
   width: 40px;
 }
 
-.sidebar.collapsed .sidebar-menu li {
-  padding: 0;
-  text-align: center;
-  height: 40px; /* Adjust this value to match the height of expanded menu items */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sidebar.collapsed .sidebar-menu li a {
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sidebar.collapsed .sidebar-menu li a i {
-  margin-right: 0;
-}
-
-.sidebar.collapsed .sidebar-menu li a span {
-  display: none;
-}
-
-/* Update the hover effect for collapsed sidebar */
-.sidebar.collapsed .sidebar-menu li a:hover,
-.sidebar.collapsed .sidebar-toggle-row:hover {
-  background-color: #e9ecef;
-  width: 100%;
-}
-
-/* Ensure the hover effect covers the full width in collapsed state */
-.sidebar.collapsed .sidebar-menu li,
-.sidebar.collapsed .sidebar-toggle-row {
-  width: 100%;
-}
-
-.sidebar.collapsed .sidebar-menu li a {
-  width: 100%;
-  padding: 10px 0;
-}
-
 .sidebar-toggle-row {
-  padding: 5px;
-  padding-left: 15px;
+  height: calc(var(--sidebar-item-height) + 2 * var(--sidebar-item-padding));
+  padding: var(--sidebar-item-padding) 15px;
   cursor: pointer;
-  text-align: left;
-}
-
-.sidebar-toggle-row:first-child {
+  transition: all 0.3s;
   border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-toggle-row:last-child {
   border-top: 1px solid #ddd;
+  border-bottom: none;
 }
 
 .sidebar.collapsed .sidebar-toggle-row {
-  height: 40px; /* Match this with the menu item height */
-  display: flex;
-  align-items: center;
+  padding: var(--sidebar-item-padding) 0;
   justify-content: center;
-  padding: 0;
+}
+
+.sidebar-toggle-text {
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .sidebar-toggle-text {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 .sidebar-menu {
@@ -288,7 +258,8 @@ code {
 }
 
 .sidebar-menu li {
-  padding: 10px 15px;
+  height: calc(var(--sidebar-item-height) + 2 * var(--sidebar-item-padding));
+  padding: 0;
 }
 
 .sidebar-menu li a {
@@ -296,16 +267,38 @@ code {
   text-decoration: none;
   display: flex;
   align-items: center;
+  padding: var(--sidebar-item-padding) 15px;
+  height: 100%;
+  transition: all 0.3s;
 }
 
 .sidebar-menu li a i {
-  margin-right: 10px;
   width: 20px;
   text-align: center;
+  margin-right: 10px;
+  transition: margin-right 0.3s;
 }
 
 .sidebar-menu li a span {
   white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .sidebar-menu li a {
+  justify-content: flex-start;
+  padding: var(--sidebar-item-padding) 10px;
+}
+
+.sidebar.collapsed .sidebar-menu li a i {
+  margin-right: 0;
+}
+
+.sidebar.collapsed .sidebar-menu li a span {
+  opacity: 0;
+  width: 0;
+  height: 0;
   overflow: hidden;
 }
 
@@ -316,11 +309,27 @@ code {
 
 .content-with-sidebar.sidebar-collapsed {
   margin-left: 40px;
-  padding-top: 70px;
 }
 
 /* Add hover effect for sidebar items and toggle rows */
 .sidebar-menu li a:hover,
 .sidebar-toggle-row:hover {
   background-color: #e9ecef;
+}
+
+/* Ensure the hover effect covers the full width in collapsed state */
+.sidebar.collapsed .sidebar-menu li,
+.sidebar.collapsed .sidebar-toggle-row {
+  width: 100%;
+}
+
+.sidebar.collapsed .sidebar-menu li a {
+  width: 100%;
+}
+
+/* Update the hover effect for collapsed sidebar */
+.sidebar.collapsed .sidebar-menu li a:hover,
+.sidebar.collapsed .sidebar-toggle-row:hover {
+  background-color: #e9ecef;
+  width: 100%;
 }
