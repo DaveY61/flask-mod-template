@@ -11,6 +11,7 @@ class LogService:
         self.retention_days = config['LOG_RETENTION_DAYS']
         self.enable_error_email = config['EMAIL_ENABLE_ERROR']
         self.admin_emails = config['ADMIN_USER_LIST']
+        self.email_service = EmailService(config)
 
         if not os.path.exists(self.log_file_directory):
             os.makedirs(self.log_file_directory)
@@ -59,7 +60,7 @@ class LogService:
             log_file_path = os.path.join(self.log_file_directory, log_file)
 
             # Get the file creation date
-            file_creation_date = datetime.fromtimestamp(os.path.getctime(log_file_path)).date()
+            file_creation_date = datetime.fromtimestamp(os.path.getmtime(log_file_path)).date()
 
             # Calculate the elapsed days
             elapsed_days = (today - file_creation_date).days
@@ -71,6 +72,4 @@ class LogService:
     def send_error_email(self, log_entry):
         subject = "Error Log Notification"
         body = f"Error log entry:\n{log_entry}"
-
-        email_service = EmailService(self.config)
-        email_service.send_email(self.admin_emails, subject, body)
+        self.email_service.send_email(self.admin_emails, subject, body)
