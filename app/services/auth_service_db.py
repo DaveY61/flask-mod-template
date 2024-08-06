@@ -81,7 +81,7 @@ def add_user(id, username, email, password, is_active=False, is_admin=False, use
             id=id,
             username=username,
             email=email,
-            password=generate_password_hash(password),
+            password=generate_password_hash(password, method='scrypt'),
             is_active=is_active,
             is_admin=is_admin,
             user_role=user_role
@@ -164,7 +164,7 @@ def update_user_password(user_id, new_password):
     with get_db() as session:
         user = session.query(User).filter(User.id == user_id).first()
         if user:
-            user.password = generate_password_hash(new_password)
+            user.password = generate_password_hash(new_password, method='scrypt')
             session.commit()
 
 def update_user_admin_status(user_id, is_admin):

@@ -1,6 +1,5 @@
 from flask import Blueprint, request, render_template, redirect, url_for, current_app, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
 from app.services.email_service import EmailService
 from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user
@@ -38,12 +37,10 @@ def register():
     if get_user_by_email(email):
         return render_template('pages/register_failure.html', response_color="red"), 400
 
-    hashed_password = generate_password_hash(password)
     user_id = str(uuid.uuid4())
-    created_at = datetime.now()
     is_admin = email in current_app.config['ADMIN_USER_LIST']
 
-    user = add_user(user_id, username, email, hashed_password, is_active=False, is_admin=is_admin)
+    add_user(user_id, username, email, password, is_active=False, is_admin=is_admin)
 
     token = generate_token(user_id, 'activation')
     activation_link = url_for('auth.activate_account', token=token, _external=True)
@@ -153,10 +150,9 @@ def reset_password(token):
     if not token_data or token_data.expires_at < datetime.now():
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    hashed_password = generate_password_hash(new_password)
     user = get_user(token_data.user_id)
     if user:
-        update_user_password(user.id, hashed_password)
+        update_user_password(user.id, new_password)
         delete_token(token)
         return render_template('pages/reset_success.html', response_color="green"), 200
 
