@@ -13,7 +13,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Sample modules (Pie Chart, CSV Upload, Games) demonstrating integration
 - Responsive design using Bootstrap 5
 - Customizable styling through admin interface
-- Sidebar navigation for admin pages
+- Sidebar navigation for admin pages and new modules
 
 ## Prerequisites
 
