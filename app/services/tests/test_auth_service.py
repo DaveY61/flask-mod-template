@@ -3,10 +3,8 @@
 #----------------------------------------------------------------------------
 import os
 import sys
-from dotenv import load_dotenv
 
 # Determine the path for this project (based on the project name)
-load_dotenv()
 vs_project_name = os.environ.get('VS_PROJECT_FOLDER_NAME').lower()
 abs_path = os.path.abspath(__file__).lower()
 project_path = abs_path.split(vs_project_name)[0] + vs_project_name
@@ -18,108 +16,94 @@ sys.path.insert(0, project_path)
 # Begin Test Code
 #----------------------------------------------------------------------------
 import pytest
-from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.services.auth_service_db import (
+    get_base, setup_database, init_db, get_db,
+    add_user, get_user, get_user_by_email,
+    update_user, delete_user, generate_token, get_token, delete_token,
+    update_user_role, update_user_activation, update_user_password
+)
 
-from app import create_app
-from services.auth_service import init_db, get_db
+@pytest.fixture(scope='function')
+def db():
+    config = {
+        'USER_DATABASE_PATH': ':memory:'
+    }
+    setup_database(config)
+    init_db()
 
-# Define user credentials to test "Register"
-reg_username = "testuser"
-reg_email = "reg_test@example.com"
-reg_password = "password123"
+    # Override the global Session and engine
+    global Session, engine
+    
+    Base, User, Token = get_base()
+    engine = create_engine(f'sqlite:///{config["USER_DATABASE_PATH"]}', connect_args={'check_same_thread': False})
+    SessionLocal = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
+    session = SessionLocal()
+    Session = SessionLocal
+    
+    yield session
+    
+    session.close()
+    Base.metadata.drop_all(bind=engine)
 
-# Define user credentials to test "Activate" and other endpoints
-username = "testuser"
-email = "test@example.com"
-password = "password123"
+def test_add_user(db):
+    user = add_user('test_id', 'testuser', 'test@example.com', 'password')
+    assert user.id == 'test_id'
+    assert user.username == 'testuser'
+    assert user.email == 'test@example.com'
+    assert user.check_password('password')
 
-@pytest.fixture(scope='module', autouse=True)
-def setup_client():
-    app = create_app()
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        with app.app_context():
-            init_db()
-        yield client
+def test_get_user(db):
+    add_user('get_id', 'getuser', 'get@example.com', 'password')
+    user = get_user('get_id')
+    assert user.username == 'getuser'
 
-def test_register(setup_client):
-    client = setup_client
+def test_get_user_by_email(db):
+    add_user('email_id', 'emailuser', 'email@example.com', 'password')
+    user = get_user_by_email('email@example.com')
+    assert user.id == 'email_id'
 
-    # First registration attempt
-    response = client.post('/register', data={
-        "username": reg_username,
-        "email": reg_email,
-        "password": reg_password
-    })
-    assert response.status_code == 201
+def test_update_user(db):
+    user = add_user('update_id', 'updateuser', 'update@example.com', 'password')
+    user.username = 'updateduser'
+    update_user(user)
+    updated_user = get_user('update_id')
+    assert updated_user.username == 'updateduser'
 
-    # Second registration attempt with the same email should fail
-    response = client.post('/register', data={
-        "username": reg_username,
-        "email": reg_email,
-        "password": reg_password
-    })
-    assert response.status_code == 400
-    data = response.get_json()
-    assert 'error' in data
+def test_delete_user(db):
+    add_user('delete_id', 'deleteuser', 'delete@example.com', 'password')
+    delete_user('delete_id')
+    assert get_user('delete_id') is None
 
-def test_activate(setup_client):
-    client = setup_client
+def test_generate_and_get_token(db):
+    add_user('token_id', 'tokenuser', 'token@example.com', 'password')
+    token = generate_token('token_id', 'activation')
+    token_data = get_token(token, 'activation')
+    assert token_data.user_id == 'token_id'
 
-    # Register a new user
-    response = client.post('/register', data={
-        "username": username,
-        "email": email,
-        "password": password
-    })
-    assert response.status_code == 201
+def test_delete_token(db):
+    add_user('deltoken_id', 'deltokenuser', 'deltoken@example.com', 'password')
+    token = generate_token('deltoken_id', 'activation')
+    delete_token(token)
+    assert get_token(token, 'activation') is None
 
-    # Retrieve the activation token from the database
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT token, expires_at FROM tokens WHERE token_type='activation'")
-    token, expires_at = cursor.fetchone()
-    conn.close()
+def test_update_user_role(db):
+    add_user('role_id', 'roleuser', 'role@example.com', 'password')
+    update_user_role('role_id', 'admin')
+    user = get_user('role_id')
+    assert user.user_role == 'admin'
 
-    if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at)
+def test_update_user_activation(db):
+    add_user('activate_id', 'activateuser', 'activate@example.com', 'password', is_active=False)
+    update_user_activation('activate_id')
+    user = get_user('activate_id')
+    assert user.is_active == True
 
-    assert expires_at > datetime.now(), "Activation token has expired"
-
-    # Activate the user
-    response = client.get(f'/activate/{token}')
-    assert response.status_code == 200, f"Failed to activate with token: {response.data.decode('utf-8')}"
-    data = response.get_json()
-    assert 'message' in data
-
-def test_login(setup_client):
-    client = setup_client
-    response = client.post('/login', data={
-        "email": email,
-        "password": password
-    })
-    assert response.status_code == 200
-    data = response.get_json()
-    assert 'message' in data
-
-def test_forgot_password(setup_client):
-    client = setup_client
-    response = client.post('/forgot_password', data={
-        "email": email
-    })
-    assert response.status_code == 200
-    data = response.get_json()
-    assert 'message' in data
-
-def test_remove_account(setup_client):
-    client = setup_client
-    response = client.post('/remove_account', data={
-        "email": email,
-        "password": password
-    })
-    assert response.status_code == 200
-    data = response.get_json()
-    assert 'message' in data
-
-if __name__ == "__main__":
-    pytest.main()
+def test_update_user_password(db):
+    add_user('password_id', 'passworduser', 'password@example.com', 'oldpassword')
+    update_user_password('password_id', 'newpassword')
+    user = get_user('password_id')
+    assert user.check_password('newpassword')

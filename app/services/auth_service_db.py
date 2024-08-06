@@ -11,58 +11,67 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-Base = declarative_base()
-
-class User(Base, UserMixin):
-    __tablename__ = 'users'
-    id = Column(String, primary_key=True)
-    username = Column(String, nullable=False)
-    email = Column(String, nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    is_active = Column(Boolean, default=False)
-    is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=func.now())
-    user_role = Column(String)
-    tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
-
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
-
-    def get_allowed_modules(self):
-        allowed_modules = []
-        user_role = next((role for role in current_app.config['ROLE_LIST'] if role['name'] == self.user_role), None)
-        
-        if user_role:
-            for module in current_app.config['MODULE_LIST']:
-                if module['enabled'] and module['name'] in user_role['modules']:
-                    allowed_modules.append(module['name'])
-        
-        return allowed_modules
-
-class Token(Base):
-    __tablename__ = 'tokens'
-    id = Column(String, primary_key=True)
-    user_id = Column(String, ForeignKey('users.id'))
-    token = Column(String, nullable=False)
-    token_type = Column(String, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    user = relationship("User", back_populates="tokens")
-
 engine = None
 Session = None
 
+def get_base():
+    Base = declarative_base()
+
+    class User(Base, UserMixin):
+        __tablename__ = 'users'
+        id = Column(String, primary_key=True)
+        username = Column(String, nullable=False)
+        email = Column(String, nullable=False, unique=True)
+        password = Column(String, nullable=False)
+        is_active = Column(Boolean, default=False)
+        is_admin = Column(Boolean, default=False)
+        created_at = Column(DateTime, default=func.now())
+        user_role = Column(String)
+        tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
+
+        def check_password(self, password):
+            return check_password_hash(self.password, password)
+
+        def get_allowed_modules(self):
+            allowed_modules = []
+            user_role = next((role for role in current_app.config['ROLE_LIST'] if role['name'] == self.user_role), None)
+            
+            if user_role:
+                for module in current_app.config['MODULE_LIST']:
+                    if module['enabled'] and module['name'] in user_role['modules']:
+                        allowed_modules.append(module['name'])
+            
+            return allowed_modules
+
+    class Token(Base):
+        __tablename__ = 'tokens'
+        id = Column(String, primary_key=True)
+        user_id = Column(String, ForeignKey('users.id'))
+        token = Column(String, nullable=False)
+        token_type = Column(String, nullable=False)
+        expires_at = Column(DateTime, nullable=False)
+        user = relationship("User", back_populates="tokens")
+
+    return Base, User, Token
+
+Base, User, Token = get_base()
+
 def setup_database(config):
-    global engine, Session
+    global engine, Session, Base
     database_path = config['USER_DATABASE_PATH']
     if database_path != ':memory:':
         os.makedirs(os.path.dirname(database_path), exist_ok=True)
     engine = create_engine(f'sqlite:///{database_path}', connect_args={'check_same_thread': False})
     Session = sessionmaker(bind=engine)
+    Base, User, Token = get_base()
+    Base.metadata.bind = engine
 
 def init_db():
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(bind=engine)
 
 def get_db():
+    if Session is None:
+        raise RuntimeError("Database is not initialized. Call setup_database first.")
     return Session()
 
 def admin_required(func):
@@ -89,7 +98,7 @@ def add_user(id, username, email, password, is_active=False, is_admin=False, use
         )
         session.add(user)
         session.commit()
-        session.refresh(user)  # This line ensures the user object is refreshed with data from the database
+        session.refresh(user)
         return user
 
 def get_user(user_id):
