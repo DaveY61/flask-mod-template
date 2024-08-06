@@ -17,19 +17,21 @@ sys.path.insert(0, project_path)
 #----------------------------------------------------------------------------
 import pytest
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from app.services.log_service import LogService
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+import tempfile
 
 @pytest.fixture
 def log_service():
-    config = {
-        'LOG_FILE_DIRECTORY': './test_logs',
-        'LOG_RETENTION_DAYS': 7,
-        'EMAIL_ENABLE_ERROR': False,
-        'ADMIN_USER_LIST': ['admin@example.com']
-    }
-    return LogService(config)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        config = {
+            'LOG_FILE_DIRECTORY': temp_dir,
+            'LOG_RETENTION_DAYS': 7,
+            'EMAIL_ENABLE_ERROR': False,
+            'ADMIN_USER_LIST': ['admin@example.com']
+        }
+        yield LogService(config)
 
 def test_log_creation(log_service):
     log_service.log('INFO', 'Test info message')
@@ -64,7 +66,6 @@ def test_clean_old_logs(log_service):
     old_log_file = f"log_{old_date.strftime('%Y-%m-%d')}.csv"
     old_log_path = os.path.join(log_service.log_file_directory, old_log_file)
     
-    os.makedirs(os.path.dirname(old_log_path), exist_ok=True)
     with open(old_log_path, 'w') as f:
         f.write('date,time,type,message,user_id,function,line,file\n')
         f.write('2023-01-01,00:00:00,INFO,Old log,,,,,\n')
@@ -115,10 +116,91 @@ def test_error_log_email(log_service):
     # Check that the email body contains the error message
     assert 'Test error message for email' in args[2]
 
-def teardown_module(module):
-    # Clean up test log files
-    test_log_dir = './test_logs'
-    if os.path.exists(test_log_dir):
-        for file in os.listdir(test_log_dir):
-            os.remove(os.path.join(test_log_dir, file))
-        os.rmdir(test_log_dir)
+def test_log_file_rotation(log_service, monkeypatch):
+    # Create a mock date class
+    class MockDate:
+        _today = date(2023, 1, 1)  # Start with a fixed date
+
+        @classmethod
+        def today(cls):
+            return cls._today
+
+        @classmethod
+        def fromtimestamp(cls, timestamp):
+            return cls._today
+
+        @classmethod
+        def set_today(cls, new_date):
+            cls._today = new_date
+
+    # Patch the date in log_service
+    monkeypatch.setattr('app.services.log_service.date', MockDate)
+
+    # Create logs for the first day
+    log_service.log('INFO', 'Day 1 log 1')
+    log_service.log('INFO', 'Day 1 log 2')
+
+    # Move to the next day
+    MockDate.set_today(date(2023, 1, 2))
+    log_service.log('INFO', 'Day 2 log')
+
+    # Check that two log files exist
+    log_files = os.listdir(log_service.log_file_directory)
+    assert len(log_files) == 2, f"Expected 2 log files, but found: {log_files}"
+
+    # Now simulate passage of time beyond retention period
+    MockDate.set_today(date(2023, 1, 10))  # 9 days later
+
+    # Modify the retention period for the test
+    log_service.retention_days = 7
+
+    # Create a new log, which should trigger cleaning of old logs
+    log_service.log('INFO', 'Day 10 log')
+
+    # Check that only one log file remains (the newest one)
+    log_files = os.listdir(log_service.log_file_directory)
+    assert len(log_files) == 1, f"Expected 1 log file, but found: {log_files}"
+    assert log_files[0] == 'log_2023-01-10.csv'
+
+    # Verify the content of the remaining log file
+    with open(os.path.join(log_service.log_file_directory, log_files[0]), 'r') as f:
+        content = f.read()
+        assert 'Day 10 log' in content
+        assert 'Day 1 log' not in content
+        assert 'Day 2 log' not in content
+
+    # Test that creating a log on the same day doesn't create a new file or remove the existing one
+    log_service.log('INFO', 'Another Day 10 log')
+    log_files = os.listdir(log_service.log_file_directory)
+    assert len(log_files) == 1, f"Expected 1 log file, but found: {log_files}"
+    assert log_files[0] == 'log_2023-01-10.csv'
+
+    with open(os.path.join(log_service.log_file_directory, log_files[0]), 'r') as f:
+        content = f.read()
+        assert 'Another Day 10 log' in content
+        
+def test_log_content_format(log_service):
+    log_service.log('INFO', 'Test log message', user_id='TEST_USER')
+
+    log_file_path = log_service.get_log_file_path()
+    with open(log_file_path, 'r') as log_file:
+        csv_reader = csv.DictReader(log_file)
+        log_entry = next(csv_reader)
+
+    assert set(log_entry.keys()) == {'date', 'time', 'type', 'message', 'user_id', 'function', 'line', 'file'}
+    assert log_entry['type'] == 'INFO'
+    assert log_entry['message'] == 'Test log message'
+    assert log_entry['user_id'] == 'TEST_USER'
+
+def test_multiple_log_entries(log_service):
+    for i in range(10):
+        log_service.log('INFO', f'Log message {i}')
+
+    log_file_path = log_service.get_log_file_path()
+    with open(log_file_path, 'r') as log_file:
+        csv_reader = csv.DictReader(log_file)
+        logs = list(csv_reader)
+
+    assert len(logs) == 10
+    for i, log in enumerate(logs):
+        assert log['message'] == f'Log message {i}'

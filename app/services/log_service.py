@@ -1,6 +1,6 @@
 import os
 import csv
-from datetime import datetime
+from datetime import datetime, date
 from inspect import currentframe, getframeinfo
 from app.services.email_service import EmailService
 
@@ -46,12 +46,12 @@ class LogService:
 
     def get_log_file_path(self):
         # Build the fully path specified log filename
-        log_file_name = f"log_{datetime.now().strftime('%Y-%m-%d')}.csv"
+        log_file_name = f"log_{date.today().strftime('%Y-%m-%d')}.csv"
         return os.path.join(self.log_file_directory, log_file_name)
 
     def clean_old_logs(self):
         # Determine "date" for today
-        today = datetime.today().date()  # Get the current date without the time
+        today = date.today()
 
         # Check for old log files
         for log_file in os.listdir(self.log_file_directory):
@@ -59,8 +59,9 @@ class LogService:
             # Build the fully path specified log filename
             log_file_path = os.path.join(self.log_file_directory, log_file)
 
-            # Get the file creation date
-            file_creation_date = datetime.fromtimestamp(os.path.getmtime(log_file_path)).date()
+            # Get the file creation date from the file name
+            file_date_str = log_file.split('_')[1].split('.')[0]
+            file_creation_date = datetime.strptime(file_date_str, "%Y-%m-%d").date()
 
             # Calculate the elapsed days
             elapsed_days = (today - file_creation_date).days
