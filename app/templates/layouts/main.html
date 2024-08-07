@@ -129,38 +129,42 @@
   </nav>
 
   <!-- Wrap page content here -->
-  <div id="wrap">
+  <div id="wrap" class="d-flex flex-column min-vh-100">
 
-    <!-- Optional side-bar menu -->
-    {% if use_sidebar %}
-    <div class="sidebar">
-      <div class="sidebar-toggle-row">
-          <span class="sidebar-toggle-icon">&lt;&lt;</span>
-          <span class="sidebar-toggle-text">Collapse</span>
+    <div class="flex-grow-1 d-flex">
+      <!-- Optional side-bar menu -->
+      {% if use_sidebar %}
+      <div class="sidebar">
+        <div class="sidebar-toggle-row">
+            <span class="sidebar-toggle-icon">&lt;&lt;</span>
+            <span class="sidebar-toggle-text">Collapse</span>
+        </div>
+        <ul class="sidebar-menu">
+            {% for item in sidebar_menu %}
+            <li>
+                <a href="#" 
+                  data-action="{{ item.action }}" 
+                  data-params="{{ item.params[0] }}">
+                    <i class="{{ item.icon }}"></i>
+                    <span>{{ item.text }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="sidebar-toggle-row">
+            <span class="sidebar-toggle-icon">&lt;&lt;</span>
+            <span class="sidebar-toggle-text">Collapse</span>
+        </div>
       </div>
-      <ul class="sidebar-menu">
-          {% for item in sidebar_menu %}
-          <li>
-              <a href="#" 
-                 data-action="{{ item.action }}" 
-                 data-params="{{ item.params[0] }}">
-                  <i class="{{ item.icon }}"></i>
-                  <span>{{ item.text }}</span>
-              </a>
-          </li>
-          {% endfor %}
-      </ul>
-      <div class="sidebar-toggle-row">
-          <span class="sidebar-toggle-icon">&lt;&lt;</span>
-          <span class="sidebar-toggle-text">Collapse</span>
-      </div>
+      {% endif %}
+
+      <!-- Begin page content -->
+      <main id="content" role="main" class="flex-grow-1 {% if use_sidebar %}content-with-sidebar{% endif %}">
+        <div class="container-fluid py-3">
+            {% block content %}{% endblock %}
+        </div>
+      </main>
     </div>
-    {% endif %}
-
-    <!-- Begin page content -->
-    <main id="content" role="main" class="container {% if use_sidebar %}content-with-sidebar{% endif %}">
-      {% block content %}{% endblock %}
-    </main>
   </div>
 
   <footer id="footer">

@@ -7,7 +7,7 @@
 </div>
 
 <div class="row">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="add-role-form" style="max-width: 100%; margin: 0 auto;">
       <h4>Add New Role</h4>
       <form method="POST" id="add-role-form">
@@ -18,7 +18,7 @@
         </div>
         <div class="mb-3">
           <label for="role_description" class="form-label">Role Description</label>
-          <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 45ch;">
+          <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 40ch;">
         </div>
         <div class="mb-3">
           <label class="form-label">Associated Modules</label>
@@ -86,7 +86,7 @@
                   <input type="hidden" name="action" value="edit_description">
                   <input type="hidden" name="role_name" value="{{ role.name }}">
                   <div class="input-group">
-                    <input type="text" class="form-control" name="role_description" value="{{ role.description }}" maxlength="40" required style="width: 45ch;">
+                    <input type="text" class="form-control" name="role_description" value="{{ role.description }}" maxlength="40" required style="width: 40ch;">
                     <button type="submit" class="btn btn-outline-secondary btn-sm">Update</button>
                   </div>
                 </form>
