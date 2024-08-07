@@ -9,7 +9,6 @@
 - [Adding New Modules](#adding-new-modules)
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
-- [Contributing](#contributing)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -178,10 +177,6 @@ The application should now be running at `http://localhost:5000`.
 4. When a user logs in, they will only see and have access to the modules associated with their role.
 
 5. The `@module_access_required` decorator in each module's route ensures that only users with the appropriate role can access the module.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
