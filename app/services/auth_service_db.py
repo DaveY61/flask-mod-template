@@ -1,7 +1,8 @@
-from sqlalchemy import create_engine, Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.exc import OperationalError
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -52,9 +53,14 @@ def get_base():
         expires_at = Column(DateTime, nullable=False)
         user = relationship("User", back_populates="tokens")
 
-    return Base, User, Token
+    class DefaultRole(Base):
+        __tablename__ = 'default_role'
+        id = Column(Integer, primary_key=True)
+        role_name = Column(String, nullable=True)
 
-Base, User, Token = get_base()
+    return Base, User, Token, DefaultRole
+
+Base, User, Token, DefaultRole = get_base()
 
 def setup_database(config):
     global engine, Session, Base
@@ -63,7 +69,7 @@ def setup_database(config):
         os.makedirs(os.path.dirname(database_path), exist_ok=True)
     engine = create_engine(f'sqlite:///{database_path}', connect_args={'check_same_thread': False})
     Session = sessionmaker(bind=engine)
-    Base, User, Token = get_base()
+    Base, User, Token, DefaultRole = get_base()
     Base.metadata.bind = engine
 
 def init_db():
@@ -156,6 +162,35 @@ def delete_token(token):
         token_obj = session.query(Token).filter(Token.token == token).first()
         if token_obj:
             session.delete(token_obj)
+            session.commit()
+
+# Support for Default role
+
+def get_default_role():
+    try:
+        with get_db() as session:
+            default_role = session.query(DefaultRole).first()
+            return default_role.role_name if default_role else None
+    except OperationalError:
+        # Table doesn't exist yet, so there's no default role
+        return None
+
+def update_default_role(role_name):
+    try:
+        with get_db() as session:
+            default_role = session.query(DefaultRole).first()
+            if default_role:
+                default_role.role_name = role_name
+            else:
+                default_role = DefaultRole(role_name=role_name)
+                session.add(default_role)
+            session.commit()
+    except OperationalError:
+        # Table doesn't exist, so create it and add the default role
+        Base.metadata.create_all(bind=engine)
+        with get_db() as session:
+            default_role = DefaultRole(role_name=role_name)
+            session.add(default_role)
             session.commit()
 
 # Additional helper functions

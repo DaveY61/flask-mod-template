@@ -2,7 +2,7 @@ from flask import Blueprint, request, render_template, redirect, url_for, curren
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
 from app.services.email_service import EmailService
-from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user
+from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user, get_default_role, update_user_role
 from datetime import datetime
 import uuid
 
@@ -41,6 +41,10 @@ def register():
     is_admin = email in current_app.config['ADMIN_USER_LIST']
 
     add_user(user_id, username, email, password, is_active=False, is_admin=is_admin)
+
+    default_role = get_default_role()
+    if default_role:
+        update_user_role(user_id, default_role)
 
     token = generate_token(user_id, 'activation')
     activation_link = url_for('auth.activate_account', token=token, _external=True)

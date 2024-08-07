@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
 from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
-from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts
+from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role
 from app.services.email_service import EmailService
 import os
 import json
@@ -220,6 +220,7 @@ def setup_modules():
 def setup_roles():
     roles = current_app.config['ROLE_LIST']
     modules = current_app.config['MODULE_LIST']
+    default_role = get_default_role()
 
     # Get user count for each role
     user_counts = get_role_user_counts()
@@ -295,10 +296,11 @@ def setup_roles():
         roles_with_counts = add_user_counts(roles)
 
     return render_template('pages/admin_setup_roles.html', 
-                           roles=roles_with_counts, 
-                           modules=modules, 
-                           use_sidebar=True,
-                           sidebar_menu=ADMIN_SIDEBAR_MENU)
+                        roles=roles_with_counts, 
+                        modules=modules,
+                        default_role=default_role,
+                        use_sidebar=True,
+                        sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 @blueprint.route('/setup/users', methods=['GET', 'POST'])
 @login_required
@@ -433,3 +435,12 @@ def setup_email():
                            sidebar_menu=ADMIN_SIDEBAR_MENU,
                            email_config=email_config,
                            test_email=test_email)
+
+@blueprint.route('/setup/set_default_role', methods=['POST'])
+@login_required
+@admin_required
+def set_default_role():
+    role_name = request.form.get('default_role')
+    update_default_role(role_name if role_name != 'none' else None)
+    flash('Default role updated successfully.', 'success')
+    return redirect(url_for('admin.setup_type', setup_type='roles'))

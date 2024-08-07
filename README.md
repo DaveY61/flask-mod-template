@@ -151,7 +151,14 @@ The application should now be running at `http://localhost:5000`.
    - Check the checkbox next to the module name
    - Click "Save Configuration" to apply changes
 
-5. To control access for specific users:
+5. To set a default role for new users: (optional)
+   - Go to the "Role Setup" page
+   - Select a role from the dropdown menu labeled "Default Role"
+   - Click "Save Default Role" to apply the change
+   - New users will now be automatically assigned this role upon registration
+   - Note: The user's role can be changed later or set to "No Role" in the User Setup page
+
+6. To control access for specific users:
    - Go to the "Role Setup" page
    - Create a new role or edit an existing one
    - Select the modules that should be accessible for this role
