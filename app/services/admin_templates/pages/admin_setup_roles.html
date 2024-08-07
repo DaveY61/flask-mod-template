@@ -28,7 +28,7 @@
               All Modules
             </label>
           </div>
-          <div class="module-checkboxes" style="max-height: 200px; overflow-y: auto;">
+          <div class="module-checkboxes" style="max-height: 200px; overflow-y: auto; column-count: 2; column-gap: 20px;">
             {% for module in modules %}
               <div class="form-check">
                 <input class="form-check-input module-checkbox" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
@@ -75,7 +75,12 @@
         <tbody>
           {% for role in roles %}
             <tr>
-              <td style="white-space: nowrap;">{{ role.name }}</td>
+              <td style="white-space: nowrap;">
+                {{ role.name }}
+                {% if role.name == default_role %}
+                  <i class="fas fa-star text-warning default-role-indicator" data-bs-toggle="tooltip" data-bs-placement="top" title="Default Role"></i>
+                {% endif %}
+              </td>
               <td>
                 <form method="POST" class="edit-description-form">
                   <input type="hidden" name="action" value="edit_description">
@@ -90,7 +95,7 @@
                 <form method="POST" class="update-modules-form">
                   <input type="hidden" name="action" value="update_modules">
                   <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <div style="max-height: 150px; overflow-y: auto;">
+                  <div style="max-height: 150px; overflow-y: auto; column-count: 2; column-gap: 20px;">
                     {% for module in modules %}
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
@@ -170,6 +175,12 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('A role with this name already exists. Please choose a different name.');
         }
     });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
 });
 </script>
 {% endblock %}
@@ -185,6 +196,10 @@ document.addEventListener('DOMContentLoaded', function() {
         background-color: #f8f9fa;
         color: #212529;
         border: 1px solid #dee2e6;
+    }
+    .default-role-indicator {
+        margin-left: 5px;
+        cursor: help;
     }
 </style>
 {% endblock %}
