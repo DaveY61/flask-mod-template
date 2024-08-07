@@ -16,22 +16,28 @@ sys.path.insert(0, project_path)
 # Begin Test Code
 #----------------------------------------------------------------------------
 import pytest
+from datetime import datetime, timedelta
 from app.services.auth_service_db import (
     setup_database, init_db, add_user, get_user, get_user_by_email,
     update_user, delete_user, generate_token, get_token, delete_token,
-    update_user_role, update_user_activation, update_user_password
+    update_user_role, update_user_activation, update_user_password,
+    update_user_admin_status, get_all_users, get_role_user_counts,
+    get_default_role, update_default_role
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from freezegun import freeze_time
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def db():
     config = {
         'USER_DATABASE_PATH': ':memory:'
     }
     setup_database(config)
     init_db()
-    return sessionmaker(bind=create_engine('sqlite:///:memory:'))()
+    engine = create_engine('sqlite:///:memory:', connect_args={'check_same_thread': False})
+    SessionLocal = sessionmaker(bind=engine)
+    return SessionLocal()
 
 def test_add_user(db):
     user = add_user('test_id', 'testuser', 'test@example.com', 'password')
@@ -91,3 +97,53 @@ def test_update_user_password(db):
     update_user_password('password_id', 'newpassword')
     user = get_user('password_id')
     assert user.check_password('newpassword')
+
+def test_update_user_admin_status(db):
+    add_user('admin_id', 'adminuser', 'admin@example.com', 'password', is_admin=False)
+    update_user_admin_status('admin_id', True)
+    user = get_user('admin_id')
+    assert user.is_admin == True
+
+def test_get_all_users(db):
+    add_user('user1_id', 'user1', 'user1@example.com', 'password')
+    add_user('user2_id', 'user2', 'user2@example.com', 'password')
+    users = get_all_users()
+    assert len(users) == 2
+    assert set(user.username for user in users) == {'user1', 'user2'}
+
+def test_get_role_user_counts(db):
+    add_user('user1_id', 'user1', 'user1@example.com', 'password', user_role='role1')
+    add_user('user2_id', 'user2', 'user2@example.com', 'password', user_role='role1')
+    add_user('user3_id', 'user3', 'user3@example.com', 'password', user_role='role2')
+    counts = get_role_user_counts()
+    assert counts == {'role1': 2, 'role2': 1}
+
+def test_token_expiration(db):
+    # Set the initial time
+    initial_time = datetime(2023, 1, 1, 12, 0, 0)
+    
+    with freeze_time(initial_time) as frozen_time:
+        add_user('expire_id', 'expireuser', 'expire@example.com', 'password')
+        token = generate_token('expire_id', 'activation')
+        
+        # Verify the token is valid
+        assert get_token(token, 'activation') is not None
+        
+        # Fast-forward time by 21 minutes
+        frozen_time.move_to(initial_time + timedelta(minutes=21))
+
+        expired_token = get_token(token, 'activation')
+        assert expired_token is None
+
+def test_get_default_role(db):
+    assert get_default_role() is None
+    update_default_role('test_role')
+    assert get_default_role() == 'test_role'
+
+def test_update_default_role(db):
+    update_default_role('role1')
+    assert get_default_role() == 'role1'
+    update_default_role('role2')
+    assert get_default_role() == 'role2'
+    update_default_role(None)
+    assert get_default_role() is None
