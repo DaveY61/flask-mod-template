@@ -184,4 +184,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 This application can be deployed using various methods. One recommended approach is to use AWS Elastic Beanstalk, which provides an easy way to deploy and scale web applications.
 
-For detailed instructions on how to deploy this application using AWS Elastic Beanstalk, including setting up AWS, configuring Elastic Beanstalk, ensuring sufficient storage, and establishing automatic deployment from GitHub, please refer to our [AWS Elastic Beanstalk Deployment Guide](aws_elastic_beanstalk_deployment.md).
+For detailed instructions on how to deploy this application using AWS Elastic Beanstalk, including setting up AWS, configuring Elastic Beanstalk, ensuring sufficient storage, and establishing automatic deployment from GitHub, please refer to our [AWS Elastic Beanstalk Deployment Guide](Deploy_AWS_Elastic_Beanstalk.md).
