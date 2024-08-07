@@ -1,5 +1,18 @@
 # Flask Modular Template
 
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Adding New Modules](#adding-new-modules)
+- [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
+- [Role-Based Access Control](#role-based-access-control)
+- [Contributing](#contributing)
+- [License](#license)
+- [Deployment](#deployment)
+
 ## Overview
 
 Flask Modular Template is a scalable and modular Python Flask application template. It provides a structured foundation for building web applications with easily extendable modules, user authentication, role-based access control, and an admin setup interface.
@@ -9,11 +22,23 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Modular architecture for easy scaling and maintenance
 - User authentication system (register, login, password reset)
 - Role-based access control
-- Admin setup interface for GUI configuration, module management, role management, and user management
+- Admin setup interface for GUI configuration, module management, role management, user management, and email configuration
 - Sample modules (Pie Chart, CSV Upload, Games) demonstrating integration
 - Responsive design using Bootstrap 5
 - Customizable styling through admin interface
 - Sidebar navigation for admin pages and new modules
+
+## Technologies Used
+
+- Python 3.7+
+- Flask 3.0.3
+- Flask-Login 0.6.3
+- Flask-WTF 1.2.1
+- SQLAlchemy 1.4.46
+- Bootstrap 5.3.3
+- Font Awesome 6.6.0
+- jQuery 3.7.1
+- Chart.js (for Pie Chart module)
 
 ## Prerequisites
 
@@ -55,6 +80,8 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    USER_DATABASE_FILENAME=users.db
    USER_DATABASE_DIRECTORY=./app_data/users
    ```
+
+   Note: Email-related settings can be configured through the Admin Setup Email page after initial setup.
 
 5. Initialize the database:
    ```
@@ -116,6 +143,7 @@ The application should now be running at `http://localhost:5000`.
    - Modify module menu names
    - Manage roles and their associated modules
    - Assign roles to users
+   - Configure email settings
 
 4. To enable a new module:
    - Go to the "Module Setup" page
@@ -151,3 +179,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Deployment
+
+This application can be deployed using various methods. One recommended approach is to use AWS Elastic Beanstalk, which provides an easy way to deploy and scale web applications.
+
+For detailed instructions on how to deploy this application using AWS Elastic Beanstalk, including setting up AWS, configuring Elastic Beanstalk, ensuring sufficient storage, and establishing automatic deployment from GitHub, please refer to our [AWS Elastic Beanstalk Deployment Guide](aws_elastic_beanstalk_deployment.md).
