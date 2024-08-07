@@ -407,7 +407,7 @@ def setup_email():
             updated_vars = set()
             for i, line in enumerate(env_lines):
                 for var in email_vars:
-                    if line.startswith(f"{var}="):
+                    if line.strip().startswith(f"{var}="):
                         env_lines[i] = f"{var}={current_app.config[var]}\n"
                         updated_vars.add(var)
                         break
@@ -421,11 +421,12 @@ def setup_email():
             with open(env_path, 'w') as env_file:
                 env_file.writelines(env_lines)
 
-            flash('Email configuration saved to .env file. The application will now restart.', 'success')
+            # Update the current process environment
+            for var in email_vars:
+                os.environ[var] = str(current_app.config[var])
 
             # Restart the Flask application
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
+            os.execv(sys.executable, ['python'] + sys.argv)
 
     return render_template('pages/admin_setup_email.html',
                            use_sidebar=True,
