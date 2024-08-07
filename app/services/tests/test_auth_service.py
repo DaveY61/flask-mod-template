@@ -16,16 +16,14 @@ sys.path.insert(0, project_path)
 # Begin Test Code
 #----------------------------------------------------------------------------
 import pytest
+from flask import Flask
+from flask_login import LoginManager, login_user, current_user
+from app.services.auth_service import blueprint as auth_blueprint
+from app.services.auth_service_db import add_user, get_user_by_email, update_user_activation, setup_database, init_db, get_base, generate_token, get_user
+from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
-from app.services.auth_service_db import (
-    get_base, setup_database, init_db, get_db,
-    add_user, get_user, get_user_by_email,
-    update_user, delete_user, generate_token, get_token, delete_token,
-    update_user_role, update_user_activation, update_user_password,
-    update_user_admin_status, get_all_users, get_role_user_counts
-)
+import tempfile
 
 @pytest.fixture(scope='function')
 def db():
@@ -35,154 +33,213 @@ def db():
     setup_database(config)
     init_db()
 
-    # Override the global Session and engine
-    global Session, engine
-    
-    Base, User, Token = get_base()
-    engine = create_engine(f'sqlite:///{config["USER_DATABASE_PATH"]}', connect_args={'check_same_thread': False})
+    Base, User, Token, DefaultRole = get_base()
+    engine = create_engine('sqlite:///:memory:', connect_args={'check_same_thread': False})
     SessionLocal = sessionmaker(bind=engine)
     Base.metadata.create_all(bind=engine)
     
     session = SessionLocal()
-    Session = SessionLocal
     
     yield session
     
     session.close()
     Base.metadata.drop_all(bind=engine)
 
-def test_add_user(db):
-    user = add_user('test_id', 'testuser', 'test@example.com', 'password')
-    assert user.id == 'test_id'
-    assert user.username == 'testuser'
-    assert user.email == 'test@example.com'
-    assert user.check_password('password')
-
-def test_get_user(db):
-    add_user('get_id', 'getuser', 'get@example.com', 'password')
-    user = get_user('get_id')
-    assert user.username == 'getuser'
-
-def test_get_user_by_email(db):
-    add_user('email_id', 'emailuser', 'email@example.com', 'password')
-    user = get_user_by_email('email@example.com')
-    assert user.id == 'email_id'
-
-def test_update_user(db):
-    user = add_user('update_id', 'updateuser', 'update@example.com', 'password')
-    user.username = 'updateduser'
-    update_user(user)
-    updated_user = get_user('update_id')
-    assert updated_user.username == 'updateduser'
-
-def test_delete_user(db):
-    add_user('delete_id', 'deleteuser', 'delete@example.com', 'password')
-    delete_user('delete_id')
-    assert get_user('delete_id') is None
-
-def test_generate_and_get_token(db):
-    add_user('token_id', 'tokenuser', 'token@example.com', 'password')
-    token = generate_token('token_id', 'activation')
-    token_data = get_token(token, 'activation')
-    assert token_data.user_id == 'token_id'
-
-def test_delete_token(db):
-    add_user('deltoken_id', 'deltokenuser', 'deltoken@example.com', 'password')
-    token = generate_token('deltoken_id', 'activation')
-    delete_token(token)
-    assert get_token(token, 'activation') is None
-
-def test_update_user_role(db):
-    add_user('role_id', 'roleuser', 'role@example.com', 'password')
-    update_user_role('role_id', 'admin')
-    user = get_user('role_id')
-    assert user.user_role == 'admin'
-
-def test_update_user_activation(db):
-    add_user('activate_id', 'activateuser', 'activate@example.com', 'password', is_active=False)
-    update_user_activation('activate_id')
-    user = get_user('activate_id')
-    assert user.is_active == True
-
-def test_update_user_password(db):
-    add_user('password_id', 'passworduser', 'password@example.com', 'oldpassword')
-    update_user_password('password_id', 'newpassword')
-    user = get_user('password_id')
-    assert user.check_password('newpassword')
-
-def test_update_user_admin_status(db):
-    add_user('admin_id', 'adminuser', 'admin@example.com', 'password', is_admin=False)
-    update_user_admin_status('admin_id', True)
-    user = get_user('admin_id')
-    assert user.is_admin == True
-
-def test_get_all_users(db):
-    add_user('user1_id', 'user1', 'user1@example.com', 'password')
-    add_user('user2_id', 'user2', 'user2@example.com', 'password')
-    users = get_all_users()
-    assert len(users) == 2
-    assert set(user.username for user in users) == {'user1', 'user2'}
-
-def test_get_role_user_counts(db):
-    add_user('user1_id', 'user1', 'user1@example.com', 'password', user_role='role1')
-    add_user('user2_id', 'user2', 'user2@example.com', 'password', user_role='role1')
-    add_user('user3_id', 'user3', 'user3@example.com', 'password', user_role='role2')
-    counts = get_role_user_counts()
-    assert counts == {'role1': 2, 'role2': 1}
-
-def test_token_expiration(db, monkeypatch):
-    add_user('expire_id', 'expireuser', 'expire@example.com', 'password')
-
-    # Set the current time to a fixed value
-    current_time = datetime(2023, 1, 1, 12, 0, 0)
+@pytest.fixture
+def app(db):
+    app = Flask(__name__)
+    app.config['TESTING'] = True
+    app.config['WTF_CSRF_ENABLED'] = False
+    app.config['SECRET_KEY'] = 'test-secret-key'
+    app.config['ADMIN_USER_LIST'] = ['admin@example.com']
+    app.config['PROJECT_NAME'] = 'Test Project'
+    app.config['EMAIL_FROM_ADDRESS'] = "pytest@gmail.com"
+    app.config['SMTP_SERVER'] = 'localhost'
+    app.config['SMTP_PORT'] = 1025
+    app.config['SMTP_USERNAME'] = 'test'
+    app.config['SMTP_PASSWORD'] = 'test'
+    app.config['EMAIL_FAIL_DIRECTORY'] = tempfile.mkdtemp()
+    app.template_folder = os.path.join(project_path, 'app', 'templates')
+    app.register_blueprint(auth_blueprint)
     
-    # Mock datetime.now() to return our fixed time
-    class MockDatetime:
-        @classmethod
-        def now(cls):
-            return current_time
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        return get_user(user_id)
+    
+    @app.route('/')
+    def home():
+        return 'Home Page'
+    
+    return app
 
-    monkeypatch.setattr('app.services.auth_service_db.datetime', MockDatetime)
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
-    token = generate_token('expire_id', 'activation')
-    
-    # Verify the token is valid
-    assert get_token(token, 'activation') is not None
-    
-    # Fast-forward time by 21 minutes
-    future_time = current_time + timedelta(minutes=21)
-    
-    # Update the mock to return the future time
-    class MockFutureDateTime:
-        @classmethod
-        def now(cls):
-            return future_time
+@pytest.fixture
+def mock_smtp(monkeypatch):
+    class MockSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+        def starttls(self):
+            pass
+        def login(self, *args, **kwargs):
+            pass
+        def send_message(self, *args, **kwargs):
+            pass
+        def quit(self):
+            pass
+    monkeypatch.setattr('smtplib.SMTP', MockSMTP)
 
-    monkeypatch.setattr('app.services.auth_service_db.datetime', MockFutureDateTime)
-    
-    expired_token = get_token(token, 'activation')
-    assert expired_token is None
+@patch('app.services.auth_service.EmailService.send_email')
+def test_register(mock_send_email, client, app, db):
+    with app.app_context():
+        response = client.post('/register', data={
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password': 'testpassword'
+        })
+        assert response.status_code == 201
+        user = get_user_by_email('test@example.com')
+        assert user is not None
+        assert user.username == 'testuser'
+        assert not user.is_active
+        mock_send_email.assert_called_once()
 
-def test_user_not_found(db):
-    assert get_user('nonexistent_id') is None
-    assert get_user_by_email('nonexistent@example.com') is None
+def test_activate_account(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=False)
+        token = generate_token(user.id, 'activation')
+        response = client.get(f'/activate/{token}')
+        assert response.status_code == 200
+        updated_user = get_user_by_email('test@example.com')
+        assert updated_user.is_active
 
-def test_duplicate_email(db):
-    add_user('user1_id', 'user1', 'duplicate@example.com', 'password')
-    with pytest.raises(Exception):  # Adjust this to the specific exception your code raises
-        add_user('user2_id', 'user2', 'duplicate@example.com', 'password')
+def test_login(client, app, db):
+    with app.app_context():
+        add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        response = client.post('/login', data={
+            'email': 'test@example.com',
+            'password': 'testpassword'
+        })
+        assert response.status_code == 302  # Redirect after successful login
 
-def test_user_activation_flow(db):
-    user = add_user('flow_id', 'flowuser', 'flow@example.com', 'password', is_active=False)
-    assert user.is_active == False
-    
-    token = generate_token('flow_id', 'activation')
-    token_data = get_token(token, 'activation')
-    assert token_data is not None
-    
-    update_user_activation('flow_id')
-    user = get_user('flow_id')
-    assert user.is_active == True
-    
-    # Token should be deleted after activation
-    assert get_token(token, 'activation') is None
+def test_logout(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        with client:
+            with client.session_transaction() as session:
+                session['_user_id'] = user.id
+            response = client.get('/logout')
+            assert response.status_code == 302  # Redirect after logout
+            with client.session_transaction() as session:
+                assert '_user_id' not in session
+
+@patch('app.services.auth_service.EmailService.send_email')
+def test_forgot_password(mock_send_email, mock_smtp, client, app, db):
+    with app.app_context():
+        add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        response = client.post('/forgot', data={
+            'email': 'test@example.com'
+        })
+        assert response.status_code == 200
+        mock_send_email.assert_called_once()
+
+def test_reset_password(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        token = generate_token(user.id, 'reset')
+        response = client.post(f'/reset_password/{token}', data={
+            'password': 'newpassword'
+        })
+        assert response.status_code == 200
+        updated_user = get_user_by_email('test@example.com')
+        assert updated_user.check_password('newpassword')
+
+def test_delete_account(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        with client:
+            with client.session_transaction() as session:
+                session['_user_id'] = user.id  # Use '_user_id' instead of 'user_id'
+            response = client.post('/delete')
+            assert response.status_code == 200
+            deleted_user = get_user_by_email('test@example.com')
+            assert deleted_user is None
+
+@patch('app.services.auth_service.EmailService.send_email')
+def test_register_with_default_role(mock_send_email, client, app, db):
+    with app.app_context():
+        app.config['ROLE_LIST'] = [{'name': 'default_role', 'modules': []}]
+        with patch('app.services.auth_service.get_default_role', return_value='default_role'):
+            response = client.post('/register', data={
+                'username': 'testuser',
+                'email': 'test@example.com',
+                'password': 'testpassword'
+            })
+            assert response.status_code == 201
+            user = get_user_by_email('test@example.com')
+            assert user is not None
+            assert user.user_role == 'default_role'
+            mock_send_email.assert_called_once()
+
+def test_login_updates_admin_status(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'adminuser', 'admin@example.com', 'testpassword', is_active=True, is_admin=False)
+        update_user_activation(user.id)
+        response = client.post('/login', data={
+            'email': 'admin@example.com',
+            'password': 'testpassword'
+        })
+        assert response.status_code == 302  # Redirect after successful login
+        updated_user = get_user_by_email('admin@example.com')
+        assert updated_user.is_admin == True
+
+def test_register_duplicate_email(client, app, db):
+    with app.app_context():
+        add_user('test_id', 'testuser', 'test@example.com', 'testpassword')
+        response = client.post('/register', data={
+            'username': 'testuser2',
+            'email': 'test@example.com',
+            'password': 'testpassword2'
+        })
+        assert response.status_code == 400  # Bad request for duplicate email
+
+def test_login_inactive_user(client, app, db):
+    with app.app_context():
+        add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=False)
+        response = client.post('/login', data={
+            'email': 'test@example.com',
+            'password': 'testpassword'
+        })
+        assert response.status_code == 400  # Bad request for inactive user
+
+def test_reset_password_expired_token(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        token = generate_token(user.id, 'reset')
+        
+        # Simulate token expiration
+        with patch('app.services.auth_service.get_token', return_value=None):
+            response = client.post(f'/reset_password/{token}', data={
+                'password': 'newpassword'
+            })
+            assert response.status_code == 400  # Bad request for expired token
+
+def test_user_allowed_modules(client, app, db):
+    with app.app_context():
+        app.config['ROLE_LIST'] = [{'name': 'test_role', 'modules': ['module1', 'module2']}]
+        app.config['MODULE_LIST'] = [
+            {'name': 'module1', 'enabled': True},
+            {'name': 'module2', 'enabled': True},
+            {'name': 'module3', 'enabled': True}
+        ]
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True, user_role='test_role')
+        with client:
+            with client.session_transaction() as session:
+                session['user_id'] = user.id
+            allowed_modules = user.get_allowed_modules()
+            assert set(allowed_modules) == {'module1', 'module2'}

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, current_app, flash
+from flask import Blueprint, request, render_template, redirect, url_for, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
 from app.services.email_service import EmailService
@@ -109,6 +109,7 @@ def login():
 def logout():
     initialize_services()
     logout_user()
+    session.clear()
     return redirect(url_for('home'))
 
 @blueprint.route('/forgot', methods=['GET', 'POST'])
