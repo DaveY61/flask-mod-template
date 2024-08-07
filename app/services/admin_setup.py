@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
 from flask import Blueprint as FlaskBlueprint
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts
+from app.services.email_service import EmailService
 import os
 import json
 import sys
@@ -16,7 +17,8 @@ ADMIN_SIDEBAR_MENU = [
     {'icon': 'fas fa-cog', 'text': 'GUI Setup', 'action': 'showAdminSetup', 'params': ['gui']},
     {'icon': 'fas fa-puzzle-piece', 'text': 'Module Setup', 'action': 'showAdminSetup', 'params': ['modules']},
     {'icon': 'fas fa-user-tag', 'text': 'Role Setup', 'action': 'showAdminSetup', 'params': ['roles']},
-    {'icon': 'fas fa-users', 'text': 'User Setup', 'action': 'showAdminSetup', 'params': ['users']}
+    {'icon': 'fas fa-users', 'text': 'User Setup', 'action': 'showAdminSetup', 'params': ['users']},
+    {'icon': 'fas fa-envelope', 'text': 'Email Setup', 'action': 'showAdminSetup', 'params': ['email']}
 ]
 
 def discover_module_info(module_name):
@@ -75,6 +77,8 @@ def setup_type(setup_type):
         return setup_roles()
     elif setup_type == 'users':
         return setup_users()
+    elif setup_type == 'email':
+        return setup_email()
     else:
         flash('Invalid setup type.', 'danger')
         return redirect(url_for('admin.setup'))
@@ -328,3 +332,103 @@ def setup_users():
                            roles=roles,
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
+
+@blueprint.route('/setup/email', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def setup_email():
+    # Initialize email_config with current values
+    email_config = {
+        'EMAIL_FROM_ADDRESS': current_app.config['EMAIL_FROM_ADDRESS'],
+        'SMTP_SERVER': current_app.config['SMTP_SERVER'],
+        'SMTP_PORT': current_app.config['SMTP_PORT'],
+        'SMTP_USERNAME': current_app.config['SMTP_USERNAME'],
+        'SMTP_PASSWORD': current_app.config['SMTP_PASSWORD'],
+    }
+    
+    # Initialize test_email with the value from the form, session, or current user's email
+    test_email = request.form.get('test_email')
+    if not test_email:
+        test_email = session.get('admin_test_email', current_user.email)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        # Update the email_config with form data for all actions
+        email_config['EMAIL_FROM_ADDRESS'] = request.form.get('email_from_address')
+        email_config['SMTP_SERVER'] = request.form.get('smtp_server')
+        email_config['SMTP_PORT'] = int(request.form.get('smtp_port'))
+        email_config['SMTP_USERNAME'] = request.form.get('smtp_username')
+        email_config['SMTP_PASSWORD'] = request.form.get('smtp_password')
+
+        # Update current_app.config
+        current_app.config.update(email_config)
+
+        # Save the test email in the session
+        session['admin_test_email'] = test_email
+
+        if action == 'update_config':
+            flash('Email configuration updated in current session.', 'success')
+
+        elif action == 'test_email':
+            # Create a temporary EmailService instance with the current configuration
+            temp_email_service = EmailService(current_app.config)
+
+            subject = "Test Email from Admin Setup"
+            body = "This is a test email sent from the Admin Setup page."
+
+            try:
+                temp_email_service.send_email([test_email], subject, body)
+                flash('Test email sent successfully!', 'success')
+            except Exception as e:
+                flash(f'Error sending test email: {str(e)}', 'danger')
+
+        elif action == 'save_and_restart':
+            # Update .env file with new email configuration
+            env_path = os.path.join(current_app.root_path, '..', '.env')
+            
+            # Email-related variables to update
+            email_vars = [
+                'EMAIL_FROM_ADDRESS',
+                'SMTP_SERVER',
+                'SMTP_PORT',
+                'SMTP_USERNAME',
+                'SMTP_PASSWORD'
+            ]
+
+            # Read existing .env file
+            if os.path.exists(env_path):
+                with open(env_path, 'r') as env_file:
+                    env_lines = env_file.readlines()
+            else:
+                env_lines = []
+
+            # Update email-related variables
+            updated_vars = set()
+            for i, line in enumerate(env_lines):
+                for var in email_vars:
+                    if line.startswith(f"{var}="):
+                        env_lines[i] = f"{var}={current_app.config[var]}\n"
+                        updated_vars.add(var)
+                        break
+
+            # Add any missing email-related variables
+            for var in email_vars:
+                if var not in updated_vars:
+                    env_lines.append(f"{var}={current_app.config[var]}\n")
+
+            # Write updated content back to .env file
+            with open(env_path, 'w') as env_file:
+                env_file.writelines(env_lines)
+
+            flash('Email configuration saved to .env file. The application will now restart.', 'success')
+
+            # Restart the Flask application
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
+
+    return render_template('pages/admin_setup_email.html',
+                           use_sidebar=True,
+                           sidebar_menu=ADMIN_SIDEBAR_MENU,
+                           email_config=email_config,
+                           test_email=test_email)

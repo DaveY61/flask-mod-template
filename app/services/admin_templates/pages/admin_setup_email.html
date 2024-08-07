@@ -1,0 +1,47 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Email Setup {{ config.PROJECT_NAME }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Email Setup</h2>
+</div>
+
+<form method="POST" id="email-setup-form" class="col-md-8">
+  <div class="mb-3">
+    <label for="email_from_address" class="form-label">From Email Address</label>
+    <input type="email" class="form-control" id="email_from_address" name="email_from_address" value="{{ email_config['EMAIL_FROM_ADDRESS'] }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="smtp_server" class="form-label">SMTP Server</label>
+    <input type="text" class="form-control" id="smtp_server" name="smtp_server" value="{{ email_config['SMTP_SERVER'] }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="smtp_port" class="form-label">SMTP Port</label>
+    <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ email_config['SMTP_PORT'] }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="smtp_username" class="form-label">SMTP Username</label>
+    <input type="text" class="form-control" id="smtp_username" name="smtp_username" value="{{ email_config['SMTP_USERNAME'] }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="smtp_password" class="form-label">SMTP Password</label>
+    <input type="password" class="form-control" id="smtp_password" name="smtp_password" value="{{ email_config['SMTP_PASSWORD'] }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="test_email" class="form-label">Test Email Address</label>
+    <input type="email" class="form-control" id="test_email" name="test_email" value="{{ test_email }}" required>
+  </div>
+  <button type="submit" name="action" value="update_config" class="btn btn-primary">Update Config</button>
+  <button type="submit" name="action" value="test_email" class="btn btn-secondary">Test Email Settings</button>
+  <button type="submit" name="action" value="save_and_restart" class="btn btn-warning">Save to .env and Restart</button>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+}
+</script>
+{% endblock %}
