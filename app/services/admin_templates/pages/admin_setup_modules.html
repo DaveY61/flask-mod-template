@@ -60,7 +60,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='libs/sortable/Sortable.min.js') }}"></script>
 <script>
 function toggleModuleEnabled(checkbox) {
   const moduleItem = checkbox.closest('.module-item');

@@ -105,10 +105,10 @@ if __name__ == '__main__':
         'app_logs',
         'app_data',
         'test_results',
+        'static/libs',
         'static/js/libs',
         'static/webfonts',
         'static/img',
-        'static/ico',
         'static/css/bootstrap',
         'static/css/fontawesome'
     ]
