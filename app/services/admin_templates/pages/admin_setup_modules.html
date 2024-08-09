@@ -7,21 +7,21 @@
 </div>
 
 <form method="POST" id="admin-setup-form">
-  <div id="module-list" class="table-responsive">
-    <table class="table table-hover table-sm">
-      <thead>
-        <tr class="table-dark">
-          <th style="width: 30px;"></th>
-          <th style="width: 30px;"></th>
-          <th style="width: 20%;">Module Name</th>
-          <th style="width: 150px;">Menu Name</th>
-          <th style="width: 15%;">Blueprint</th>
-          <th style="width: 15%;">Route</th>
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 5%;"></th>
+          <th style="width: 5%;">Enabled</th>
+          <th style="width: 25%;">Module Name</th>
+          <th style="width: 20%;">Menu Name</th>
+          <th style="width: 20%;">Blueprint</th>
+          <th style="width: 25%;">Route</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="module-list">
         {% for module in modules %}
-          <tr class="module-item {% if module.enabled %}table-active{% endif %}" data-module-name="{{ module.name }}">
+          <tr class="module-item" data-module-name="{{ module.name }}">
             <td class="p-1">
               <span class="drag-handle">&#9776;</span>
             </td>
@@ -65,9 +65,9 @@
 function toggleModuleEnabled(checkbox) {
   const moduleItem = checkbox.closest('.module-item');
   if (checkbox.checked) {
-    moduleItem.classList.add('enabled');
+    moduleItem.classList.add('table-active');
   } else {
-    moduleItem.classList.remove('enabled');
+    moduleItem.classList.remove('table-active');
   }
   updateSaveButton();
 }
@@ -80,14 +80,16 @@ function updateSaveButton() {
   if (hasChanges) {
     saveButton.textContent = 'Save and Restart';
     saveButton.classList.add('btn-warning');
+    saveButton.classList.remove('btn-primary');
   } else {
     saveButton.textContent = 'Save Configuration';
+    saveButton.classList.add('btn-primary');
     saveButton.classList.remove('btn-warning');
   }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  new Sortable(document.querySelector('#module-list tbody'), {
+  new Sortable(document.querySelector('#module-list'), {
     animation: 150,
     handle: '.drag-handle',
     onEnd: function(evt) {
@@ -117,6 +119,7 @@ function showAdminSetup(setupType) {
 {% endblock %}
 
 {% block additional_styles %}
+{{ super() }}
 <style>
   .drag-handle {
     cursor: move;
@@ -125,14 +128,28 @@ function showAdminSetup(setupType) {
   .badge {
     font-size: 0.9em;
   }
+  .table {
+    background-color: transparent;
+  }
+  .table > thead {
+    background-color: #f8f9fa;
+  }
   .table > tbody > tr {
-    border-bottom: 1px solid #dee2e6;
+    background-color: #ffffff;
   }
-  .table > thead > tr {
-    border-bottom: 2px solid #212529;
+  .table-hover > tbody > tr:hover {
+    background-color: #f8f9fa;
   }
-  #module-list {
-    max-width: 800px;
+  .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+  .form-control-sm {
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
   }
 </style>
 {% endblock %}

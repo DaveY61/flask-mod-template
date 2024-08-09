@@ -9,8 +9,8 @@
 <div class="row">
   <div class="col-md-12">
     <div class="table-responsive">
-      <table class="table">
-        <thead>
+      <table class="table table-hover">
+        <thead class="table-light">
           <tr>
             <th style="width: 5%;">Default</th>
             <th style="width: 15%;">Role Name</th>
@@ -207,8 +207,23 @@ function showAdminSetup(setupType) {
         margin-left: 5px;
         cursor: help;
     }
-    .add-role-row {
+    .table {
+        background-color: transparent;
+    }
+    .table > thead {
         background-color: #f8f9fa;
+    }
+    .table > tbody > tr {
+        background-color: #ffffff;
+    }
+    .table-hover > tbody > tr:hover {
+        background-color: #f8f9fa;
+    }
+    .add-role-row {
+        background-color: #f8f9fa !important;
+    }
+    .add-role-row:hover {
+        background-color: #f8f9fa !important;
     }
     .separator-row {
         height: 10px;
@@ -218,6 +233,9 @@ function showAdminSetup(setupType) {
         border-bottom: 1px solid #dee2e6;
         background-color: var(--body-color) !important;
     }
+    .separator-row:hover {
+        background-color: var(--body-color) !important;
+    }
     .module-selection {
         display: flex;
         flex-wrap: wrap;
@@ -225,9 +243,6 @@ function showAdminSetup(setupType) {
     }
     .form-check-inline {
         margin-right: 0;
-    }
-    .table > :not(caption) > * > * {
-        background-color: transparent;
     }
 </style>
 {% endblock %}
