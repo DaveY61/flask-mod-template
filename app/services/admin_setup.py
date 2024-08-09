@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
 from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role
 from app.services.email_service import EmailService
 import os
@@ -100,6 +101,15 @@ def setup_gui():
         
         for key, value in new_gui_values.items():
             current_app.config[key] = value
+
+        # Handle project icon upload
+        if 'project_icon' in request.files:
+            project_icon = request.files['project_icon']
+            if project_icon and project_icon.filename.lower().endswith('.png'):
+                filename = secure_filename('project_icon.png')
+                icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
+                project_icon.save(icon_path)
+                flash('Project icon updated successfully!', 'success')
 
         flash('GUI configuration updated successfully!', 'success')
 

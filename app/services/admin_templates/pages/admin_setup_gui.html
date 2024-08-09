@@ -6,7 +6,7 @@
   <h2>GUI Setup</h2>
 </div>
 
-<form method="POST" id="admin-setup-form" class="col-md-8">
+<form method="POST" id="admin-setup-form" class="col-md-8" enctype="multipart/form-data">
   <div class="gui-setup-container">
     <div class="gui-setup-row">
       <label for="company_name" class="gui-label">Company Name:</label>
@@ -38,6 +38,19 @@
         </div>
       </div>
     </div>
+    <div class="gui-setup-row">
+      <label for="project_icon" class="gui-label">Project Icon:</label>
+      <div class="gui-input">
+        <input type="file" class="form-control form-control-sm" id="project_icon" name="project_icon" accept="image/png">
+        <small class="form-text text-muted">Upload a new PNG image to replace the current project icon.</small>
+      </div>
+    </div>
+    <div class="gui-setup-row">
+      <label class="gui-label">Current Icon:</label>
+      <div class="gui-input">
+        <img src="{{ url_for('static', filename='img/project_icon.png') }}" alt="Current Project Icon" height="50">
+      </div>
+    </div>
   </div>
   
   <button type="submit" class="btn btn-primary mt-3" id="saveButton">Save Configuration</button>
@@ -58,11 +71,13 @@ function initColorPickers() {
   const projectNameColorPicker = document.getElementById('project_name_color_picker');
 
   function updateColorPicker(input, picker) {
-    if (input.value.startsWith('#')) {
-      picker.value = input.value;
+    let color = input.value.trim();
+    if (color.startsWith('#')) {
+      picker.value = color;
     } else {
+      // Convert color name to hex
       const tempElem = document.createElement('div');
-      tempElem.style.color = input.value;
+      tempElem.style.color = color;
       document.body.appendChild(tempElem);
       const computedColor = getComputedStyle(tempElem).color;
       document.body.removeChild(tempElem);
@@ -80,6 +95,9 @@ function initColorPickers() {
 
   bodyColor.addEventListener('input', () => updateColorPicker(bodyColor, bodyColorPicker));
   projectNameColor.addEventListener('input', () => updateColorPicker(projectNameColor, projectNameColorPicker));
+
+  bodyColorPicker.addEventListener('input', () => updateColorInput('body_color', bodyColorPicker.value));
+  projectNameColorPicker.addEventListener('input', () => updateColorInput('project_name_color', projectNameColorPicker.value));
 }
 
 document.addEventListener('DOMContentLoaded', function() {
