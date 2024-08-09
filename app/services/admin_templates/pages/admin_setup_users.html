@@ -59,8 +59,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
+<script src="{{ url_for('static', filename='libs/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/datatables/dataTables.bootstrap5.min.js') }}"></script>
 <script>
 $(document).ready(function() {
     $('#user-table').DataTable({
@@ -82,7 +82,7 @@ function showAdminSetup(setupType) {
 
 {% block additional_styles %}
 {{ super() }}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='libs/datatables/dataTables.bootstrap5.min.css') }}">
 <style>
     .table {
         background-color: transparent;
