@@ -7,127 +7,93 @@
 </div>
 
 <div class="row">
-  <div class="col-md-3">
-    <div class="add-role-form" style="max-width: 100%; margin: 0 auto;">
-      <h4>Add New Role</h4>
-      <form method="POST" id="add-role-form">
-        <input type="hidden" name="action" value="add_role">
-        <div class="mb-3">
-          <label for="role_name" class="form-label">Role Name</label>
-          <input type="text" class="form-control" id="role_name" name="role_name" maxlength="15" required style="width: 20ch;">
-        </div>
-        <div class="mb-3">
-          <label for="role_description" class="form-label">Role Description</label>
-          <input type="text" class="form-control" id="role_description" name="role_description" maxlength="40" required style="width: 40ch;">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Associated Modules</label>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="all_modules" name="all_modules">
-            <label class="form-check-label" for="all_modules">
-              All Modules
-            </label>
-          </div>
-          <div class="module-checkboxes" style="max-height: 200px; overflow-y: auto; column-count: 2; column-gap: 20px;">
-            {% for module in modules %}
-              <div class="form-check">
-                <input class="form-check-input module-checkbox" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ loop.index }}">
-                <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ loop.index }}">
-                  {{ module.menu_name }}
-                </label>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary">Add Role</button>
-      </form>
-    </div>
-  
-    <div style="border:1px solid silver; margin-top:15px; padding:5px;">
-    <h4>Default Role for New Users</h4>
-    <form method="POST" action="{{ url_for('admin.set_default_role') }}">
-      <div class="input-group">
-        <select name="default_role" class="form-select">
-          <option value="none">No Default Role</option>
-          {% for role in roles %}
-            <option value="{{ role.name }}" {% if role.name == default_role %}selected{% endif %}>{{ role.name }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary">Save Default Role</button>
-      </div>
-    </form>
-    </div>
-  </div>
-
-  <div class="col-md-8">
-    <h4>Existing Roles</h4>
+  <div class="col-md-12">
     <div class="table-responsive">
-      <table class="table table-striped">
+      <table class="table">
         <thead>
           <tr>
-            <th style="white-space: nowrap;">Role Name</th>
-            <th>Description</th>
-            <th>Associated Modules</th>
-            <th>Users</th>
-            <th>Action</th>
+            <th style="width: 15%;">Role Name</th>
+            <th style="width: 25%;">Description</th>
+            <th style="width: 40%;">Associated Modules</th>
+            <th style="width: 10%;">Users</th>
+            <th style="width: 10%;">Actions</th>
           </tr>
         </thead>
         <tbody>
+          <!-- Add New Role Row -->
+          <tr class="add-role-row">
+            <form method="POST" id="add-role-form">
+              <input type="hidden" name="action" value="add_role">
+              <td>
+                <input type="text" class="form-control form-control-sm" id="role_name" name="role_name" maxlength="15" required>
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm" id="role_description" name="role_description" maxlength="40" required>
+              </td>
+              <td>
+                <div class="module-selection">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="all_modules" name="all_modules">
+                    <label class="form-check-label" for="all_modules">All Modules</label>
+                  </div>
+                  {% for module in modules %}
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input module-checkbox" type="checkbox" name="modules" value="{{ module.name }}" id="module_new_{{ loop.index }}">
+                      <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_new_{{ loop.index }}">
+                        {{ module.menu_name }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+              </td>
+              <td></td>
+              <td>
+                <button type="submit" class="btn btn-success btn-sm">Add</button>
+              </td>
+            </form>
+          </tr>
+          
+          <!-- Separator Row -->
+          <tr class="separator-row">
+            <td colspan="5" ></td>
+          </tr>
+
+          <!-- Existing Roles -->
           {% for role in roles %}
             <tr>
-              <td style="white-space: nowrap;">
+              <td>
                 {{ role.name }}
                 {% if role.name == default_role %}
                   <i class="fas fa-star text-warning default-role-indicator" data-bs-toggle="tooltip" data-bs-placement="top" title="Default Role"></i>
                 {% endif %}
               </td>
               <td>
-                <form method="POST" class="edit-description-form">
-                  <input type="hidden" name="action" value="edit_description">
-                  <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <div class="input-group">
-                    <input type="text" class="form-control" name="role_description" value="{{ role.description }}" maxlength="40" required style="width: 40ch;">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">Update</button>
-                  </div>
-                </form>
+                <input type="text" class="form-control form-control-sm" id="role_description_{{ role.name }}" name="role_description" value="{{ role.description }}" maxlength="40" required>
               </td>
               <td>
-                <form method="POST" class="update-modules-form">
-                  <input type="hidden" name="action" value="update_modules">
-                  <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <div style="max-height: 150px; overflow-y: auto; column-count: 2; column-gap: 20px; white-space:nowrap">
-                    {% for module in modules %}
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
-                               {% if module.name in role.modules %}checked{% endif %}>
-                        <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ role.name }}_{{ loop.index }}">
-                          {{ module.menu_name }}
-                        </label>
-                      </div>
-                    {% endfor %}
-                  </div>
-                  <button type="submit" class="btn btn-outline-primary btn-sm mt-2">Update Modules</button>
-                </form>
+                <div class="module-selection">
+                  {% for module in modules %}
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" name="modules_{{ role.name }}" value="{{ module.name }}" id="module_{{ role.name }}_{{ loop.index }}"
+                             {% if module.name in role.modules %}checked{% endif %}>
+                      <label class="form-check-label {% if module.enabled %}text-success{% else %}text-muted{% endif %}" for="module_{{ role.name }}_{{ loop.index }}">
+                        {{ module.menu_name }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
               </td>
               <td>
                 {{ role.users_count }}
               </td>
               <td>
+                <button type="button" class="btn btn-primary btn-sm me-1" onclick="updateRole('{{ role.name }}')">Update</button>
                 <form method="POST" style="display: inline;">
                   <input type="hidden" name="action" value="delete_role">
                   <input type="hidden" name="role_name" value="{{ role.name }}">
-                  <div class="d-flex align-items-center">
-                    <button type="submit" class="btn btn-danger btn-sm me-2" 
-                            {% if role.users_count > 0 %}disabled{% endif %}>
-                      Delete
-                    </button>
-                    {% if role.users_count > 0 %}
-                      <i class="fas fa-exclamation-circle text-warning" 
-                         data-bs-toggle="tooltip" 
-                         data-bs-placement="top" 
-                         title="Cannot delete role while it's in use ({{ role.users_count }} user{{ 's' if role.users_count != 1 else '' }})"></i>
-                    {% endif %}
-                  </div>
+                  <button type="submit" class="btn btn-danger btn-sm" {% if role.users_count > 0 %}disabled{% endif %}>
+                    Delete
+                  </button>
                 </form>
               </td>
             </tr>
@@ -138,16 +104,25 @@
   </div>
 </div>
 
+<div class="mt-4">
+  <h4>Default Role for New Users</h4>
+  <form method="POST" action="{{ url_for('admin.set_default_role') }}">
+    <div class="input-group">
+      <select name="default_role" class="form-select">
+        <option value="none">No Default Role</option>
+        {% for role in roles %}
+          <option value="{{ role.name }}" {% if role.name == default_role %}selected{% endif %}>{{ role.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">Save Default Role</button>
+    </div>
+  </form>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
-<input type="hidden" id="existing-role-names" data-roles='{{ roles|map(attribute="name")|list|tojson }}'>
-
 <script>
-function showAdminSetup(setupType) {
-    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const allModulesCheckbox = document.getElementById('all_modules');
     const moduleCheckboxes = document.querySelectorAll('.module-checkbox');
@@ -158,30 +133,54 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add client-side validation for duplicate role names
-    const addRoleForm = document.getElementById('add-role-form');
-    const roleNameInput = document.getElementById('role_name');
-    const existingRoleNamesElement = document.getElementById('existing-role-names');
-    const existingRoleNames = JSON.parse(existingRoleNamesElement.dataset.roles);
-
-    addRoleForm.addEventListener('submit', function(event) {
-        const newRoleName = roleNameInput.value.trim().toLowerCase();
-        const isDuplicate = existingRoleNames.some(roleName => 
-            roleName.toLowerCase() === newRoleName
-        );
-
-        if (isDuplicate) {
-            event.preventDefault();
-            alert('A role with this name already exists. Please choose a different name.');
-        }
-    });
-
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl)
     })
 });
+
+function updateRole(roleName) {
+    const description = document.getElementById(`role_description_${roleName}`).value;
+    const modules = Array.from(document.querySelectorAll(`input[name="modules_${roleName}"]:checked`)).map(cb => cb.value);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.style.display = 'none';
+
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'update_role';
+    form.appendChild(actionInput);
+
+    const roleNameInput = document.createElement('input');
+    roleNameInput.type = 'hidden';
+    roleNameInput.name = 'role_name';
+    roleNameInput.value = roleName;
+    form.appendChild(roleNameInput);
+
+    const descriptionInput = document.createElement('input');
+    descriptionInput.type = 'hidden';
+    descriptionInput.name = 'role_description';
+    descriptionInput.value = description;
+    form.appendChild(descriptionInput);
+
+    modules.forEach(module => {
+        const moduleInput = document.createElement('input');
+        moduleInput.type = 'hidden';
+        moduleInput.name = 'modules';
+        moduleInput.value = module;
+        form.appendChild(moduleInput);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+}
 </script>
 {% endblock %}
 
@@ -201,8 +200,27 @@ document.addEventListener('DOMContentLoaded', function() {
         margin-left: 5px;
         cursor: help;
     }
-    .edit-description-form .form-control {
-        width: calc(100% - 80px); /* Adjust this value based on the width of the Update button */
+    .add-role-row {
+        background-color: #f8f9fa;
+    }
+    .separator-row {
+        height: 10px;
+    }
+    .separator-row td {
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        background-color: var(--body-color) !important;
+    }
+    .module-selection {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .form-check-inline {
+        margin-right: 0;
+    }
+    .table > :not(caption) > * > * {
+        background-color: transparent;
     }
 </style>
 {% endblock %}

@@ -232,17 +232,14 @@ def setup_roles():
     modules = current_app.config['MODULE_LIST']
     default_role = get_default_role()
 
-    # Get user count for each role
     user_counts = get_role_user_counts()
 
-    # Function to add user counts to roles
     def add_user_counts(roles_list):
         return [
             {**role, 'users_count': user_counts.get(role['name'], 0)}
             for role in roles_list
         ]
 
-    # Add user counts to roles
     roles_with_counts = add_user_counts(roles)
 
     if request.method == 'POST':
@@ -277,23 +274,16 @@ def setup_roles():
             else:
                 flash('Cannot delete role while it\'s in use.', 'danger')
         
-        elif action == 'update_modules':
+        elif action == 'update_role':
             role_name = request.form.get('role_name')
+            new_description = request.form.get('role_description')
             selected_modules = request.form.getlist('modules')
             for role in roles:
                 if role['name'] == role_name:
+                    role['description'] = new_description
                     role['modules'] = selected_modules
                     break
-            flash('Role modules updated successfully.', 'success')
-        
-        elif action == 'edit_description':
-            role_name = request.form.get('role_name')
-            new_description = request.form.get('role_description')
-            for role in roles:
-                if role['name'] == role_name:
-                    role['description'] = new_description
-                    break
-            flash('Role description updated successfully.', 'success')
+            flash('Role updated successfully.', 'success')
         
         # Save updated roles to file
         with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:
