@@ -170,7 +170,9 @@ def get_default_role():
     try:
         with get_db() as session:
             default_role = session.query(DefaultRole).first()
-            return default_role.role_name if default_role else None
+            if default_role:
+                return default_role.role_name
+            return None
     except OperationalError:
         # Table doesn't exist yet, so there's no default role
         return None

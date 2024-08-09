@@ -249,6 +249,7 @@ def setup_roles():
             role_name = request.form.get('role_name')
             role_description = request.form.get('role_description')
             all_modules = request.form.get('all_modules') == 'on'
+            is_default = request.form.get('new_role_default') == 'on'
             
             if any(role['name'] == role_name for role in roles):
                 flash('A role with this name already exists. Please choose a different name.', 'danger')
@@ -264,12 +265,18 @@ def setup_roles():
                     'modules': selected_modules
                 }
                 roles.append(new_role)
+                if is_default:
+                    update_default_role(role_name)
+                    default_role = role_name  # Update the local variable
                 flash('New role added successfully.', 'success')
         
         elif action == 'delete_role':
             role_name = request.form.get('role_name')
             if user_counts.get(role_name, 0) == 0:
                 roles = [role for role in roles if role['name'] != role_name]
+                if default_role == role_name:
+                    update_default_role(None)
+                    default_role = None  # Update the local variable
                 flash('Role deleted successfully.', 'success')
             else:
                 flash('Cannot delete role while it\'s in use.', 'danger')
@@ -278,11 +285,21 @@ def setup_roles():
             role_name = request.form.get('role_name')
             new_description = request.form.get('role_description')
             selected_modules = request.form.getlist('modules')
+            is_default = request.form.get('is_default') == 'true'
+            
             for role in roles:
                 if role['name'] == role_name:
                     role['description'] = new_description
                     role['modules'] = selected_modules
                     break
+            
+            if is_default:
+                update_default_role(role_name)
+                default_role = role_name  # Update the local variable
+            elif default_role == role_name:
+                update_default_role(None)
+                default_role = None  # Update the local variable
+            
             flash('Role updated successfully.', 'success')
         
         # Save updated roles to file
