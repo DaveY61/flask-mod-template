@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <title>{% block title %}{% endblock %}</title>
 
-  <link rel="shortcut icon" href="/static/ico/favicon.png">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/project_icon.png') }}">
 
   <meta name="description" content="{% block meta_description %}{{ config.DEFAULT_META_DESCRIPTION }}{% endblock %}">
   <meta name="author" content="{{ config.COMPANY_NAME }}">
