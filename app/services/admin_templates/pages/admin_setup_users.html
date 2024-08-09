@@ -9,8 +9,8 @@
 <div class="row">
   <div class="col-md-12">
     <div class="table-responsive">
-      <table id="user-table" class="table table-striped">
-        <thead>
+      <table id="user-table" class="table table-hover">
+        <thead class="table-light">
           <tr>
             <th>Username</th>
             <th>Email</th>
@@ -65,7 +65,12 @@
 $(document).ready(function() {
     $('#user-table').DataTable({
         "pageLength": 25,
-        "order": [[ 5, "desc" ]]
+        "order": [[ 5, "desc" ]],
+        "columnDefs": [
+            { "orderable": false, "targets": 6 }
+        ],
+        "stripeClasses": [],
+        "hover": true
     });
 });
 
@@ -76,5 +81,30 @@ function showAdminSetup(setupType) {
 {% endblock %}
 
 {% block additional_styles %}
+{{ super() }}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
+<style>
+    .table {
+        background-color: transparent;
+    }
+    .table > thead {
+        background-color: #f8f9fa;
+    }
+    .table > tbody > tr {
+        background-color: #ffffff;
+    }
+    .table-hover > tbody > tr:hover {
+        background-color: #f8f9fa;
+    }
+    .form-select-sm {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        padding-left: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
 {% endblock %}
