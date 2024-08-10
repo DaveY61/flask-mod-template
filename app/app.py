@@ -46,7 +46,7 @@ def create_app():
     @app.before_request
     def require_login():
         # List of endpoints that don't require login
-        public_endpoints = ['static', 'auth.login', 'auth.forgot', 'auth.reset_password']
+        public_endpoints = ['static', 'auth.login', 'auth.forgot', 'auth.reset_password', 'auth.create_password']
         
         if app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS']:
             if not current_user.is_authenticated and request.endpoint not in public_endpoints:

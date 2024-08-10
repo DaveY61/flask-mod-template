@@ -140,9 +140,9 @@ def get_role_user_counts():
     with get_db() as session:
         return dict(session.query(User.user_role, func.count(User.id)).group_by(User.user_role).all())
 
-def generate_token(user_id, token_type):
+def generate_token(user_id, token_type, expiration=20):
     token = str(uuid.uuid4())
-    expires_at = datetime.now() + timedelta(minutes=20)
+    expires_at = datetime.now() + timedelta(minutes=expiration) if expiration else datetime.max
     with get_db() as session:
         new_token = Token(
             id=str(uuid.uuid4()),
@@ -158,7 +158,7 @@ def generate_token(user_id, token_type):
 def get_token(token, token_type):
     with get_db() as session:
         token_obj = session.query(Token).filter(Token.token == token, Token.token_type == token_type).first()
-        if token_obj and token_obj.expires_at > datetime.now():
+        if token_obj and (token_obj.expires_at == datetime.max or token_obj.expires_at > datetime.now()):
             return token_obj
         return None
 

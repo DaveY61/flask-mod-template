@@ -1,6 +1,6 @@
-from flask import Blueprint, request, render_template, redirect, url_for, current_app, session, abort
+from flask import Blueprint, request, render_template, redirect, url_for, current_app, session, abort, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm
+from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm, CreatePasswordForm
 from app.services.email_service import EmailService
 from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user, get_default_role, update_user_role
 from datetime import datetime
@@ -72,6 +72,30 @@ def activate_account(token):
         return render_template('pages/activate_success.html', response_color="green"), 200
 
     return render_template('pages/activate_failure.html', response_color="red"), 400
+
+@blueprint.route('/create_password/<token>', methods=['GET', 'POST'])
+def create_password(token):
+    initialize_services()
+    token_data = get_token(token, 'activation')
+    if not token_data:
+        abort(404)
+
+    user = get_user(token_data.user_id)
+    if not user:
+        abort(404)
+
+    if request.method == 'POST':
+        form = CreatePasswordForm(request.form)
+        if form.validate():
+            update_user_password(user.id, form.password.data)
+            update_user_activation(user.id)
+            delete_token(token)
+            flash('Password created successfully. You can now log in.', 'success')
+            return redirect(url_for('auth.login'))
+    else:
+        form = CreatePasswordForm()
+
+    return render_template('forms/create_password.html', form=form, token=token)
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
