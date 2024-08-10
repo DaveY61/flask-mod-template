@@ -59,6 +59,7 @@ def app(db):
     app.config['SMTP_USERNAME'] = 'test'
     app.config['SMTP_PASSWORD'] = 'test'
     app.config['EMAIL_FAIL_DIRECTORY'] = tempfile.mkdtemp()
+    app.config['DISABLE_SELF_REGISTRATION'] = False
     app.template_folder = os.path.join(project_path, 'app', 'templates')
     app.register_blueprint(auth_blueprint)
     
