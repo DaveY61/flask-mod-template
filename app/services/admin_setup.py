@@ -51,6 +51,13 @@ def discover_module_info(module_name):
 def get_available_modules():
     modules_dir = os.path.join(current_app.root_path, 'modules')
     available_modules = []
+    blueprint_names = set()
+    route_names = set()
+    
+    # Read current configuration
+    with open(current_app.config['MOD_CONFIG_PATH'], 'r') as f:
+        mod_config = json.load(f)
+    
     for module in os.listdir(modules_dir):
         module_path = os.path.join(modules_dir, module)
         if os.path.isdir(module_path):
@@ -59,7 +66,35 @@ def get_available_modules():
                     module_name = f"app.modules.{module}.{file[:-3]}"
                     module_info = discover_module_info(module_name)
                     if module_info:
-                        available_modules.append(module_info)
+                        existing_module = next((m for m in mod_config['MODULE_LIST'] if m['name'] == module_name), None)
+                        
+                        if existing_module:
+                            module_data = existing_module
+                            # Cross-check and update blueprint and route information
+                            if module_data['blueprint_name'] != module_info['blueprint_name'] or module_data['view_name'] != module_info['view_name']:
+                                module_data['blueprint_name'] = module_info['blueprint_name']
+                                module_data['view_name'] = module_info['view_name']
+                                module_data['needs_update'] = True
+                        else:
+                            module_data = {
+                                'name': module_name,
+                                'enabled': False,
+                                'menu_name': module_name.split('.')[-1],
+                                'blueprint_name': module_info['blueprint_name'],
+                                'view_name': module_info['view_name']
+                            }
+                        
+                        # Check for conflicts
+                        module_data['blueprint_conflict'] = module_data['blueprint_name'] in blueprint_names
+                        module_data['route_conflict'] = module_data['view_name'] in route_names
+                        
+                        if not module_data['blueprint_conflict']:
+                            blueprint_names.add(module_data['blueprint_name'])
+                        if not module_data['route_conflict']:
+                            route_names.add(module_data['view_name'])
+                        
+                        available_modules.append(module_data)
+    
     return available_modules
 
 # function to save the user config
@@ -139,56 +174,26 @@ def setup_modules():
     # Get available modules from the file system
     available_modules = get_available_modules()
     
-    # Read current configuration
-    with open(mod_config_path, 'r') as f:
-        mod_config = json.load(f)
-
     if request.method == 'POST':
-        # Update MODULE_LIST
         module_order = json.loads(request.form.get('module_order', '[]'))
         enabled_modules = set(request.form.getlist('modules'))
         
         modules_enabled_disabled = False
         new_module_list = []
         
-        existing_modules = {m['name']: m for m in mod_config['MODULE_LIST']}
-        available_modules_dict = {m['name']: m for m in available_modules}
-        
-        # Use the module_order to sort the modules and include new modules
         for module_name in module_order:
-            if module_name in existing_modules:
-                module = existing_modules[module_name]
-            elif module_name in available_modules_dict:
-                module = available_modules_dict[module_name]
-                module['enabled'] = False
-                module['menu_name'] = module['name'].split('.')[-1]
-            else:
-                # Module {module_name} not found in existing configuration or available modules
-                continue
-
-            new_enabled = module_name in enabled_modules
-            new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
-            
-            if new_enabled != module.get('enabled', False):
-                modules_enabled_disabled = True
-            
-            new_module = {
-                'name': module_name,
-                'enabled': new_enabled,
-                'menu_name': new_menu_name,
-                'blueprint_name': module.get('blueprint_name'),
-                'view_name': module.get('view_name')
-            }
-            
-            new_module_list.append(new_module)
-
-        # Add any new modules that weren't in the module_order
-        for module in available_modules:
-            if module['name'] not in [m['name'] for m in new_module_list]:
+            module = next((m for m in available_modules if m['name'] == module_name), None)
+            if module and not (module['blueprint_conflict'] or module['route_conflict']):
+                new_enabled = module_name in enabled_modules
+                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
+                
+                if new_enabled != module.get('enabled', False):
+                    modules_enabled_disabled = True
+                
                 new_module = {
-                    'name': module['name'],
-                    'enabled': False,
-                    'menu_name': module['name'].split('.')[-1],
+                    'name': module_name,
+                    'enabled': new_enabled,
+                    'menu_name': new_menu_name,
                     'blueprint_name': module['blueprint_name'],
                     'view_name': module['view_name']
                 }
@@ -196,6 +201,9 @@ def setup_modules():
                 new_module_list.append(new_module)
 
         # Update the module configuration
+        with open(mod_config_path, 'r') as f:
+            mod_config = json.load(f)
+        
         mod_config['MODULE_LIST'] = new_module_list
 
         with open(mod_config_path, 'w') as f:
@@ -221,13 +229,12 @@ def setup_modules():
         current_app.config['ROLE_LIST'] = roles
 
         if modules_enabled_disabled:
-            flash('Module configuration updated. The application will restart for changes to take effect.', 'warning')
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             flash('Module configuration updated successfully!', 'success')
 
     return render_template('pages/admin_setup_modules.html', 
-                           modules=mod_config['MODULE_LIST'],
+                           modules=available_modules,
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
