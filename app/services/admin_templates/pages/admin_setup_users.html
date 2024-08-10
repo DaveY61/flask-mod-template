@@ -62,19 +62,19 @@
               <div class="gui-setup-row">
                 <label for="new_username" class="gui-label">User Name:</label>
                 <div class="gui-input">
-                  <input type="text" class="form-control" id="new_username" name="new_username" required>
+                  <input type="text" class="form-control form-control-sm" id="new_username" name="new_username" required maxlength="50">
                 </div>
               </div>
               <div class="gui-setup-row">
                 <label for="new_email" class="gui-label">Email Address:</label>
                 <div class="gui-input">
-                  <input type="email" class="form-control" id="new_email" name="new_email" required>
+                  <input type="email" class="form-control form-control-sm" id="new_email" name="new_email" required maxlength="100">
                 </div>
               </div>
               <div class="gui-setup-row">
                 <label for="new_role" class="gui-label">Role:</label>
                 <div class="gui-input">
-                  <select name="new_role" id="new_role" class="form-select">
+                  <select name="new_role" id="new_role" class="form-select form-select-sm">
                     <option value="">No Role</option>
                     {% for role in roles %}
                       <option value="{{ role.name }}">{{ role.name }}</option>
@@ -221,34 +221,34 @@ function showAdminSetup(setupType) {
         font-size: 0.875rem;
     }
 
-    .gui-setup-container {
-      display: table;
-      width: 100%;
-    }
-    .gui-setup-row {
-      display: table-row;
-    }
-    .gui-label {
-      display: table-cell;
-      white-space: nowrap;
-      padding-right: 10px;
-      padding-bottom: 15px;
-      vertical-align: middle;
-    }
-    .gui-input {
-      display: table-cell;
-      width: 100%;
-      padding-bottom: 15px;
-    }
-    .form-check-input {
-      width: 3em;
-      height: 1.5em;
-    }
-    #accessOptionsHeader, #addUserHeader {
-      cursor: pointer;
-    }
-    .collapse-icon {
-      margin-right: 10px;
-    }
+  .gui-setup-container {
+    display: table;
+    width: 100%;
+    max-width: 500px;
+  }
+  .gui-setup-row {
+    display: table-row;
+  }
+  .gui-label {
+    display: table-cell;
+    white-space: nowrap;
+    padding-right: 10px;
+    padding-bottom: 15px;
+    vertical-align: middle;
+  }
+  .gui-input {
+    display: table-cell;
+    width: 100%;
+    padding-bottom: 15px;
+  }
+  #new_username {
+    width: 200px;
+  }
+  #new_email {
+    width: 250px;
+  }
+  #new_role {
+    width: 150px;
+  }
 </style>
 {% endblock %}
