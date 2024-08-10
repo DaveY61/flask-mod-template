@@ -172,7 +172,6 @@ $(document).ready(function() {
             data: $(this).serialize(),
             success: function(response) {
                 if (response.status === 'success') {
-                    alert('User added successfully');
                     location.reload();
                 } else {
                     alert(response.message);

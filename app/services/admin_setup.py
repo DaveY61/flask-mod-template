@@ -375,8 +375,8 @@ def setup_users():
                 return jsonify({'status': 'error', 'message': 'Email address already exists'}), 400
 
             user_id = str(uuid.uuid4())
-            add_user(user_id, new_username, new_email, 'temporary_password', is_active=False, user_role=new_role)
-            flash(f'User {new_username} added successfully. They will need to reset their password.', 'success')
+            add_user(user_id, new_username, new_email, current_app.config['SECRET_KEY'], is_active=False, user_role=new_role)
+            flash(f'User {new_username} added successfully.', 'success')
             return jsonify({'status': 'success'})
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
