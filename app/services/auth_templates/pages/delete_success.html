@@ -10,7 +10,8 @@
 <p>Close this page.<br>- or -<br>Register to make a new account.</p>
 <div class="border-top mt-3 pt-3">
     <div class="text-end" style="font-size: smaller; color: #428bca;">
-        <a href="{{ url_for('auth.register') }}">Register</a>
-    </div>
+    {% if not config.DISABLE_SELF_REGISTRATION %}
+      <a href="{{ url_for('auth.register') }}">Register</a>
+    {% endif %}    </div>
   </div>
 {% endblock %}

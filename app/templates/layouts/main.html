@@ -100,9 +100,11 @@
         <!-- Account Dropdown -->
         <ul class="navbar-nav ms-auto">
           {% if not current_user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('auth.register') }}">Signup</a>
-            </li>
+            {% if not config.DISABLE_SELF_REGISTRATION %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth.register') }}">Signup</a>
+              </li>
+            {% endif %}            
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
             </li>

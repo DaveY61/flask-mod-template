@@ -8,6 +8,7 @@
   </div>
   <div class="d-flex justify-content-between mb-3">
     <a href="{{ url_for('auth.login') }}">Login</a>
-    <a href="{{ url_for('auth.register') }}">Register</a>
-  </div>
+    {% if not config.DISABLE_SELF_REGISTRATION %}
+      <a href="{{ url_for('auth.register') }}">Register</a>
+    {% endif %}  </div>
 {% endblock %}
