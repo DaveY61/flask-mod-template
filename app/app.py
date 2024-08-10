@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, render_template, flash, redirect, url_for
+from flask import Flask, render_template, flash, redirect, url_for, request
 from flask_login import LoginManager, current_user
 from app.services.auth_service_db import setup_database, init_db
 import pkgutil
@@ -43,6 +43,14 @@ def create_app():
     # Initialize login manager
     init_login_manager(app)
 
+    @app.before_request
+    def require_login():
+        # List of endpoints that don't require login
+        public_endpoints = ['static', 'auth.login', 'auth.forgot', 'auth.reset_password']
+        
+        if app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS']:
+            if not current_user.is_authenticated and request.endpoint not in public_endpoints:
+                return redirect(url_for('auth.login', next=request.url))
     return app
 
 def register_blueprints(app, package_name):

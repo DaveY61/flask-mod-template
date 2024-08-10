@@ -50,6 +50,9 @@ class Config:
     # Define the Role config path as part of the Config class
     ROLE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'role_config.cnf')
 
+    # Define the User config path
+    USER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'user_config.cnf')
+
 #----------------------------------------------------------------------------
 # Integrate GUI Config attributes from "gui_config.cnf"
 # Must be done AFTER the class has been defined
@@ -68,3 +71,16 @@ if os.path.exists(Config.ROLE_CONFIG_PATH):
     setattr(Config, 'ROLE_LIST', role_config)
 else:
     setattr(Config, 'ROLE_LIST', [])
+
+#----------------------------------------------------------------------------
+# Integrate User Config attributes from "user_config.cnf"
+# Must be done AFTER the class has been defined
+if os.path.exists(Config.USER_CONFIG_PATH):
+    with open(Config.USER_CONFIG_PATH, 'r') as f:
+        user_config = json.load(f)
+    for key, value in user_config.items():
+        setattr(Config, key, value)
+else:
+    # Set default values if the file doesn't exist
+    setattr(Config, 'DISABLE_SELF_REGISTRATION', False)
+    setattr(Config, 'REQUIRE_LOGIN_FOR_SITE_ACCESS', False)

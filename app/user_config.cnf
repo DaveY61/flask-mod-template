@@ -1,0 +1,4 @@
+{
+    "DISABLE_SELF_REGISTRATION": true,
+    "REQUIRE_LOGIN_FOR_SITE_ACCESS": true
+}

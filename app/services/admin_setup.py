@@ -60,6 +60,11 @@ def get_available_modules():
                         available_modules.append(module_info)
     return available_modules
 
+# function to save the user config
+def save_user_config(config):
+    with open(current_app.config['USER_CONFIG_PATH'], 'w') as f:
+        json.dump(config, f, indent=4)
+
 @blueprint.route('/setup', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -343,6 +348,16 @@ def setup_users():
             user_id = request.form.get('user_id')
             delete_user(user_id)
             flash('User deleted successfully', 'success')
+        
+        elif action == 'update_access_options':
+            user_config = {
+                'DISABLE_SELF_REGISTRATION': request.form.get('disable_self_registration') == 'on',
+                'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on'
+            }
+            save_user_config(user_config)
+            # Update the current application config
+            current_app.config.update(user_config)
+            flash('Access options updated successfully', 'success')
         
         return redirect(url_for('admin.setup_type', setup_type='users'))
 
