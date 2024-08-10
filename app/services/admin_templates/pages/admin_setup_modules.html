@@ -54,7 +54,7 @@
   </div>
   <input type="hidden" id="module_order" name="module_order" value="">
   
-  <button type="submit" class="btn btn-primary mt-3" id="saveButton">Save Configuration</button>
+  <button type="submit" class="btn btn-primary mt-3 btn-sm" id="saveButton">Update Config</button>
 </form>
 
 {% endblock %}
@@ -82,7 +82,7 @@ function updateSaveButton() {
     saveButton.classList.add('btn-warning');
     saveButton.classList.remove('btn-primary');
   } else {
-    saveButton.textContent = 'Save Configuration';
+    saveButton.textContent = 'Update Config';
     saveButton.classList.add('btn-primary');
     saveButton.classList.remove('btn-warning');
   }

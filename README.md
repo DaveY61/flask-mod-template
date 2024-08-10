@@ -148,7 +148,7 @@ The application should now be running at `http://localhost:5000`.
    - Go to the "Module Setup" page
    - Find your new module in the list
    - Check the checkbox next to the module name
-   - Click "Save Configuration" to apply changes
+   - Click "Update Config" to apply changes
 
 5. To set a default role for new users: (optional)
    - Go to the "Role Setup" page
