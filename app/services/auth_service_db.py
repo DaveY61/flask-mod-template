@@ -15,6 +15,11 @@ from datetime import datetime, timedelta
 engine = None
 Session = None
 
+# function to check for duplicate emails
+def is_email_taken(email):
+    with get_db() as session:
+        return session.query(User).filter(func.lower(User.email) == func.lower(email)).first() is not None
+    
 def get_base():
     Base = declarative_base()
 

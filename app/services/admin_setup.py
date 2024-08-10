@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session, jsonify
 from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from app.services.auth_service_db import get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role
+from app.services.auth_service_db import is_email_taken, add_user, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role
 from app.services.email_service import EmailService
 import os
 import json
@@ -10,6 +10,7 @@ import sys
 import importlib
 import inspect
 import re
+import uuid
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 
@@ -324,6 +325,7 @@ def setup_roles():
                         use_sidebar=True,
                         sidebar_menu=ADMIN_SIDEBAR_MENU)
 
+# Update the setup_users function
 @blueprint.route('/setup/users', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -355,10 +357,30 @@ def setup_users():
                 'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on'
             }
             save_user_config(user_config)
-            # Update the current application config
             current_app.config.update(user_config)
             flash('Access options updated successfully', 'success')
         
+        elif action == 'add_user':
+            new_username = request.form.get('new_username')
+            new_email = request.form.get('new_email')
+            new_role = request.form.get('new_role') or None
+
+            if not new_username or not new_email:
+                return jsonify({'status': 'error', 'message': 'Username and email are required'}), 400
+
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", new_email):
+                return jsonify({'status': 'error', 'message': 'Invalid email format'}), 400
+
+            if is_email_taken(new_email):
+                return jsonify({'status': 'error', 'message': 'Email address already exists'}), 400
+
+            user_id = str(uuid.uuid4())
+            add_user(user_id, new_username, new_email, 'temporary_password', is_active=False, user_role=new_role)
+            flash(f'User {new_username} added successfully. They will need to reset their password.', 'success')
+            return jsonify({'status': 'success'})
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success'})
         return redirect(url_for('admin.setup_type', setup_type='users'))
 
     return render_template('pages/admin_setup_users.html', 

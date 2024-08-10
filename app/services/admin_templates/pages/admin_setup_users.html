@@ -6,7 +6,7 @@
   <h2>User Setup</h2>
 </div>
 
-<div class="row mb-4">
+<div class="row mb-1">
   <div class="col-md-12">
     <div class="card">
       <div class="card-header" id="accessOptionsHeader" data-bs-toggle="collapse" data-bs-target="#accessOptionsCollapse" aria-expanded="false" aria-controls="accessOptionsCollapse">
@@ -38,6 +38,52 @@
               </div>
             </div>
             <button type="submit" class="btn btn-primary mt-3 btn-sm">Update Config</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header" id="addUserHeader" data-bs-toggle="collapse" data-bs-target="#addUserCollapse" aria-expanded="false" aria-controls="addUserCollapse">
+        <h6 class="mb-0">
+          <span class="collapse-icon" style="display: inline-block; width: 10px; text-align: center;">+</span>
+          Add New User
+        </h6>
+      </div>
+      <div id="addUserCollapse" class="collapse" aria-labelledby="addUserHeader">
+        <div class="card-body">
+          <form method="POST" id="add-user-form">
+            <input type="hidden" name="action" value="add_user">
+            <div class="gui-setup-container">
+              <div class="gui-setup-row">
+                <label for="new_username" class="gui-label">User Name:</label>
+                <div class="gui-input">
+                  <input type="text" class="form-control" id="new_username" name="new_username" required>
+                </div>
+              </div>
+              <div class="gui-setup-row">
+                <label for="new_email" class="gui-label">Email Address:</label>
+                <div class="gui-input">
+                  <input type="email" class="form-control" id="new_email" name="new_email" required>
+                </div>
+              </div>
+              <div class="gui-setup-row">
+                <label for="new_role" class="gui-label">Role:</label>
+                <div class="gui-input">
+                  <select name="new_role" id="new_role" class="form-select">
+                    <option value="">No Role</option>
+                    {% for role in roles %}
+                      <option value="{{ role.name }}">{{ role.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-success mt-3 btn-sm">Add User</button>
           </form>
         </div>
       </div>
@@ -112,10 +158,30 @@ $(document).ready(function() {
         "hover": true
     });
 
-    $('#accessOptionsHeader').on('click', function() {
+    $('#accessOptionsHeader, #addUserHeader').on('click', function() {
       $(this).find('.collapse-icon').text(function(_, text) {
         return text === '+' ? '-' : '+';
       });
+    });
+
+    $('#add-user-form').on('submit', function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '{{ url_for("admin.setup_type", setup_type="users") }}',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('User added successfully');
+                    location.reload();
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function() {
+                alert('An error occurred while adding the user');
+            }
+        });
     });
 });
 
@@ -175,7 +241,7 @@ function showAdminSetup(setupType) {
       width: 3em;
       height: 1.5em;
     }
-    #accessOptionsHeader {
+    #accessOptionsHeader, #addUserHeader {
       cursor: pointer;
     }
     .collapse-icon {
