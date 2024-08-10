@@ -51,6 +51,7 @@ def create_app():
         if app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS']:
             if not current_user.is_authenticated and request.endpoint not in public_endpoints:
                 return redirect(url_for('auth.login', next=request.url))
+            
     return app
 
 def register_blueprints(app, package_name):
