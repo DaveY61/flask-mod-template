@@ -6,6 +6,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from datetime import datetime
 
+class EmailError(Exception):
+    pass
+
 class EmailService:
     def __init__(self, config):
         self.config = config
@@ -33,34 +36,34 @@ class EmailService:
         return new_smtp_server
 
     def send_email(self, to, subject, body, cc=None, bcc=None, attachments=None, html=False):
-        msg = MIMEMultipart()
-        msg['From'] = self.config['EMAIL_FROM_ADDRESS']
-        msg['To'] = ", ".join(to)
-        if cc:
-            msg['Cc'] = ", ".join(cc)
-        if bcc:
-            msg['Bcc'] = ", ".join(bcc)
-        msg['Subject'] = subject
-
-        if html:
-            msg.attach(MIMEText(body, 'html'))
-        else:
-            msg.attach(MIMEText(body, 'plain'))
-
-        if attachments:
-            for attachment in attachments:
-                with open(attachment, 'rb') as f:
-                    part = MIMEApplication(f.read(), Name=os.path.basename(attachment))
-                    part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment)}"'
-                    msg.attach(part)
-
         try:
+            msg = MIMEMultipart()
+            msg['From'] = self.config['EMAIL_FROM_ADDRESS']
+            msg['To'] = ", ".join(to)
+            if cc:
+                msg['Cc'] = ", ".join(cc)
+            if bcc:
+                msg['Bcc'] = ", ".join(bcc)
+            msg['Subject'] = subject
+
+            if html:
+                msg.attach(MIMEText(body, 'html'))
+            else:
+                msg.attach(MIMEText(body, 'plain'))
+
+            if attachments:
+                for attachment in attachments:
+                    with open(attachment, 'rb') as f:
+                        part = MIMEApplication(f.read(), Name=os.path.basename(attachment))
+                        part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment)}"'
+                        msg.attach(part)
+
             self.connect_to_smtp()  # Ensure SMTP connection is established
             recipients = to + (cc if cc else []) + (bcc if bcc else [])
             self.smtp_server.sendmail(self.config['EMAIL_FROM_ADDRESS'], recipients, msg.as_string())
         except Exception as e:
             self.save_failed_email(msg)
-            raise e
+            raise EmailError(f"Failed to send email: {str(e)}")
 
     def save_failed_email(self, msg):
         if not os.path.exists(self.config['EMAIL_FAIL_DIRECTORY']):
