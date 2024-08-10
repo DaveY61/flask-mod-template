@@ -9,6 +9,7 @@
 - [Adding New Modules](#adding-new-modules)
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
+- [User Management](#user-management)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -26,6 +27,8 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Responsive design using Bootstrap 5
 - Customizable styling through admin interface
 - Sidebar navigation for admin pages and new modules
+- User management options including disabling self-registration and requiring login for site access
+- Direct user addition by administrators
 
 ## Technologies Used
 
@@ -148,7 +151,7 @@ The application should now be running at `http://localhost:5000`.
    - Go to the "Module Setup" page
    - Find your new module in the list
    - Check the checkbox next to the module name
-   - Click "Update Config" to apply changes
+   - Click "Save Configuration" to apply changes
 
 5. To set a default role for new users: (optional)
    - Go to the "Role Setup" page
@@ -164,7 +167,7 @@ The application should now be running at `http://localhost:5000`.
    - Go to the "User Setup" page
    - Assign the appropriate role to each user
 
-6. The changes will take effect immediately for GUI settings and role assignments. For module enabling/disabling, you'll need to restart the application for the changes to take effect.
+7. The changes will take effect immediately for GUI settings and role assignments. For module enabling/disabling, you'll need to restart the application for the changes to take effect.
 
 ## Role-Based Access Control
 
@@ -177,6 +180,27 @@ The application should now be running at `http://localhost:5000`.
 4. When a user logs in, they will only see and have access to the modules associated with their role.
 
 5. The `@module_access_required` decorator in each module's route ensures that only users with the appropriate role can access the module.
+
+## User Management
+
+1. In the Admin Setup, go to the "User Setup" page.
+
+2. Here you can:
+   - View all registered users
+   - Assign or change user roles
+   - Delete users
+   - Add new users directly (they will receive an activation email)
+   - Configure user access options:
+     - Disable self-registration: Prevents new users from registering themselves
+     - Require login for site access: Makes the entire site (except login and registration pages) accessible only to logged-in users
+
+3. To add a new user:
+   - Fill in the username and email in the "Add New User" section
+   - Select a role (optional)
+   - Click "Add User"
+   - The new user will receive an activation email to set their password
+
+4. User access options take effect immediately after saving.
 
 ## License
 
