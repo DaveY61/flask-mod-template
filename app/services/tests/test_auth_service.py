@@ -16,8 +16,9 @@ sys.path.insert(0, project_path)
 # Begin Test Code
 #----------------------------------------------------------------------------
 import pytest
-from flask import Flask
-from flask_login import LoginManager, login_user, current_user
+from flask import Flask, redirect, url_for, request
+from flask_login import LoginManager, current_user
+from werkzeug.security import check_password_hash
 from app.services.auth_service import blueprint as auth_blueprint
 from app.services.auth_service_db import add_user, get_user_by_email, update_user_activation, setup_database, init_db, get_base, generate_token, get_user
 from unittest.mock import patch
@@ -48,21 +49,33 @@ def db():
 @pytest.fixture
 def app(db):
     app = Flask(__name__)
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    app.config['ADMIN_USER_LIST'] = ['admin@example.com']
-    app.config['PROJECT_NAME'] = 'Test Project'
-    app.config['EMAIL_FROM_ADDRESS'] = "pytest@gmail.com"
-    app.config['SMTP_SERVER'] = 'localhost'
-    app.config['SMTP_PORT'] = 1025
-    app.config['SMTP_USERNAME'] = 'test'
-    app.config['SMTP_PASSWORD'] = 'test'
-    app.config['EMAIL_FAIL_DIRECTORY'] = tempfile.mkdtemp()
-    app.config['DISABLE_SELF_REGISTRATION'] = False
+    app.config.update({
+        'TESTING': True,
+        'WTF_CSRF_ENABLED': False,
+        'SECRET_KEY': 'test-secret-key',
+        'ADMIN_USER_LIST': ['admin@example.com'],
+        'PROJECT_NAME': 'Test Project',
+        'EMAIL_FROM_ADDRESS': "pytest@gmail.com",
+        'SMTP_SERVER': 'localhost',
+        'SMTP_PORT': 1025,
+        'SMTP_USERNAME': 'test',
+        'SMTP_PASSWORD': 'test',
+        'EMAIL_FAIL_DIRECTORY': tempfile.mkdtemp(),
+        'DISABLE_SELF_REGISTRATION': False,
+        'REQUIRE_LOGIN_FOR_SITE_ACCESS': False,
+        'SERVER_NAME': 'localhost',
+        'APPLICATION_ROOT': '/', 
+        'PREFERRED_URL_SCHEME': 'http',
+        'ROLE_LIST': None
+    })
+    
     app.template_folder = os.path.join(project_path, 'app', 'templates')
     app.register_blueprint(auth_blueprint)
     
+    # Register admin blueprint
+    from app.services.admin_setup import blueprint as admin_blueprint
+    app.register_blueprint(admin_blueprint)
+
     login_manager = LoginManager()
     login_manager.init_app(app)
     
@@ -74,6 +87,13 @@ def app(db):
     def home():
         return 'Home Page'
     
+    @app.before_request
+    def require_login():
+        if app.config.get('REQUIRE_LOGIN_FOR_SITE_ACCESS', False):
+            if not current_user.is_authenticated:
+                if request.endpoint and request.endpoint != 'auth.login' and not request.path.startswith('/static'):
+                    return redirect(url_for('auth.login', next=request.url))
+                
     return app
 
 @pytest.fixture
@@ -94,6 +114,102 @@ def mock_smtp(monkeypatch):
         def quit(self):
             pass
     monkeypatch.setattr('smtplib.SMTP', MockSMTP)
+
+def test_disable_self_registration(client, app):
+    with app.app_context():
+        app.config['DISABLE_SELF_REGISTRATION'] = True
+        response = client.get('/register')
+        assert response.status_code == 404
+
+def test_require_login_for_site_access(client, app):
+    with app.app_context():
+        app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS'] = True
+        
+        # Try accessing the home page without logging in
+        response = client.get('/', base_url='http://localhost')
+        assert response.status_code == 302
+        assert '/login' in response.location
+
+        # Create a user
+        user = add_user('test_id', 'testuser', 'test@example.com', 'password', is_active=True)
+        
+        # Log in using the client
+        with client:
+            response = client.post('/login', data={
+                'email': 'test@example.com',
+                'password': 'password'
+            }, follow_redirects=True)
+            assert current_user.is_authenticated
+
+            # Now try accessing the home page again
+            response = client.get('/', base_url='http://localhost')
+            assert response.status_code == 200  # Should now be able to access the page
+
+@patch('app.services.auth_service.EmailService.send_email')
+def test_add_user_setup(mock_send_email, client, app, db):
+    with app.app_context():
+        # Create admin user
+        admin_user = add_user('admin_id', 'admin', 'admin@example.com', 'adminpassword', is_active=True, is_admin=True)
+        
+        with client:
+            # Login as admin
+            client.post('/login', data={'email': 'admin@example.com', 'password': 'adminpassword'})
+            
+            # Add new user
+            response = client.post('/setup/users', data={
+                'action': 'add_user',
+                'new_username': 'newuser',
+                'new_email': 'newuser@example.com',
+                'new_role': 'test_role'
+            })
+            assert response.status_code == 200
+        
+        # Check if user was added
+        new_user = get_user_by_email('newuser@example.com')
+        assert new_user is not None
+        assert new_user.username == 'newuser'
+        assert new_user.is_active == False
+        assert new_user.user_role == 'test_role'
+
+        # Check if email was sent
+        mock_send_email.assert_called_once()
+        call_args = mock_send_email.call_args[0]
+        assert call_args[0] == ['newuser@example.com']
+        assert 'Activate your Test Project Account' in call_args[1]
+        assert '/create_password/' in call_args[2]
+
+def test_create_password(client, app, db):
+    with app.app_context():
+        # Add a new inactive user
+        user = add_user('new_user_id', 'newuser', 'newuser@example.com', 'temppassword', is_active=False)
+        token = generate_token(user.id, 'activation', expiration=None)
+
+        # Test valid token
+        response = client.post(f'/create_password/{token}', data={
+            'password': 'newpassword',
+            'confirm': 'newpassword'
+        })
+        assert response.status_code == 302
+        assert response.location.endswith('/login')
+
+        # Check if user is now active and password is updated
+        updated_user = get_user('new_user_id')
+        assert updated_user.is_active == True
+        assert check_password_hash(updated_user.password, 'newpassword')
+
+        # Test invalid token
+        response = client.post('/create_password/invalid_token', data={
+            'password': 'newpassword',
+            'confirm': 'newpassword'
+        })
+        assert response.status_code == 404
+
+        # Test already used token
+        response = client.post(f'/create_password/{token}', data={
+            'password': 'anotherpassword',
+            'confirm': 'anotherpassword'
+        })
+        assert response.status_code == 404
 
 @patch('app.services.auth_service.EmailService.send_email')
 def test_register(mock_send_email, client, app, db):
