@@ -3,7 +3,8 @@ from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.services.auth_service_db import is_email_taken, add_user, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
-from app.services.email_service import EmailService
+from app.services.email_service import EmailService, EmailError
+import logging
 import os
 import json
 import sys
@@ -362,7 +363,7 @@ def setup_users():
         
         elif action == 'add_user':
             new_username = request.form.get('new_username')
-            new_email = request.form.get('new_email', '').lower()  # Convert email to lowercase
+            new_email = request.form.get('new_email', '').lower()
             new_role = request.form.get('new_role') or None
 
             if not new_username or not new_email:
@@ -383,13 +384,19 @@ def setup_users():
             
             # Send activation email
             email_body = render_template('email/new_user_activation_email.html', username=new_username, activation_link=activation_link)
+            result = 'success'
 
-            # Create a temporary EmailService instance with the current configuration
-            temp_email_service = EmailService(current_app.config)
-            temp_email_service.send_email([new_email], f"Activate your {current_app.config['PROJECT_NAME']} Account", email_body, html=True)
+            try:
+                email_service = EmailService(current_app.config)
+                email_service.send_email([new_email], f"Activate your {current_app.config['PROJECT_NAME']} Account", email_body, html=True)
+                email_status = "An activation email has been sent."
+            except EmailError as e:
+                result = 'danger no-auto-dismiss'
+                logging.error(f"Failed to send activation email: {str(e)}")
+                email_status = "<br>Failed to send activation email. Please contact the user directly."
 
-            flash(f'User {new_username} added successfully. An activation email has been sent.', 'success')
-            return jsonify({'status': 'success'})
+            flash(f'User {new_username} added successfully. {email_status}', result)
+            return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. {email_status}'})
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'status': 'success'})
