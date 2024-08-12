@@ -1,25 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for
-from flask_login import login_required
-from app.app import module_access_required
+from flask import render_template, request, redirect, url_for
 import csv
 import io
-import os
 
-# Automatically determine the module name and path
-module_path = os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-module_name = f'app.{module_path[:-3].replace(os.path.sep, ".")}'
-static_url_path = f'/modules/{os.path.dirname(module_path)}/static'
+MODULE_INFO = {
+    'blueprint_name': 'csv',
+    'view_name': 'csv_upload',
+    'menu_name': 'CSV Upload'
+}
 
-blueprint = Blueprint('csv', __name__,
-                      static_folder='static',
-                      static_url_path=static_url_path,
-                      template_folder='templates')
-
-uploaded_data = []
-
-@blueprint.route('/upload_csv', methods=['GET', 'POST'])
-@login_required
-@module_access_required(module_name)
 def upload_csv():
     global uploaded_data
     if request.method == 'POST':

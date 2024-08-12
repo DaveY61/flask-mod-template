@@ -1,19 +1,20 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session, jsonify
-from flask import Blueprint as FlaskBlueprint
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.services.auth_service_db import is_email_taken, add_user, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
 from app.services.email_service import EmailService, EmailError
+from app.mod_config_manager import ConfigManager
 import logging
 import os
 import json
 import sys
 import importlib
-import inspect
+import importlib.util
 import re
 import uuid
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
+config_manager = ConfigManager()
 
 # Define the admin sidebar menu once
 ADMIN_SIDEBAR_MENU = [
@@ -26,25 +27,16 @@ ADMIN_SIDEBAR_MENU = [
 
 def discover_module_info(module_name):
     try:
-        module = importlib.import_module(module_name)
-        for name, obj in inspect.getmembers(module):
-            if isinstance(obj, FlaskBlueprint):
-                blueprint_name = obj.name
-                module_file = inspect.getfile(module)
-                view_name = None
-                
-                with open(module_file, 'r') as file:
-                    content = file.read()
-                    view_match = re.search(r'@blueprint\.route.*?\ndef\s+(\w+)', content, re.DOTALL)
-                    if view_match:
-                        view_name = view_match.group(1)
-                
-                return {
-                    'name': module_name,
-                    'blueprint_name': blueprint_name,
-                    'view_name': view_name
-                }
-        return None
+        module_path = module_name.replace('.', os.path.sep) + '.py'
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        # Look for a 'MODULE_INFO' dictionary in the module
+        if hasattr(module, 'MODULE_INFO'):
+            return module.MODULE_INFO
+        else:
+            return None
     except ImportError:
         return None
 
@@ -69,9 +61,10 @@ def get_available_modules():
                         existing_module = next((m for m in mod_config['MODULE_LIST'] if m['name'] == module_name), None)
                         
                         if existing_module:
-                            module_data = existing_module
-                            # Cross-check and update blueprint and route information
-                            if module_data['blueprint_name'] != module_info['blueprint_name'] or module_data['view_name'] != module_info['view_name']:
+                            module_data = existing_module.copy()
+                            # Cross-check and update information
+                            if (module_data['blueprint_name'] != module_info['blueprint_name'] or 
+                                module_data['view_name'] != module_info['view_name']):
                                 module_data['blueprint_name'] = module_info['blueprint_name']
                                 module_data['view_name'] = module_info['view_name']
                                 module_data['needs_update'] = True
@@ -79,7 +72,7 @@ def get_available_modules():
                             module_data = {
                                 'name': module_name,
                                 'enabled': False,
-                                'menu_name': module_name.split('.')[-1],
+                                'menu_name': module_info['menu_name'],
                                 'blueprint_name': module_info['blueprint_name'],
                                 'view_name': module_info['view_name']
                             }
@@ -171,34 +164,25 @@ def setup_gui():
 def setup_modules():
     mod_config_path = current_app.config['MOD_CONFIG_PATH']
     
-    # Get available modules from the file system
-    available_modules = get_available_modules()
-    
     if request.method == 'POST':
         module_order = json.loads(request.form.get('module_order', '[]'))
         enabled_modules = set(request.form.getlist('modules'))
         
-        modules_enabled_disabled = False
         new_module_list = []
         
         for module_name in module_order:
-            module = next((m for m in available_modules if m['name'] == module_name), None)
-            if module and not (module['blueprint_conflict'] or module['route_conflict']):
-                new_enabled = module_name in enabled_modules
-                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
-                
-                if new_enabled != module.get('enabled', False):
-                    modules_enabled_disabled = True
-                
-                new_module = {
-                    'name': module_name,
-                    'enabled': new_enabled,
-                    'menu_name': new_menu_name,
-                    'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name']
-                }
-                
-                new_module_list.append(new_module)
+            new_enabled = module_name in enabled_modules
+            new_menu_name = request.form.get(f"menu_name_{module_name}", '')
+            
+            new_module = {
+                'name': module_name,
+                'enabled': new_enabled,
+                'menu_name': new_menu_name,
+                'blueprint_name': module_name.split('.')[-2],  # Assuming the blueprint name is the second-to-last part of the module name
+                'view_name': module_name.split('.')[-1]  # Assuming the view name is the last part of the module name
+            }
+            
+            new_module_list.append(new_module)
 
         # Update the module configuration
         with open(mod_config_path, 'r') as f:
@@ -228,10 +212,13 @@ def setup_modules():
         # Update the config
         current_app.config['ROLE_LIST'] = roles
 
-        if modules_enabled_disabled:
-            os.execv(sys.executable, ['python'] + sys.argv)
-        else:
-            flash('Module configuration updated successfully!', 'success')
+        # Reload the configuration
+        config_manager.reload_config()
+
+        flash('Module configuration updated successfully!', 'success')
+
+    # Get available modules from the file system (do this after POST processing)
+    available_modules = get_available_modules()
 
     return render_template('pages/admin_setup_modules.html', 
                            modules=available_modules,

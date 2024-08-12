@@ -1,20 +1,22 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, render_template, flash, redirect, url_for, request
-from flask_login import LoginManager, current_user
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, abort
+from flask_login import LoginManager, current_user, login_required
 from app.services.auth_service_db import setup_database, init_db
 import pkgutil
 import importlib
 from dotenv import load_dotenv
 from app.app_config import Config
+from app.mod_config_manager import ConfigManager
 from functools import wraps
+
+login_manager = LoginManager()
+config_manager = ConfigManager()
 
 #----------------------------------------------------------------------------#
 # Establish Flask User Mgmt
 #----------------------------------------------------------------------------#
-login_manager = LoginManager()
-
 def init_login_manager(app):
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
@@ -40,8 +42,9 @@ def create_app():
     with app.app_context():
         init_db()
 
-    # Initialize login manager
+    # Initialize login and config managers
     init_login_manager(app)
+    config_manager.init_app(app)
 
     @app.before_request
     def require_login():
@@ -51,7 +54,7 @@ def create_app():
         if app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS']:
             if not current_user.is_authenticated and request.endpoint not in public_endpoints:
                 return redirect(url_for('auth.login', next=request.url))
-            
+
     return app
 
 def register_blueprints(app, package_name):
@@ -64,36 +67,10 @@ def register_blueprints(app, package_name):
         if hasattr(module, 'blueprint'):
             app.register_blueprint(getattr(module, 'blueprint'))
 
-def register_modules_conditionally(app):
-    for module in app.config['MODULE_LIST']:
-        if module['enabled']:
-            module_name = module['name']
-            module = importlib.import_module(module_name)
-            if hasattr(module, 'blueprint'):
-                app.register_blueprint(getattr(module, 'blueprint'))
-
 #----------------------------------------------------------------------------#
 # Create App
 #----------------------------------------------------------------------------#
 app = create_app()
-
-#----------------------------------------------------------------------------#
-# Method for User Module Access checking
-#----------------------------------------------------------------------------#
-def module_access_required(module_name):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated:
-                return redirect(url_for('auth.login'))
-            
-            allowed_modules = current_user.get_allowed_modules()
-            if module_name not in allowed_modules:
-                flash('Access to this module is restricted.', 'danger')
-                return redirect(url_for('home'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 #----------------------------------------------------------------------------#
 # Inject Config for calls to "render_template"
@@ -132,11 +109,30 @@ def internal_error(error):
 def not_found_error(error):
     return render_template('errors/404.html', response_color="red"), 404
 
+# Add proxy to handle enabled modules
+@app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@login_required
+def module_proxy(module_path):
+    module_config = config_manager.get_module_config()
+    for module in module_config['MODULE_LIST']:
+        if module['enabled'] and module_path.startswith(f"{module['blueprint_name']}/"):
+            module_name = module['name']
+            
+            # Check if the user has access to this module
+            allowed_modules = current_user.get_allowed_modules()
+            if module_name not in allowed_modules:
+                return jsonify({"error": f"Access to the {module_name} module is restricted"}), 403
+            
+            try:
+                module = importlib.import_module(module_name)
+                view_function = getattr(module, module['view_name'])
+                return view_function()
+            except (ImportError, AttributeError):
+                abort(404)
+    abort(404)
+
 # Register blueprint routes for 'services'
 register_blueprints(app, 'services')
-
-# Register blueprint routes for 'modules' (conditionally)
-register_modules_conditionally(app)
 
 if __name__ == '__main__':
     app.run(debug=True)
