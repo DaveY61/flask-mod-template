@@ -4,7 +4,7 @@ import io
 
 MODULE_INFO = {
     'blueprint_name': 'csv',
-    'view_name': 'csv_upload',
+    'view_name': 'upload_csv',
     'menu_name': 'CSV Upload'
 }
 

@@ -83,23 +83,6 @@
     } else {
       moduleItem.classList.remove('table-active');
     }
-    updateSaveButton();
-  }
-
-  function updateSaveButton() {
-    const saveButton = document.getElementById('saveButton');
-    const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
-    const hasChanges = Array.from(moduleCheckboxes).some(cb => cb.checked !== cb.defaultChecked);
-    
-    if (hasChanges) {
-      saveButton.textContent = 'Save and Restart';
-      saveButton.classList.add('btn-warning');
-      saveButton.classList.remove('btn-primary');
-    } else {
-      saveButton.textContent = 'Update Config';
-      saveButton.classList.add('btn-primary');
-      saveButton.classList.remove('btn-warning');
-    }
   }
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -111,7 +94,6 @@
       }
     });
 
-    updateSaveButton();
     updateModuleOrder(); // Initialize module order when page loads
 
     // Add this: Update module order before form submission

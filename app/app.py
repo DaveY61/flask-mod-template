@@ -117,6 +117,7 @@ def module_proxy(module_path):
     for module in module_config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint_name']}/"):
             module_name = module['name']
+            view_name = module['view_name']
             
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
@@ -125,7 +126,7 @@ def module_proxy(module_path):
             
             try:
                 module = importlib.import_module(module_name)
-                view_function = getattr(module, module['view_name'])
+                view_function = getattr(module, view_name)
                 return view_function()
             except (ImportError, AttributeError):
                 abort(404)

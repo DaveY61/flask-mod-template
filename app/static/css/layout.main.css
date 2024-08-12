@@ -108,7 +108,7 @@ body {
 -------------------------------------------------- */
 .flash-messages {
   position: fixed;
-  top: 20px; /* Adjust based on your navbar height */
+  top: 50px; /* Adjust based on your navbar height */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1050;

@@ -8,7 +8,6 @@ import logging
 import os
 import json
 import sys
-import importlib
 import importlib.util
 import re
 import uuid
@@ -62,19 +61,13 @@ def get_available_modules():
                         
                         if existing_module:
                             module_data = existing_module.copy()
-                            # Cross-check and update information
-                            if (module_data['blueprint_name'] != module_info['blueprint_name'] or 
-                                module_data['view_name'] != module_info['view_name']):
-                                module_data['blueprint_name'] = module_info['blueprint_name']
-                                module_data['view_name'] = module_info['view_name']
-                                module_data['needs_update'] = True
+                            # Update with the latest MODULE_INFO
+                            module_data.update(module_info)
                         else:
                             module_data = {
                                 'name': module_name,
                                 'enabled': False,
-                                'menu_name': module_info['menu_name'],
-                                'blueprint_name': module_info['blueprint_name'],
-                                'view_name': module_info['view_name']
+                                **module_info
                             }
                         
                         # Check for conflicts
@@ -164,6 +157,9 @@ def setup_gui():
 def setup_modules():
     mod_config_path = current_app.config['MOD_CONFIG_PATH']
     
+    # Get available modules from the file system
+    available_modules = get_available_modules()
+    
     if request.method == 'POST':
         module_order = json.loads(request.form.get('module_order', '[]'))
         enabled_modules = set(request.form.getlist('modules'))
@@ -171,18 +167,20 @@ def setup_modules():
         new_module_list = []
         
         for module_name in module_order:
-            new_enabled = module_name in enabled_modules
-            new_menu_name = request.form.get(f"menu_name_{module_name}", '')
-            
-            new_module = {
-                'name': module_name,
-                'enabled': new_enabled,
-                'menu_name': new_menu_name,
-                'blueprint_name': module_name.split('.')[-2],  # Assuming the blueprint name is the second-to-last part of the module name
-                'view_name': module_name.split('.')[-1]  # Assuming the view name is the last part of the module name
-            }
-            
-            new_module_list.append(new_module)
+            module = next((m for m in available_modules if m['name'] == module_name), None)
+            if module:
+                new_enabled = module_name in enabled_modules
+                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
+                
+                new_module = {
+                    'name': module_name,
+                    'enabled': new_enabled,
+                    'menu_name': new_menu_name,
+                    'blueprint_name': module['blueprint_name'],
+                    'view_name': module['view_name']
+                }
+                
+                new_module_list.append(new_module)
 
         # Update the module configuration
         with open(mod_config_path, 'r') as f:
@@ -217,17 +215,14 @@ def setup_modules():
 
         flash('Module configuration updated successfully!', 'success')
 
-    # Get available modules from the file system (do this after POST processing)
-    available_modules = get_available_modules()
+        # Refresh available_modules after changes
+        available_modules = get_available_modules()
 
     return render_template('pages/admin_setup_modules.html', 
                            modules=available_modules,
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
-@blueprint.route('/setup/roles', methods=['GET', 'POST'])
-@login_required
-@admin_required
 def setup_roles():
     roles = current_app.config['ROLE_LIST']
     modules = current_app.config['MODULE_LIST']
@@ -321,9 +316,6 @@ def setup_roles():
                         sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 # Update the setup_users function
-@blueprint.route('/setup/users', methods=['GET', 'POST'])
-@login_required
-@admin_required
 def setup_users():
     users = get_all_users()
     roles = current_app.config['ROLE_LIST']
@@ -402,9 +394,6 @@ def setup_users():
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
-@blueprint.route('/setup/email', methods=['GET', 'POST'])
-@login_required
-@admin_required
 def setup_email():
     # Initialize email_config with current values
     email_config = {
@@ -502,12 +491,3 @@ def setup_email():
                            sidebar_menu=ADMIN_SIDEBAR_MENU,
                            email_config=email_config,
                            test_email=test_email)
-
-@blueprint.route('/setup/set_default_role', methods=['POST'])
-@login_required
-@admin_required
-def set_default_role():
-    role_name = request.form.get('default_role')
-    update_default_role(role_name if role_name != 'none' else None)
-    flash('Default role updated successfully.', 'success')
-    return redirect(url_for('admin.setup_type', setup_type='roles'))
