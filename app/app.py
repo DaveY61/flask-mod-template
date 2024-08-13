@@ -18,7 +18,7 @@ import contextlib
 # Helper functions to register services and modules
 #----------------------------------------------------------------------------#
 def create_module_jinja_env(app, module_name, blueprint_name):
-    module_template_folder = os.path.join(app.root_path, 'modules', module_name, 'templates')
+    module_template_folder = os.path.join(app.root_path, 'modules', module_name.split('.')[-2], 'templates')
     module_loader = FileSystemLoader(module_template_folder)
     
     # Combine the module loader with the app's existing loaders
@@ -41,13 +41,13 @@ def create_module_jinja_env(app, module_name, blueprint_name):
             filename = values.get('filename', '')
             if not filename.startswith(('css/', 'js/', 'img/')):
                 # This is likely a module-specific static file
-                return flask_url_for('module_proxy', module_path=f"{blueprint_name}/static/{filename}")
+                return url_for('module_proxy', module_path=f"{blueprint_name}/static/{filename}")
         elif '.' in endpoint:
             # This is likely a module endpoint, so we need to adjust it
             module, view = endpoint.split('.')
             if module == blueprint_name:
-                return flask_url_for('module_proxy', module_path=f"{blueprint_name}/{view}", **values)
-        return flask_url_for(endpoint, **values)
+                return url_for('module_proxy', module_path=f"{blueprint_name}/{view}", **values)
+        return url_for(endpoint, **values)
 
     env.globals['url_for'] = custom_url_for
     
@@ -205,10 +205,14 @@ def module_static(blueprint_name, filename):
 @app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 def module_proxy(module_path):
-    for module in current_app.config['MODULE_LIST']:
+    app.logger.info(f"Accessing module_path: {module_path}")
+    for module in app.config['MODULE_LIST']:
+        app.logger.info(f"Checking module: {module['name']}, blueprint: {module['blueprint']}")
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
             blueprint_name = module['blueprint']
+            
+            app.logger.info(f"Matched module: {module_name}")
             
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
@@ -216,33 +220,41 @@ def module_proxy(module_path):
                 return jsonify({"error": "Access to this module is restricted"}), 403
             
             try:
-                module_instance = importlib.import_module(f"app.modules.{module_name}")
+                # Use the full module path for import
+                full_module_path = f"app.modules.{module_name}"
+                module_instance = importlib.import_module(full_module_path)
+                app.logger.info(f"Imported module: {module_instance}")
                 
-                # Create a Jinja environment for this module
-                module_jinja_env = create_module_jinja_env(current_app, module_name, blueprint_name)
+                if not hasattr(module_instance, 'blueprint'):
+                    app.logger.error(f"Module {module_name} does not have a 'blueprint' attribute")
+                    app.logger.error(f"Module attributes: {dir(module_instance)}")
+                    abort(404)
                 
-                # Create a custom render_template function for this module
-                def module_render_template(template_name, **context):
-                    template = module_jinja_env.get_template(template_name)
-                    return template.render(**context)
+                blueprint = module_instance.blueprint
+                app.logger.info(f"Blueprint: {blueprint}")
                 
                 # Extract the specific route within the module
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
+                app.logger.info(f"Module specific path: {module_specific_path}")
                 
                 # Find the appropriate view function based on the module_specific_path
                 view_function = None
                 for route, func_name in module['routes'].items():
+                    app.logger.info(f"Checking route: {route} -> {func_name}")
                     if module_specific_path.startswith(route):
-                        view_function = getattr(module_instance, func_name)
+                        view_function = getattr(blueprint, func_name)
+                        app.logger.info(f"Found view function: {view_function}")
                         break
                 
                 if view_function is None:
+                    app.logger.error(f"No view function found for path: {module_specific_path}")
                     abort(404)
                 
-                # Call the view function with the custom render_template
-                return view_function(render_template=module_render_template)
+                # Call the view function
+                return view_function()
             
             except Exception as e:
-                current_app.logger.error(f"Error in module_proxy: {str(e)}")
+                app.logger.error(f"Error in module_proxy: {str(e)}", exc_info=True)
                 abort(404)
+    app.logger.error(f"No matching module found for path: {module_path}")
     abort(404)

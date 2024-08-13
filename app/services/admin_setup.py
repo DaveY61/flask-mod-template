@@ -95,22 +95,17 @@ def extract_module_info(module_path, module_name):
                 with open(file_path, 'r') as file:
                     tree = ast.parse(file.read())
                     for node in ast.walk(tree):
-                        if isinstance(node, ast.Assign):
-                            for target in node.targets:
-                                if isinstance(target, ast.Name) and target.id == 'blueprint':
-                                    if isinstance(node.value, ast.Call):
-                                        args = node.value.args
-                                        if len(args) > 0 and isinstance(args[0], ast.Str):
-                                            module_info['blueprint'] = args[0].s
+                        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'blueprint':
+                            if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == 'Blueprint':
+                                module_info['blueprint'] = node.value.args[0].s
                         elif isinstance(node, ast.FunctionDef):
                             for decorator in node.decorator_list:
-                                if isinstance(decorator, ast.Call):
-                                    if isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'route':
-                                        route = decorator.args[0].s if decorator.args else ''
-                                        module_info['routes'][route] = node.name
-                                        if module_info['primary_route'] is None or len(route) < len(module_info['primary_route']):
-                                            module_info['primary_route'] = route
-                                        logging.info(f"Found route: {route} -> {node.name}")
+                                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'route':
+                                    route = decorator.args[0].s if decorator.args else ''
+                                    module_info['routes'][route] = node.name
+                                    if module_info['primary_route'] is None or len(route) < len(module_info['primary_route']):
+                                        module_info['primary_route'] = route
+                                    logging.info(f"Found route: {route} -> {node.name}")
             except Exception as e:
                 logging.error(f"Error parsing file {file_path}: {str(e)}")
     
@@ -118,10 +113,6 @@ def extract_module_info(module_path, module_name):
         logging.warning(f"No routes found in module: {module_name}")
     else:
         logging.info(f"Found {len(module_info['routes'])} routes in module: {module_name}")
-    
-    # If no blueprint was found, use the module name as the blueprint name
-    if module_info['blueprint'] is None:
-        module_info['blueprint'] = module_name
     
     return module_info if module_info['routes'] else None
 
