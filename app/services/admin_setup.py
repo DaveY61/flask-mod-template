@@ -11,7 +11,7 @@ import sys
 import ast
 import re
 import uuid
-import logging
+from collections import defaultdict
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 config_manager = ConfigManager()
@@ -195,6 +195,41 @@ def setup_gui():
 def setup_modules():
     update_module_list(current_app)
     
+    # Get the list of roles
+    roles = current_app.config.get('ROLE_LIST', [])
+
+    # Check for duplicate blueprints and other potential issues
+    blueprint_count = defaultdict(int)
+    for module in current_app.config['MODULE_LIST']:
+        blueprint_count[module['blueprint']] += 1
+        module['status'] = []
+        
+        # Check for duplicate blueprints
+        if blueprint_count[module['blueprint']] > 1:
+            module['status'].append(('error', 'Duplicate blueprint name'))
+        
+        # Check for missing or invalid primary route
+        if not module['primary_route'] or not module['primary_route'].startswith('/'):
+            module['status'].append(('error', 'Invalid or missing primary route'))
+        
+        # Check if the primary route exists in the routes dictionary
+        if module['primary_route'] not in module['routes']:
+            module['status'].append(('error', 'Primary route not found in module routes'))
+        
+        # Check if the blueprint name is valid
+        if not module['blueprint'] or not module['blueprint'].isidentifier():
+            module['status'].append(('error', 'Invalid blueprint name'))
+    
+        # Check if the module is enabled and assigned to roles
+        if module['enabled']:
+            assigned_roles = [role['name'] for role in roles if module['name'] in role.get('modules', [])]
+            if assigned_roles:
+                module['status'].append(('success', f"Enabled in {len(assigned_roles)} Role{'s' if len(assigned_roles) > 1 else ''}"))
+            else:
+                module['status'].append(('warning', "Enabled, but no assigned Roles"))
+        else:
+            module['status'].append(('info', "Disabled"))
+
     if request.method == 'POST':
         try:
             module_order = json.loads(request.form.get('module_order', '[]'))

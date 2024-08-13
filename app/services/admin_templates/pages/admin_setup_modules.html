@@ -13,10 +13,11 @@
         <tr>
           <th style="width: 5%;"></th>
           <th style="width: 5%;">Enabled</th>
-          <th style="width: 20%;">Module Name</th>
-          <th style="width: 20%;">Menu Name</th>
-          <th style="width: 25%;">Blueprint</th>
-          <th style="width: 25%;">Primary Route</th>
+          <th style="width: 15%;">Module Name</th>
+          <th style="width: 15%;">Menu Name</th>
+          <th style="width: 20%;">Blueprint</th>
+          <th style="width: 20%;">Primary Route</th>
+          <th style="width: 20%;">Status</th>
         </tr>
       </thead>
       <tbody id="module-list">
@@ -28,7 +29,8 @@
             <td class="p-1">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
-                       {% if module.enabled %}checked{% endif %}>
+                       {% if module.enabled %}checked{% endif %}
+                       {% if module.status and module.status[0][0] == 'error' %}disabled{% endif %}>
               </div>
             </td>
             <td class="p-1">{{ module.name }}</td>
@@ -38,6 +40,26 @@
             </td>
             <td class="p-1">{{ module.blueprint }}</td>
             <td class="p-1">{{ module.primary_route }}</td>
+            <td class="p-1">
+              {% if module.status %}
+                <ul class="list-unstyled mb-0">
+                  {% for status_type, status_message in module.status %}
+                    <li>
+                      {% if status_type == 'success' %}
+                        <i class="fas fa-check-circle text-success"></i>
+                      {% elif status_type == 'warning' %}
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                      {% elif status_type == 'error' %}
+                        <i class="fas fa-times-circle text-danger"></i>
+                      {% else %}
+                        <i class="fas fa-info-circle text-info"></i>
+                      {% endif %}
+                      {{ status_message }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </td>
           </tr>
         {% endfor %}
       </tbody>
@@ -137,4 +159,12 @@
     }, 5000);
   }
 </script>
+{% endblock %}
+
+{% block additional_styles %}
+<style>
+  .fa-exclamation-triangle, .fa-info-circle {
+    cursor: help;
+  }
+</style>
 {% endblock %}
