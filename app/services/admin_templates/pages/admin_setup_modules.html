@@ -66,14 +66,75 @@
 
     // Add this: Update module order before form submission
     document.getElementById('admin-setup-form').addEventListener('submit', function(e) {
+      e.preventDefault();
       updateModuleOrder();
+      
+      // Use AJAX to submit the form
+      fetch('{{ url_for("admin.setup_type", setup_type="modules") }}', {
+        method: 'POST',
+        body: new FormData(this),
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.status === 'success') {
+          // Set a session storage item to show a flash message after reload
+          sessionStorage.setItem('flashMessage', JSON.stringify({
+            message: 'Module configuration updated successfully!',
+            category: 'success'
+          }));
+          window.location.reload();
+        } else {
+          showFlashMessage('Error updating module configuration: ' + (data.message || 'Unknown error'), 'danger');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showFlashMessage('An error occurred while updating the configuration: ' + error.message, 'danger');
+      });
     });
+
+    // Check for flash message in session storage and display it
+    const storedFlashMessage = sessionStorage.getItem('flashMessage');
+    if (storedFlashMessage) {
+      const flashData = JSON.parse(storedFlashMessage);
+      showFlashMessage(flashData.message, flashData.category);
+      sessionStorage.removeItem('flashMessage');
+    }
   });
 
   function updateModuleOrder() {
     const moduleOrder = Array.from(document.querySelectorAll('.module-item'))
       .map(item => item.dataset.moduleName);
     document.getElementById('module_order').value = JSON.stringify(moduleOrder);
+  }
+
+  function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+  }
+
+  function showFlashMessage(message, category) {
+    const flashMessagesContainer = document.getElementById('flash-messages');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${category} alert-dismissible fade show custom-alert custom-alert-${category}`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    flashMessagesContainer.appendChild(alertDiv);
+
+    // Auto-dismiss the alert after 5 seconds
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 5000);
   }
 </script>
 {% endblock %}

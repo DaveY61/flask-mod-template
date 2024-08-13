@@ -196,19 +196,30 @@ def setup_modules():
     update_module_list(current_app)
     
     if request.method == 'POST':
-        module_order = json.loads(request.form.get('module_order', '[]'))
-        enabled_modules = set(request.form.getlist('modules'))
-        
-        for i, module_name in enumerate(module_order):
-            module = next((m for m in current_app.config['MODULE_LIST'] if m['name'] == module_name), None)
-            if module:
-                module['order'] = i
-                module['enabled'] = module_name in enabled_modules
-                module['menu_name'] = request.form.get(f"menu_name_{module_name}", module['menu_name'])
-        
-        current_app.config['MODULE_LIST'].sort(key=lambda x: x['order'])
-        save_module_config(current_app)
-        flash('Module configuration updated successfully!', 'success')
+        try:
+            module_order = json.loads(request.form.get('module_order', '[]'))
+            enabled_modules = set(request.form.getlist('modules'))
+            
+            for i, module_name in enumerate(module_order):
+                module = next((m for m in current_app.config['MODULE_LIST'] if m['name'] == module_name), None)
+                if module:
+                    module['order'] = i
+                    module['enabled'] = module_name in enabled_modules
+                    module['menu_name'] = request.form.get(f"menu_name_{module_name}", module['menu_name'])
+            
+            current_app.config['MODULE_LIST'].sort(key=lambda x: x['order'])
+            save_module_config(current_app)
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'status': 'success', 'message': 'Module configuration updated successfully!'})
+            else:
+                flash('Module configuration updated successfully!', 'success')
+        except Exception as e:
+            current_app.logger.error(f"Error updating module configuration: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'status': 'error', 'message': str(e)}), 400
+            else:
+                flash(f'Error updating module configuration: {str(e)}', 'danger')
     
     return render_template('pages/admin_setup_modules.html', 
                            modules=current_app.config['MODULE_LIST'],

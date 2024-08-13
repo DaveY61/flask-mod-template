@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (typeof action === 'string') {
                 if (action.startsWith('http') || action.startsWith('/')) {
                     window.location.href = action;
+                } else if (action === 'showAdminSetup') {
+                    // Handle showAdminSetup action
+                    window.location.href = `/setup/${param}`;
                 } else {
                     console.error('Invalid action:', action);
                 }
