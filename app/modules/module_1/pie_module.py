@@ -1,11 +1,21 @@
-from flask import render_template, request
+from flask import Blueprint, render_template, request
+from flask_login import login_required
+from app.app import module_access_required
+import os
 
-MODULE_INFO = {
-    'blueprint_name': 'pie',
-    'view_name': 'pie_chart',
-    'menu_name': 'Pie Chart'
-}
+# Automatically determine the module name and path
+module_path = os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+module_name = f'app.{module_path[:-3].replace(os.path.sep, ".")}'
+static_url_path = f'/modules/{os.path.dirname(module_path)}/static'
 
+blueprint = Blueprint('pie', __name__, 
+                      static_folder='static', 
+                      static_url_path=static_url_path,
+                      template_folder='templates')
+
+@blueprint.route('/pie_chart', methods=['GET', 'POST'])
+@login_required
+@module_access_required(module_name)
 def pie_chart():
     values = {'value1': 25, 'value2': 25, 'value3': 25, 'value4': 25}
     
