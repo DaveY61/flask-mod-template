@@ -13,10 +13,10 @@
         <tr>
           <th style="width: 5%;"></th>
           <th style="width: 5%;">Enabled</th>
-          <th style="width: 25%;">Module Name</th>
+          <th style="width: 20%;">Module Name</th>
           <th style="width: 20%;">Menu Name</th>
-          <th style="width: 20%;">Blueprint</th>
-          <th style="width: 25%;">Route</th>
+          <th style="width: 25%;">Blueprint</th>
+          <th style="width: 25%;">Primary Route</th>
         </tr>
       </thead>
       <tbody id="module-list">
@@ -28,39 +28,16 @@
             <td class="p-1">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="modules" value="{{ module.name }}" id="{{ module.name }}"
-                       {% if module.enabled %}checked{% endif %} 
-                       {% if module.blueprint_conflict or module.route_conflict %}disabled{% endif %}
-                       onchange="toggleModuleEnabled(this)">
-                {% if module.blueprint_conflict or module.route_conflict %}
-                  <i class="fas fa-exclamation-circle text-danger" title="Resolve name conflicts before enabling"></i>
-                {% endif %}
+                       {% if module.enabled %}checked{% endif %}>
               </div>
             </td>
-            <td class="p-1">
-              <label class="form-check-label" for="{{ module.name }}">
-                {% set parts = module.name.split('.') %}
-                {{ parts[-2] }}.{{ parts[-1] }}
-              </label>
-              {% if module.needs_update %}
-                <i class="fas fa-sync-alt text-info" title="Module information updated"></i>
-              {% endif %}
-            </td>
+            <td class="p-1">{{ module.name }}</td>
             <td class="p-1">
               <input type="text" class="form-control form-control-sm" name="menu_name_{{ module.name }}" 
                      value="{{ module.menu_name }}" placeholder="Menu Name" maxlength="20" style="max-width: 140px;">
             </td>
-            <td class="p-1">
-              <span class="badge bg-secondary fs-6">{{ module.blueprint_name or 'N/A' }}</span>
-              {% if module.blueprint_conflict %}
-                <i class="fas fa-exclamation-triangle text-warning" title="Blueprint name conflict"></i>
-              {% endif %}
-            </td>
-            <td class="p-1">
-              <span class="badge bg-info fs-6">{{ module.view_name or 'N/A' }}</span>
-              {% if module.route_conflict %}
-                <i class="fas fa-exclamation-triangle text-warning" title="Route name conflict"></i>
-              {% endif %}
-            </td>
+            <td class="p-1">{{ module.blueprint }}</td>
+            <td class="p-1">{{ module.primary_route }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -68,7 +45,7 @@
   </div>
   <input type="hidden" id="module_order" name="module_order" value="">
   
-  <button type="submit" class="btn btn-primary mt-3 btn-sm" id="saveButton">Update Config</button>
+  <button type="submit" class="btn btn-primary mt-3 btn-sm" id="saveButton">Update Configuration</button>
 </form>
 
 {% endblock %}
@@ -76,15 +53,6 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='libs/sortable/Sortable.min.js') }}"></script>
 <script>
-  function toggleModuleEnabled(checkbox) {
-    const moduleItem = checkbox.closest('.module-item');
-    if (checkbox.checked) {
-      moduleItem.classList.add('table-active');
-    } else {
-      moduleItem.classList.remove('table-active');
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', function() {
     new Sortable(document.querySelector('#module-list'), {
       animation: 150,
@@ -107,48 +75,5 @@
       .map(item => item.dataset.moduleName);
     document.getElementById('module_order').value = JSON.stringify(moduleOrder);
   }
-
-  function showAdminSetup(setupType) {
-      window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
-  }
 </script>
-{% endblock %}
-
-{% block additional_styles %}
-{{ super() }}
-<style>
-  .drag-handle {
-    cursor: move;
-    color: #6c757d;
-  }
-  .badge {
-    font-size: 0.9em;
-  }
-  .table {
-    background-color: transparent;
-  }
-  .table > thead {
-    background-color: #f8f9fa;
-  }
-  .table > tbody > tr {
-    background-color: #ffffff;
-  }
-  .table-hover > tbody > tr:hover {
-    background-color: #f8f9fa;
-  }
-  .form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-  }
-  .form-control-sm {
-    height: calc(1.5em + 0.5rem + 2px);
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    border-radius: 0.2rem;
-  }
-  .fa-exclamation-circle, .fa-exclamation-triangle, .fa-sync-alt {
-    margin-left: 5px;
-  }
-</style>
 {% endblock %}

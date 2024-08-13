@@ -1,25 +1,35 @@
-{
-    "MODULE_LIST": [
-        {
-            "name": "app.modules.module_1.pie_module",
-            "enabled": true,
-            "menu_name": "Pie Chart",
-            "blueprint_name": "pie",
-            "view_name": "pie_chart"
-        },
-        {
-            "name": "app.modules.module_2.csv_module",
-            "enabled": true,
-            "menu_name": "CSV Upload",
-            "blueprint_name": "csv",
-            "view_name": "upload_csv"
-        },
-        {
-            "name": "app.modules.module_3.games_module",
-            "enabled": true,
-            "menu_name": "Games",
-            "blueprint_name": "games",
-            "view_name": "games"
-        }
-    ]
-}
+[
+  {
+    "name": "module_1",
+    "blueprint": "pie",
+    "primary_route": "/pie_chart",
+    "routes": {
+      "/pie_chart": "pie_chart"
+    },
+    "menu_name": "Pie Chart",
+    "enabled": true,
+    "order": 0
+  },
+  {
+    "name": "module_2",
+    "blueprint": "csv",
+    "primary_route": "/upload_csv",
+    "routes": {
+      "/upload_csv": "upload_csv"
+    },
+    "menu_name": "Upload CSV",
+    "enabled": true,
+    "order": 1
+  },
+  {
+    "name": "module_3",
+    "blueprint": "games",
+    "primary_route": "/games",
+    "routes": {
+      "/games": "games"
+    },
+    "menu_name": "Games",
+    "enabled": true,
+    "order": 2
+  }
+]

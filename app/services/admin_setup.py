@@ -8,9 +8,10 @@ import logging
 import os
 import json
 import sys
-import importlib.util
+import ast
 import re
 import uuid
+import logging
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
 config_manager = ConfigManager()
@@ -24,66 +25,112 @@ ADMIN_SIDEBAR_MENU = [
     {'icon': 'fas fa-envelope', 'text': 'Email Setup', 'action': 'showAdminSetup', 'params': ['email']}
 ]
 
-def discover_module_info(module_name):
-    try:
-        module_path = module_name.replace('.', os.path.sep) + '.py'
-        spec = importlib.util.spec_from_file_location(module_name, module_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+# Functions to update Module list
+def update_module_list(app):
+    modules_dir = os.path.join(app.root_path, 'modules')
+    app.logger.info(f"Scanning modules directory: {modules_dir}")
+
+    if not os.path.exists(modules_dir):
+        app.logger.error(f"Modules directory does not exist: {modules_dir}")
+        return
+
+    existing_modules = {m['name']: m for m in app.config.get('MODULE_LIST', [])}
+    updated_modules = []
+
+    for module_folder in os.listdir(modules_dir):
+        module_path = os.path.join(modules_dir, module_folder)
+        app.logger.info(f"Checking module folder: {module_folder}")
         
-        # Look for a 'MODULE_INFO' dictionary in the module
-        if hasattr(module, 'MODULE_INFO'):
-            return module.MODULE_INFO
-        else:
-            return None
-    except ImportError:
-        return None
-
-def get_available_modules():
-    modules_dir = os.path.join(current_app.root_path, 'modules')
-    available_modules = []
-    blueprint_names = set()
-    route_names = set()
-    
-    # Read current configuration
-    with open(current_app.config['MOD_CONFIG_PATH'], 'r') as f:
-        mod_config = json.load(f)
-    
-    for module in os.listdir(modules_dir):
-        module_path = os.path.join(modules_dir, module)
         if os.path.isdir(module_path):
-            for file in os.listdir(module_path):
-                if file.endswith('.py') and file != '__init__.py':
-                    module_name = f"app.modules.{module}.{file[:-3]}"
-                    module_info = discover_module_info(module_name)
-                    if module_info:
-                        existing_module = next((m for m in mod_config['MODULE_LIST'] if m['name'] == module_name), None)
-                        
-                        if existing_module:
-                            module_data = existing_module.copy()
-                            # Update with the latest MODULE_INFO
-                            module_data.update(module_info)
-                        else:
-                            module_data = {
-                                'name': module_name,
-                                'enabled': False,
-                                **module_info
-                            }
-                        
-                        # Check for conflicts
-                        module_data['blueprint_conflict'] = module_data['blueprint_name'] in blueprint_names
-                        module_data['route_conflict'] = module_data['view_name'] in route_names
-                        
-                        if not module_data['blueprint_conflict']:
-                            blueprint_names.add(module_data['blueprint_name'])
-                        if not module_data['route_conflict']:
-                            route_names.add(module_data['view_name'])
-                        
-                        available_modules.append(module_data)
-    
-    return available_modules
+            try:
+                module_info = extract_module_info(module_path, module_folder)
+                if module_info:
+                    app.logger.info(f"Found valid module: {module_folder}")
+                    if module_folder in existing_modules:
+                        # Preserve existing menu name, enabled status, and order
+                        module_info['menu_name'] = existing_modules[module_folder]['menu_name']
+                        module_info['enabled'] = existing_modules[module_folder]['enabled']
+                        module_info['order'] = existing_modules[module_folder]['order']
+                        app.logger.info(f"Updated existing module: {module_folder}")
+                    else:
+                        # New module: use primary route as menu name, set as disabled by default, and add to end of list
+                        default_menu_name = ' '.join(word.capitalize() for word in module_info['primary_route'].strip('/').replace('_', ' ').split())
+                        module_info['menu_name'] = default_menu_name
+                        module_info['enabled'] = False
+                        module_info['order'] = len(existing_modules)
+                        app.logger.info(f"Added new module: {module_folder}")
+                    updated_modules.append(module_info)
+                else:
+                    app.logger.warning(f"No valid routes found in module: {module_folder}")
+            except Exception as e:
+                app.logger.error(f"Error processing module {module_folder}: {str(e)}")
 
-# function to save the user config
+    # Sort modules based on their order
+    updated_modules.sort(key=lambda x: x['order'])
+
+    # Update the MODULE_LIST in the app config
+    app.config['MODULE_LIST'] = updated_modules
+    app.logger.info(f"Updated MODULE_LIST with {len(updated_modules)} modules")
+
+    # Save the updated MODULE_LIST to mod_config.cnf
+    try:
+        save_module_config(app)
+        app.logger.info("Successfully saved module configuration")
+    except Exception as e:
+        app.logger.error(f"Error saving module configuration: {str(e)}")
+
+def extract_module_info(module_path, module_name):
+    module_info = {
+        'name': module_name,
+        'blueprint': None,
+        'primary_route': None,
+        'routes': {}
+    }
+    
+    for file_name in os.listdir(module_path):
+        if file_name.endswith('.py'):
+            file_path = os.path.join(module_path, file_name)
+            logging.info(f"Parsing file: {file_path}")
+            try:
+                with open(file_path, 'r') as file:
+                    tree = ast.parse(file.read())
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Assign):
+                            for target in node.targets:
+                                if isinstance(target, ast.Name) and target.id == 'blueprint':
+                                    if isinstance(node.value, ast.Call):
+                                        args = node.value.args
+                                        if len(args) > 0 and isinstance(args[0], ast.Str):
+                                            module_info['blueprint'] = args[0].s
+                        elif isinstance(node, ast.FunctionDef):
+                            for decorator in node.decorator_list:
+                                if isinstance(decorator, ast.Call):
+                                    if isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'route':
+                                        route = decorator.args[0].s if decorator.args else ''
+                                        module_info['routes'][route] = node.name
+                                        if module_info['primary_route'] is None or len(route) < len(module_info['primary_route']):
+                                            module_info['primary_route'] = route
+                                        logging.info(f"Found route: {route} -> {node.name}")
+            except Exception as e:
+                logging.error(f"Error parsing file {file_path}: {str(e)}")
+    
+    if not module_info['routes']:
+        logging.warning(f"No routes found in module: {module_name}")
+    else:
+        logging.info(f"Found {len(module_info['routes'])} routes in module: {module_name}")
+    
+    # If no blueprint was found, use the module name as the blueprint name
+    if module_info['blueprint'] is None:
+        module_info['blueprint'] = module_name
+    
+    return module_info if module_info['routes'] else None
+
+def save_module_config(app):
+    config_path = os.path.join(app.root_path, 'mod_config.cnf')
+    with open(config_path, 'w') as config_file:
+        json.dump(app.config['MODULE_LIST'], config_file, indent=2)
+
+# Function to save the user config
 def save_user_config(config):
     with open(current_app.config['USER_CONFIG_PATH'], 'w') as f:
         json.dump(config, f, indent=4)
@@ -155,71 +202,25 @@ def setup_gui():
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 def setup_modules():
-    mod_config_path = current_app.config['MOD_CONFIG_PATH']
-    
-    # Get available modules from the file system
-    available_modules = get_available_modules()
+    update_module_list(current_app)
     
     if request.method == 'POST':
         module_order = json.loads(request.form.get('module_order', '[]'))
         enabled_modules = set(request.form.getlist('modules'))
         
-        new_module_list = []
-        
-        for module_name in module_order:
-            module = next((m for m in available_modules if m['name'] == module_name), None)
+        for i, module_name in enumerate(module_order):
+            module = next((m for m in current_app.config['MODULE_LIST'] if m['name'] == module_name), None)
             if module:
-                new_enabled = module_name in enabled_modules
-                new_menu_name = request.form.get(f"menu_name_{module_name}", module.get('menu_name', ''))
-                
-                new_module = {
-                    'name': module_name,
-                    'enabled': new_enabled,
-                    'menu_name': new_menu_name,
-                    'blueprint_name': module['blueprint_name'],
-                    'view_name': module['view_name']
-                }
-                
-                new_module_list.append(new_module)
-
-        # Update the module configuration
-        with open(mod_config_path, 'r') as f:
-            mod_config = json.load(f)
+                module['order'] = i
+                module['enabled'] = module_name in enabled_modules
+                module['menu_name'] = request.form.get(f"menu_name_{module_name}", module['menu_name'])
         
-        mod_config['MODULE_LIST'] = new_module_list
-
-        with open(mod_config_path, 'w') as f:
-            json.dump(mod_config, f, indent=4)
-        
-        current_app.config['MODULE_LIST'] = new_module_list
-
-        # After updating modules, update roles
-        roles = current_app.config['ROLE_LIST']
-
-        # Get the list of valid module names
-        valid_module_names = [m['name'] for m in new_module_list]
-
-        # Update roles to remove any modules that no longer exist
-        for role in roles:
-            role['modules'] = [m for m in role['modules'] if m in valid_module_names]
-
-        # Save updated roles
-        with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:
-            json.dump(roles, f, indent=4)
-
-        # Update the config
-        current_app.config['ROLE_LIST'] = roles
-
-        # Reload the configuration
-        config_manager.reload_config()
-
+        current_app.config['MODULE_LIST'].sort(key=lambda x: x['order'])
+        save_module_config(current_app)
         flash('Module configuration updated successfully!', 'success')
-
-        # Refresh available_modules after changes
-        available_modules = get_available_modules()
-
+    
     return render_template('pages/admin_setup_modules.html', 
-                           modules=available_modules,
+                           modules=current_app.config['MODULE_LIST'],
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
