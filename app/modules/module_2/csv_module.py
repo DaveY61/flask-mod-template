@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required
-from app.app import module_access_required
 import csv
 import io
 import os

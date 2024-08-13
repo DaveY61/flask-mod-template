@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from app.app import module_access_required
 import os
 
 # Automatically determine the module name and path
