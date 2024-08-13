@@ -40,29 +40,16 @@ class Config:
     MOD_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'mod_config.cnf')
 
     @staticmethod
-    def clean_and_load_module_config(MOD_CONFIG_PATH):
-        with open(MOD_CONFIG_PATH, 'r') as f:
-            mod_config = json.load(f)
+    def load_module_config(MOD_CONFIG_PATH):
+        if os.path.exists(MOD_CONFIG_PATH):
+            with open(MOD_CONFIG_PATH, 'r') as f:
+                config = json.load(f)
+                # Only return the config if it's in the new format (list of dicts)
+                if isinstance(config, list) and all(isinstance(item, dict) for item in config):
+                    return config
+        return []  # Return an empty list if the file doesn't exist or is in the old format
 
-        valid_modules = []
-        config_changed = False
-
-        for module in mod_config['MODULE_LIST']:
-            module_path = module['name'].replace('app.', '', 1).replace('.', os.path.sep) + '.py'
-            full_path = os.path.join(os.path.dirname(__file__), module_path)
-            if os.path.exists(full_path):
-                valid_modules.append(module)
-            else:
-                config_changed = True
-
-        if config_changed:
-            mod_config['MODULE_LIST'] = valid_modules
-            with open(MOD_CONFIG_PATH, 'w') as f:
-                json.dump(mod_config, f, indent=4)
-
-        return valid_modules
-
-    MODULE_LIST = clean_and_load_module_config(MOD_CONFIG_PATH)
+    MODULE_LIST = load_module_config(MOD_CONFIG_PATH)
     
     # Define the GUI config path to part of the Config class
     GUI_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'gui_config.cnf')
