@@ -19,7 +19,6 @@ uploaded_data = []
 
 @blueprint.route('/upload_csv', methods=['GET', 'POST'])
 @login_required
-@module_access_required(module_name)
 def upload_csv():
     global uploaded_data
     if request.method == 'POST':

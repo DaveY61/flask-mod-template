@@ -15,7 +15,6 @@ blueprint = Blueprint('pie', __name__,
 
 @blueprint.route('/pie_chart', methods=['GET', 'POST'])
 @login_required
-@module_access_required(module_name)
 def pie_chart():
     values = {'value1': 25, 'value2': 25, 'value3': 25, 'value4': 25}
     

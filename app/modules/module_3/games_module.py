@@ -15,7 +15,6 @@ blueprint = Blueprint('games', __name__,
 
 @blueprint.route('/games', methods=['GET'])
 @login_required
-@module_access_required(module_name)
 def games():
     sidebar_menu = [
         {'icon': 'fas fa-table', 'text': 'Tic-Tac-Toe', 'action': 'showGame', 'params': ['tic-tac-toe']},
