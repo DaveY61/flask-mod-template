@@ -211,6 +211,10 @@ def internal_error(error):
 def not_found_error(error):
     return render_template('errors/404.html', response_color="red"), 404
 
+@app.errorhandler(403)
+def not_found_error(error):
+    return render_template('errors/403.html', response_color="red"), 404
+
 @contextlib.contextmanager
 def temporary_static_folder(app, folder):
     original_folder = app.static_folder
@@ -241,7 +245,8 @@ def module_proxy(module_path):
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
             if module_name not in allowed_modules:
-                return jsonify({"error": "Access to this module is restricted"}), 403
+                app.logger.error(f"Module Access is restricted: {module_name}")
+                abort(403)
             
             try:
                 # Import the module file using the module_file information
@@ -285,7 +290,8 @@ def module_proxy(module_path):
                         request=request,
                         session=session,
                         current_user=current_user,
-                        config=current_app.config
+                        config=current_app.config,
+                        is_admin=current_user.is_authenticated and current_user.is_admin  # Add this line
                     )
                     template = module_jinja_env.get_template(template_name)
                     return template.render(context)
