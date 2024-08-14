@@ -84,7 +84,8 @@ def extract_module_info(module_path, module_name):
         'name': module_name,
         'blueprint': None,
         'primary_route': None,
-        'routes': {}
+        'routes': {},
+        'module_file': None
     }
     
     for file_name in os.listdir(module_path):
@@ -98,6 +99,7 @@ def extract_module_info(module_path, module_name):
                         if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'blueprint':
                             if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == 'Blueprint':
                                 module_info['blueprint'] = node.value.args[0].s
+                                module_info['module_file'] = file_name[:-3]  # Remove .py extension
                         elif isinstance(node, ast.FunctionDef):
                             for decorator in node.decorator_list:
                                 if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'route':
@@ -114,7 +116,7 @@ def extract_module_info(module_path, module_name):
     else:
         logging.info(f"Found {len(module_info['routes'])} routes in module: {module_name}")
     
-    return module_info if module_info['routes'] else None
+    return module_info if module_info['routes'] and module_info['module_file'] else None
 
 def save_module_config(app):
     config_path = os.path.join(app.root_path, 'mod_config.cnf')

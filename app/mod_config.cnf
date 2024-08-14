@@ -6,6 +6,7 @@
     "routes": {
       "/pie_chart": "pie_chart"
     },
+    "module_file": "pie_module",
     "menu_name": "Pie Chart",
     "enabled": true,
     "order": 0
@@ -17,6 +18,7 @@
     "routes": {
       "/upload_csv": "upload_csv"
     },
+    "module_file": "csv_module",
     "menu_name": "Upload CSV",
     "enabled": true,
     "order": 1
@@ -28,6 +30,7 @@
     "routes": {
       "/games": "games"
     },
+    "module_file": "games_module",
     "menu_name": "Games",
     "enabled": true,
     "order": 2
