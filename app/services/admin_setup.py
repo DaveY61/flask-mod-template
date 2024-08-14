@@ -28,10 +28,8 @@ ADMIN_SIDEBAR_MENU = [
 # Functions to update Module list
 def update_module_list(app):
     modules_dir = os.path.join(app.root_path, 'modules')
-    app.logger.info(f"Scanning modules directory: {modules_dir}")
 
     if not os.path.exists(modules_dir):
-        app.logger.error(f"Modules directory does not exist: {modules_dir}")
         return
 
     existing_modules = {m['name']: m for m in app.config.get('MODULE_LIST', [])}
@@ -39,45 +37,37 @@ def update_module_list(app):
 
     for module_folder in os.listdir(modules_dir):
         module_path = os.path.join(modules_dir, module_folder)
-        app.logger.info(f"Checking module folder: {module_folder}")
         
         if os.path.isdir(module_path):
             try:
                 module_info = extract_module_info(module_path, module_folder)
                 if module_info:
-                    app.logger.info(f"Found valid module: {module_folder}")
                     if module_folder in existing_modules:
                         # Preserve existing menu name, enabled status, and order
                         module_info['menu_name'] = existing_modules[module_folder]['menu_name']
                         module_info['enabled'] = existing_modules[module_folder]['enabled']
                         module_info['order'] = existing_modules[module_folder]['order']
-                        app.logger.info(f"Updated existing module: {module_folder}")
                     else:
                         # New module: use primary route as menu name, set as disabled by default, and add to end of list
                         default_menu_name = ' '.join(word.capitalize() for word in module_info['primary_route'].strip('/').replace('_', ' ').split())
                         module_info['menu_name'] = default_menu_name
                         module_info['enabled'] = False
                         module_info['order'] = len(existing_modules)
-                        app.logger.info(f"Added new module: {module_folder}")
                     updated_modules.append(module_info)
-                else:
-                    app.logger.warning(f"No valid routes found in module: {module_folder}")
             except Exception as e:
-                app.logger.error(f"Error processing module {module_folder}: {str(e)}")
+                logging.error(f"Error processing module {module_folder}: {str(e)}")
 
     # Sort modules based on their order
     updated_modules.sort(key=lambda x: x['order'])
 
     # Update the MODULE_LIST in the app config
     app.config['MODULE_LIST'] = updated_modules
-    app.logger.info(f"Updated MODULE_LIST with {len(updated_modules)} modules")
 
     # Save the updated MODULE_LIST to mod_config.cnf
     try:
         save_module_config(app)
-        app.logger.info("Successfully saved module configuration")
     except Exception as e:
-        app.logger.error(f"Error saving module configuration: {str(e)}")
+        logging.error(f"Error saving module configuration: {str(e)}")
 
 def extract_module_info(module_path, module_name):
     module_info = {
@@ -91,7 +81,6 @@ def extract_module_info(module_path, module_name):
     for file_name in os.listdir(module_path):
         if file_name.endswith('.py'):
             file_path = os.path.join(module_path, file_name)
-            logging.info(f"Parsing file: {file_path}")
             try:
                 with open(file_path, 'r') as file:
                     tree = ast.parse(file.read())
@@ -107,14 +96,8 @@ def extract_module_info(module_path, module_name):
                                     module_info['routes'][route] = node.name
                                     if module_info['primary_route'] is None or len(route) < len(module_info['primary_route']):
                                         module_info['primary_route'] = route
-                                    logging.info(f"Found route: {route} -> {node.name}")
             except Exception as e:
                 logging.error(f"Error parsing file {file_path}: {str(e)}")
-    
-    if not module_info['routes']:
-        logging.warning(f"No routes found in module: {module_name}")
-    else:
-        logging.info(f"Found {len(module_info['routes'])} routes in module: {module_name}")
     
     return module_info if module_info['routes'] and module_info['module_file'] else None
 
@@ -252,7 +235,6 @@ def setup_modules():
             else:
                 flash('Module configuration updated successfully!', 'success')
         except Exception as e:
-            current_app.logger.error(f"Error updating module configuration: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'error', 'message': str(e)}), 400
             else:
@@ -355,7 +337,6 @@ def setup_roles():
                         use_sidebar=True,
                         sidebar_menu=ADMIN_SIDEBAR_MENU)
 
-# Update the setup_users function
 def setup_users():
     users = get_all_users()
     roles = current_app.config['ROLE_LIST']

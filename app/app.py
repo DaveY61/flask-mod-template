@@ -40,18 +40,14 @@ def create_module_jinja_env(app, module_name, blueprint_name):
     def custom_url_for(endpoint, **values):
         if endpoint == 'static':
             filename = values.get('filename', '')
-            app.logger.debug(f"custom_url_for static: {filename}")
             if filename.startswith(('css/', 'js/', 'img/')):
                 # Check if this is a module-specific static file
                 module_static_path = os.path.join(app.root_path, 'modules', module_name, 'static', filename)
                 if os.path.exists(module_static_path):
-                    app.logger.debug(f"Serving from module static: {module_name}, {filename}")
                     return f"/{blueprint_name}/static/{filename}"
                 else:
-                    app.logger.debug(f"Serving from main static: {filename}")
                     return flask_url_for('static', filename=filename)
             else:
-                app.logger.debug(f"Serving from module static: {module_name}, {filename}")
                 return f"/{blueprint_name}/static/{filename}"
         elif '.' in endpoint:
             module, view = endpoint.split('.')
@@ -226,56 +222,43 @@ def temporary_static_folder(app, folder):
 @app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 def module_proxy(module_path):
-    app.logger.debug(f"module_proxy called with path: {module_path}")
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
             blueprint_name = module['blueprint']
             module_file = module['module_file']
             
-            app.logger.debug(f"Matched module: {module_name}, blueprint: {blueprint_name}")
-            
             # Check if this is a static file request
             if module_path.startswith(f"{blueprint_name}/static/"):
                 filename = module_path[len(f"{blueprint_name}/static/"):]
                 module_static_folder = os.path.join(app.root_path, 'modules', module_name, 'static')
-                app.logger.debug(f"Serving static file: {filename} from {module_static_folder}")
                 return send_from_directory(module_static_folder, filename)
             
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
             if module_name not in allowed_modules:
-                app.logger.error(f"Module Access is restricted: {module_name}")
                 abort(403)
             
             try:
                 # Import the module file using the module_file information
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file}")
-                app.logger.info(f"Imported module file: {module_file}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    app.logger.error(f"Module file {module_name}.{module_file} does not have a 'blueprint' attribute")
-                    app.logger.error(f"Module file attributes: {dir(module_file)}")
                     abort(404)
                 
                 blueprint = module_file.blueprint
-                app.logger.info(f"Blueprint: {blueprint}")
                 
                 # Extract the specific route within the module
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
-                app.logger.info(f"Module specific path: {module_specific_path}")
                 
                 # Find the appropriate view function based on the module_specific_path
                 view_function = None
                 for route, func_name in module['routes'].items():
-                    app.logger.info(f"Checking route: {route} -> {func_name}")
                     if module_specific_path.startswith(route):
                         view_function = getattr(module_file, func_name)
-                        app.logger.info(f"Found view function: {view_function}")
                         break
                 
                 if view_function is None:
-                    app.logger.error(f"No view function found for path: {module_specific_path}")
                     abort(404)
                 
                 # Create a custom Jinja environment for this module
@@ -291,7 +274,7 @@ def module_proxy(module_path):
                         session=session,
                         current_user=current_user,
                         config=current_app.config,
-                        is_admin=current_user.is_authenticated and current_user.is_admin  # Add this line
+                        is_admin=current_user.is_authenticated and current_user.is_admin
                     )
                     template = module_jinja_env.get_template(template_name)
                     return template.render(context)
@@ -313,8 +296,6 @@ def module_proxy(module_path):
                 return response
             
             except Exception as e:
-                app.logger.error(f"Error in module_proxy: {str(e)}", exc_info=True)
                 abort(404)
     
-    app.logger.error(f"No matching module found for path: {module_path}")
     abort(404)
