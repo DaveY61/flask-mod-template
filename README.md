@@ -29,7 +29,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Customizable styling through admin interface
 - Sidebar navigation for admin pages and new modules
 - User management options including disabling self-registration and requiring login for site access
-- Direct user addition by administrators
+- Direct user addition by administrators with automatic activation email
 
 ## Technologies Used
 
@@ -144,21 +144,14 @@ The application should now be running at `http://localhost:5000`.
    - Check the checkbox next to the module name
    - Click "Update Config" to apply changes
 
-5. To set a default role for new users: (optional)
-   - Go to the "Role Setup" page
-   - Select a role from the dropdown menu labeled "Default Role"
-   - Click "Save Default Role" to apply the change
-   - New users will now be automatically assigned this role upon registration
-   - Note: The user's role can be changed later or set to "No Role" in the User Setup page
-
-6. To control access for specific users:
+5. To control access for specific users:
    - Go to the "Role Setup" page
    - Create a new role or edit an existing one
    - Select the modules that should be accessible for this role
    - Go to the "User Setup" page
    - Assign the appropriate role to each user
 
-7. The changes will take effect immediately for GUI settings, role assignments, and module enabling/disabling. No application restart is required.
+6. The changes will take effect immediately for GUI settings, role assignments, and module enabling/disabling. No application restart is required.
 
 ## Role-Based Access Control
 
@@ -172,6 +165,12 @@ The application should now be running at `http://localhost:5000`.
 
 5. The application now uses a proxy system for modules, which automatically handles access control. You don't need to use `@login_required` or `@module_access_required` decorators in your module code.
 
+6. To set a default role for new users:
+   - In the "Role Setup" page, use the "Default" checkbox next to the role you want to set as default.
+   - Only one role can be set as default at a time.
+   - New users will be automatically assigned this role upon registration or when added by an admin.
+   - If no default role is set, new users will have no role assigned.
+
 ## User Management
 
 1. In the Admin Setup, go to the "User Setup" page.
@@ -180,10 +179,8 @@ The application should now be running at `http://localhost:5000`.
    - View all registered users
    - Assign or change user roles
    - Delete users
-   - Add new users directly (they will receive an activation email)
-   - Configure user access options:
-     - Disable self-registration: Prevents new users from registering themselves
-     - Require login for site access: Makes the entire site (except login and registration pages) accessible only to logged-in users
+   - Add new users directly
+   - Configure user access options
 
 3. To add a new user:
    - Fill in the username and email in the "Add New User" section
@@ -191,7 +188,11 @@ The application should now be running at `http://localhost:5000`.
    - Click "Add User"
    - The new user will receive an activation email to set their password
 
-4. User access options take effect immediately after saving.
+4. User access options:
+   - Disable Self Registration: When enabled, prevents new users from registering themselves
+   - Require Login for Site Access: When enabled, makes the entire site (except login and registration pages) accessible only to logged-in users
+
+5. All changes in user management take effect immediately after saving.
 
 ## License
 
