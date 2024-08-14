@@ -20,8 +20,9 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 ## Features
 
 - Modular architecture for easy scaling and maintenance
+- Dynamic module discovery and activation without application restart
 - User authentication system (register, login, password reset)
-- Role-based access control
+- Role-based access control with dynamic module permissions
 - Admin setup interface for GUI configuration, module management, role management, user management, and email configuration
 - Sample modules (Pie Chart, CSV Upload, Games) demonstrating integration
 - Responsive design using Bootstrap 5
@@ -105,23 +106,13 @@ The application should now be running at `http://localhost:5000`.
 
    ```python
    from flask import Blueprint, render_template
-   from flask_login import login_required
-   from app.app import module_access_required
-   import os
-
-   # Automatically determine the module name and path
-   module_path = os.path.relpath(__file__, start=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-   module_name = f'app.{module_path[:-3].replace(os.path.sep, ".")}'
-   static_url_path = f'/modules/{os.path.dirname(module_path)}/static'
 
    blueprint = Blueprint('new_module', __name__, 
                          static_folder='static', 
-                         static_url_path=static_url_path,
+                         static_url_path='/new_module/static',
                          template_folder='templates')
 
    @blueprint.route('/new_module_route')
-   @login_required
-   @module_access_required(module_name)
    def new_module_view():
        return render_template('pages/new_module.html')
    ```
@@ -130,7 +121,7 @@ The application should now be running at `http://localhost:5000`.
 
 4. Add any static files (CSS, JS) in `app/modules/new_module/static/`.
 
-5. The module will be automatically discovered by the application. You don't need to manually update any configuration files.
+5. The module will be automatically discovered by the application. You don't need to manually update any configuration files or restart the application.
 
 ## Enabling Modules and Managing Access
 
@@ -151,7 +142,7 @@ The application should now be running at `http://localhost:5000`.
    - Go to the "Module Setup" page
    - Find your new module in the list
    - Check the checkbox next to the module name
-   - Click "Save Configuration" to apply changes
+   - Click "Update Config" to apply changes
 
 5. To set a default role for new users: (optional)
    - Go to the "Role Setup" page
@@ -167,7 +158,7 @@ The application should now be running at `http://localhost:5000`.
    - Go to the "User Setup" page
    - Assign the appropriate role to each user
 
-7. The changes will take effect immediately for GUI settings and role assignments. For module enabling/disabling, you'll need to restart the application for the changes to take effect.
+7. The changes will take effect immediately for GUI settings, role assignments, and module enabling/disabling. No application restart is required.
 
 ## Role-Based Access Control
 
@@ -179,7 +170,7 @@ The application should now be running at `http://localhost:5000`.
 
 4. When a user logs in, they will only see and have access to the modules associated with their role.
 
-5. The `@module_access_required` decorator in each module's route ensures that only users with the appropriate role can access the module.
+5. The application now uses a proxy system for modules, which automatically handles access control. You don't need to use `@login_required` or `@module_access_required` decorators in your module code.
 
 ## User Management
 
