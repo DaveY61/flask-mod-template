@@ -1,9 +1,10 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, render_template, redirect, url_for, request, jsonify, abort, current_app, session, send_from_directory
-from flask import url_for as flask_url_for, render_template as flask_render_template
+from flask import Flask, g, render_template, redirect, url_for, request, jsonify, abort, current_app, session, send_from_directory
+from flask import url_for as flask_url_for
 from flask_login import LoginManager, current_user, login_required
+import werkzeug.wrappers
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PrefixLoader
 from app.services.auth_service_db import setup_database, init_db
 import pkgutil
@@ -18,7 +19,7 @@ import contextlib
 # Helper functions to register services and modules
 #----------------------------------------------------------------------------#
 def create_module_jinja_env(app, module_name, blueprint_name):
-    module_template_folder = os.path.join(app.root_path, 'modules', module_name.split('.')[-2], 'templates')
+    module_template_folder = os.path.join(app.root_path, 'modules', module_name, 'templates')
     module_loader = FileSystemLoader(module_template_folder)
     
     # Combine the module loader with the app's existing loaders
@@ -39,19 +40,45 @@ def create_module_jinja_env(app, module_name, blueprint_name):
     def custom_url_for(endpoint, **values):
         if endpoint == 'static':
             filename = values.get('filename', '')
-            if not filename.startswith(('css/', 'js/', 'img/')):
-                # This is likely a module-specific static file
-                return url_for('module_proxy', module_path=f"{blueprint_name}/static/{filename}")
+            app.logger.debug(f"custom_url_for static: {filename}")
+            if filename.startswith(('css/', 'js/', 'img/')):
+                # Check if this is a module-specific static file
+                module_static_path = os.path.join(app.root_path, 'modules', module_name, 'static', filename)
+                if os.path.exists(module_static_path):
+                    app.logger.debug(f"Serving from module static: {module_name}, {filename}")
+                    return flask_url_for('module_static', module=module_name, filename=filename)
+                else:
+                    app.logger.debug(f"Serving from main static: {filename}")
+                    return flask_url_for('static', filename=filename)
+            else:
+                app.logger.debug(f"Serving from module static: {module_name}, {filename}")
+                return flask_url_for('module_static', module=module_name, filename=filename)
         elif '.' in endpoint:
-            # This is likely a module endpoint, so we need to adjust it
             module, view = endpoint.split('.')
             if module == blueprint_name:
-                return url_for('module_proxy', module_path=f"{blueprint_name}/{view}", **values)
-        return url_for(endpoint, **values)
+                return flask_url_for('module_proxy', module_path=f"{blueprint_name}/{view}", **values)
+        return flask_url_for(endpoint, **values)
 
     env.globals['url_for'] = custom_url_for
     
     return env
+
+def create_module_render_template(app, module_name, blueprint_name):
+    module_jinja_env = create_module_jinja_env(app, module_name, blueprint_name)
+    
+    def render_template(template_name, **context):
+        # Add Flask globals to the context
+        context.update(
+            current_app=current_app,
+            g=g,
+            request=request,
+            session=session,
+            current_user=current_user
+        )
+        template = module_jinja_env.get_template(template_name)
+        return template.render(context)
+    
+    return render_template
 
 def register_blueprints(app, package_name):
     # Dynamically discover/add routes for the package_name
@@ -191,28 +218,25 @@ def temporary_static_folder(app, folder):
     yield
     app.static_folder = original_folder
 
-@app.route('/module_static/<blueprint_name>/<path:filename>')
-def module_static(blueprint_name, filename):
-    module_config = current_app.config_manager.get_module_config()
-    for module in module_config.get('MODULE_LIST', []):
-        if module['blueprint_name'] == blueprint_name:
-            module_name = module['name'].split('.')[-2]
-            module_static_folder = os.path.join(current_app.root_path, 'modules', module_name, 'static')
-            return send_from_directory(module_static_folder, filename)
-    abort(404)
+@app.route('/module_static/<module>/<path:filename>')
+def module_static(module, filename):
+    app.logger.debug(f"Serving static file: {module}/{filename}")
+    module_static_folder = os.path.join(app.root_path, 'modules', module, 'static')
+    app.logger.debug(f"Module static folder: {module_static_folder}")
+    return send_from_directory(module_static_folder, filename)
 
 # Proxy for enabled module pages
 @app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 def module_proxy(module_path):
-    app.logger.info(f"Accessing module_path: {module_path}")
+    app.logger.debug(f"module_proxy called with path: {module_path}")
     for module in app.config['MODULE_LIST']:
-        app.logger.info(f"Checking module: {module['name']}, blueprint: {module['blueprint']}")
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
             blueprint_name = module['blueprint']
+            module_file = module['module_file']
             
-            app.logger.info(f"Matched module: {module_name}")
+            app.logger.debug(f"Matched module: {module_name}, blueprint: {blueprint_name}")
             
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
@@ -220,17 +244,16 @@ def module_proxy(module_path):
                 return jsonify({"error": "Access to this module is restricted"}), 403
             
             try:
-                # Use the full module path for import
-                full_module_path = f"app.modules.{module_name}"
-                module_instance = importlib.import_module(full_module_path)
-                app.logger.info(f"Imported module: {module_instance}")
+                # Import the module file using the module_file information
+                module_file = importlib.import_module(f"app.modules.{module_name}.{module_file}")
+                app.logger.info(f"Imported module file: {module_file}")
                 
-                if not hasattr(module_instance, 'blueprint'):
-                    app.logger.error(f"Module {module_name} does not have a 'blueprint' attribute")
-                    app.logger.error(f"Module attributes: {dir(module_instance)}")
+                if not hasattr(module_file, 'blueprint'):
+                    app.logger.error(f"Module file {module_name}.{module_file} does not have a 'blueprint' attribute")
+                    app.logger.error(f"Module file attributes: {dir(module_file)}")
                     abort(404)
                 
-                blueprint = module_instance.blueprint
+                blueprint = module_file.blueprint
                 app.logger.info(f"Blueprint: {blueprint}")
                 
                 # Extract the specific route within the module
@@ -242,7 +265,7 @@ def module_proxy(module_path):
                 for route, func_name in module['routes'].items():
                     app.logger.info(f"Checking route: {route} -> {func_name}")
                     if module_specific_path.startswith(route):
-                        view_function = getattr(blueprint, func_name)
+                        view_function = getattr(module_file, func_name)
                         app.logger.info(f"Found view function: {view_function}")
                         break
                 
@@ -250,11 +273,42 @@ def module_proxy(module_path):
                     app.logger.error(f"No view function found for path: {module_specific_path}")
                     abort(404)
                 
+                # Create a custom Jinja environment for this module
+                module_jinja_env = create_module_jinja_env(app, module_name, blueprint_name)
+                
+                # Create a custom render_template function for this module
+                def module_render_template(template_name, **context):
+                    # Add Flask globals to the context
+                    context.update(
+                        current_app=current_app,
+                        g=g,
+                        request=request,
+                        session=session,
+                        current_user=current_user,
+                        config=current_app.config
+                    )
+                    template = module_jinja_env.get_template(template_name)
+                    return template.render(context)
+                
+                # Inject the custom render_template function into the module's namespace
+                module_file.render_template = module_render_template
+                
                 # Call the view function
-                return view_function()
+                response = view_function()
+                
+                # Handle redirects within the module
+                if isinstance(response, werkzeug.wrappers.Response) and response.status_code == 302:
+                    # Extract the relative path from the Location header
+                    location = response.headers['Location']
+                    if location.startswith('/'):
+                        # Redirect to the module_proxy route
+                        return redirect(location)
+                        
+                return response
             
             except Exception as e:
                 app.logger.error(f"Error in module_proxy: {str(e)}", exc_info=True)
                 abort(404)
+    
     app.logger.error(f"No matching module found for path: {module_path}")
     abort(404)
