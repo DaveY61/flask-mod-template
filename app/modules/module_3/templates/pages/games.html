@@ -2,7 +2,7 @@
 {% block title %}Games {{ config.PROJECT_NAME }}{% endblock %}
 
 {% block additional_styles %}
-<link type="text/css" rel="stylesheet" href="{{ url_for('games.static', filename='css/game_styles.css') }}" />
+<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/game_styles.css') }}" />
 {% endblock %}
 
 {% block content %}
@@ -21,9 +21,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('games.static', filename='js/tic_tac_toe.js') }}"></script>
-<script src="{{ url_for('games.static', filename='js/checkers.js') }}"></script>
-<script src="{{ url_for('games.static', filename='js/pong.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tic_tac_toe.js') }}"></script>
+<script src="{{ url_for('static', filename='js/checkers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pong.js') }}"></script>
 <script>
 function showGame(gameName) {
     console.log("Showing game:", gameName);
