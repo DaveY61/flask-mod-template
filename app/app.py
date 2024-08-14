@@ -46,13 +46,13 @@ def create_module_jinja_env(app, module_name, blueprint_name):
                 module_static_path = os.path.join(app.root_path, 'modules', module_name, 'static', filename)
                 if os.path.exists(module_static_path):
                     app.logger.debug(f"Serving from module static: {module_name}, {filename}")
-                    return flask_url_for('module_static', module=module_name, filename=filename)
+                    return f"/{blueprint_name}/static/{filename}"
                 else:
                     app.logger.debug(f"Serving from main static: {filename}")
                     return flask_url_for('static', filename=filename)
             else:
                 app.logger.debug(f"Serving from module static: {module_name}, {filename}")
-                return flask_url_for('module_static', module=module_name, filename=filename)
+                return f"/{blueprint_name}/static/{filename}"
         elif '.' in endpoint:
             module, view = endpoint.split('.')
             if module == blueprint_name:
@@ -218,13 +218,6 @@ def temporary_static_folder(app, folder):
     yield
     app.static_folder = original_folder
 
-@app.route('/module_static/<module>/<path:filename>')
-def module_static(module, filename):
-    app.logger.debug(f"Serving static file: {module}/{filename}")
-    module_static_folder = os.path.join(app.root_path, 'modules', module, 'static')
-    app.logger.debug(f"Module static folder: {module_static_folder}")
-    return send_from_directory(module_static_folder, filename)
-
 # Proxy for enabled module pages
 @app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
@@ -237,6 +230,13 @@ def module_proxy(module_path):
             module_file = module['module_file']
             
             app.logger.debug(f"Matched module: {module_name}, blueprint: {blueprint_name}")
+            
+            # Check if this is a static file request
+            if module_path.startswith(f"{blueprint_name}/static/"):
+                filename = module_path[len(f"{blueprint_name}/static/"):]
+                module_static_folder = os.path.join(app.root_path, 'modules', module_name, 'static')
+                app.logger.debug(f"Serving static file: {filename} from {module_static_folder}")
+                return send_from_directory(module_static_folder, filename)
             
             # Check if the user has access to this module
             allowed_modules = current_user.get_allowed_modules()
