@@ -6,6 +6,7 @@
 - [Technologies Used](#technologies-used)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [GUI Customization](#GUI-Customization)
 - [Adding New Modules](#adding-new-modules)
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
@@ -82,6 +83,8 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    ADMIN_USER_LIST=admin1@example.com,admin2@example.com
    USER_DATABASE_FILENAME=users.db
    USER_DATABASE_DIRECTORY=./app_data/users
+   RECAPTCHA_SITE_KEY=your_captcha_site_key
+   RECAPTCHA_SECRET_KEY=your_captcha_secret_key
    ```
 
    Note: Email-related settings can be configured through the Admin Setup Email page after initial setup.
@@ -97,6 +100,28 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    ```
 
 The application should now be running at `http://localhost:5000`.
+
+## GUI Customization
+
+Administrators can customize various aspects of the application's GUI:
+
+- Company Name
+- Body Color
+- Project Name
+- Project Name Color
+- Project Icon
+- Account Icon
+
+To customize these elements:
+
+1. Log in as an admin and navigate to the Admin Setup page.
+2. Click on "GUI Setup" in the sidebar.
+3. Modify the fields as desired:
+   - For colors, you can use the color picker or enter a color name/hex code.
+   - For icons, you can upload new PNG images to replace the current icons.
+4. Click "Update Config" to save your changes.
+
+Note: Icon images should be in PNG format and appropriately sized for best results.
 
 ## Adding New Modules
 

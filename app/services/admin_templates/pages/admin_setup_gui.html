@@ -40,15 +40,16 @@
     </div>
     <div class="gui-setup-row">
       <label for="project_icon" class="gui-label">Project Icon:</label>
-      <div class="gui-input">
+      <div class="gui-input d-flex align-items-center">
+        <img src="{{ url_for('static', filename='img/project_icon.png') }}" alt="Current Project Icon" height="30" class="me-2">
         <input type="file" class="form-control form-control-sm" id="project_icon" name="project_icon" accept="image/png">
-        <small class="form-text text-muted">Upload a new PNG image to replace the current project icon.</small>
       </div>
     </div>
     <div class="gui-setup-row">
-      <label class="gui-label">Current Icon:</label>
-      <div class="gui-input">
-        <img src="{{ url_for('static', filename='img/project_icon.png') }}" alt="Current Project Icon" height="50">
+      <label for="account_icon" class="gui-label">Account Icon:</label>
+      <div class="gui-input d-flex align-items-center">
+        <img src="{{ url_for('static', filename='img/account_icon.png') }}" alt="Current Account Icon" height="30" class="me-2">
+        <input type="file" class="form-control form-control-sm" id="account_icon" name="account_icon" accept="image/png">
       </div>
     </div>
   </div>

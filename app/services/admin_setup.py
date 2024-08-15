@@ -162,6 +162,15 @@ def setup_gui():
                 project_icon.save(icon_path)
                 flash('Project icon updated successfully!', 'success')
 
+        # Handle account icon upload
+        if 'account_icon' in request.files:
+            account_icon = request.files['account_icon']
+            if account_icon and account_icon.filename.lower().endswith('.png'):
+                filename = secure_filename('account_icon.png')
+                icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
+                account_icon.save(icon_path)
+                flash('Account icon updated successfully!', 'success')
+
         flash('GUI configuration updated successfully!', 'success')
 
     # Read current GUI values
