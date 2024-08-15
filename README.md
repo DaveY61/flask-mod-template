@@ -241,6 +241,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Deployment
 
-This application can be deployed using various methods. One recommended approach is to use AWS Elastic Beanstalk, which provides an easy way to deploy and scale web applications.
+This application can be deployed using various methods. We provide guides for two popular deployment options:
 
-For detailed instructions on how to deploy this application using AWS Elastic Beanstalk, including setting up AWS, configuring Elastic Beanstalk, ensuring sufficient storage, and establishing automatic deployment from GitHub, please refer to our [AWS Elastic Beanstalk Deployment Guide](README_AWS_Elastic_Beanstalk.md).
+1. [AWS Elastic Beanstalk Deployment Guide](README_AWS_Elastic_Beanstalk.md): This guide provides detailed instructions on how to deploy the application using AWS Elastic Beanstalk, including setting up AWS, configuring Elastic Beanstalk, ensuring sufficient storage, and establishing automatic deployment from GitHub.
+
+2. [PythonAnywhere Deployment Guide](README_PythonAnywhere.md): This guide walks you through the process of deploying the application on PythonAnywhere, a platform that makes it easy to host, run, and code Python in the cloud.
+
+Choose the deployment method that best suits your needs and infrastructure preferences. Both guides provide step-by-step instructions to get your Flask Modular Template application up and running in their respective environments.
