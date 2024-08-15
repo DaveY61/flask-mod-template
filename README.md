@@ -28,7 +28,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Responsive design using Bootstrap 5
 - Customizable styling through admin interface
 - Sidebar navigation for admin pages and new modules
-- User management options including disabling self-registration and requiring login for site access
+- User management includes: require login for site access, disable self-registration, and enable reCAPTCHA for registration
 - Direct user addition by administrators with automatic activation email
 
 ## Technologies Used
@@ -189,10 +189,26 @@ The application should now be running at `http://localhost:5000`.
    - The new user will receive an activation email to set their password
 
 4. User access options:
-   - Disable Self Registration: When enabled, prevents new users from registering themselves
    - Require Login for Site Access: When enabled, makes the entire site (except login and registration pages) accessible only to logged-in users
+   - Disable Self Registration: When enabled, prevents new users from registering themselves
+   - Enable reCAPTCHA for Self Registration (see details in next section)
 
 5. All changes in user management take effect immediately after saving.
+
+## reCAPTCHA Setup for Registration
+
+To enable reCAPTCHA on the registration form:
+
+1. In the Admin Setup, go to the "User Setup" page.
+2. In the "Access Options" section, you'll see an option to "Enable Registration Captcha".
+3. Before enabling this option, you need to set up reCAPTCHA for your site:
+   - Click on the "reCAPTCHA Setup Instructions" button for detailed steps.
+   - You'll need to visit the Google reCAPTCHA admin page, create a new site, and obtain Site and Secret keys.
+   - Add these keys to your `.env` file as instructed.
+4. After adding the keys and restarting your application, you can enable the "Enable Registration Captcha" option.
+5. Once enabled, the registration form will include a reCAPTCHA "I'm not a robot" checkbox.
+
+Note: Ensure you keep your reCAPTCHA Secret Key confidential and never expose it in client-side code or public repositories.
 
 ## License
 
