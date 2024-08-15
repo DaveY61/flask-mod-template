@@ -87,8 +87,8 @@
             {% for module in config.MODULE_LIST %}
               {% if module.enabled and module.name in allowed_modules %}
                 <li class="nav-item">
-                  <a class="nav-link {% if request.path.startswith('/' + module.blueprint) %}active{% endif %}"
-                      href="{{ url_for('module_proxy', module_path=module.blueprint + module.primary_route) }}">
+                  <a class="nav-link {% if request.path.startswith('/' + module.blueprint + '/') %}active{% endif %}"
+                  href="{{ url_for('module_proxy', module_path=module.blueprint + module.primary_route) }}">
                     {{ module.menu_name }}
                   </a>
                 </li>
