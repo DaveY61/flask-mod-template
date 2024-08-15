@@ -60,35 +60,37 @@ RECAPTCHA_SECRET_KEY=your_secret_key_here</code></pre>
           <form method="POST" id="access-options-form">
             <input type="hidden" name="action" value="update_access_options">
             <div class="gui-setup-container">
-              <div class="gui-setup-row">
-                <label for="require_login_for_site_access" class="gui-label">Require Login for Site Access:</label>
-                <div class="gui-input">
+              <div class="gui-setup-row d-flex align-items-center">
+                <div class="col-6">
+                  <label for="require_login_for_site_access" class="gui-label mb-0">Require Login for Site Access:</label>
+                </div>
+                <div class="col-6 d-flex align-items-center">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="require_login_for_site_access" name="require_login_for_site_access" {% if config.REQUIRE_LOGIN_FOR_SITE_ACCESS %}checked{% endif %}>
                   </div>
                 </div>
               </div>
-              <div class="gui-setup-row">
-                <label for="disable_self_registration" class="gui-label">Disable Self Registration:</label>
-                <div class="gui-input">
+              <div class="gui-setup-row d-flex align-items-center">
+                <div class="col-6">
+                  <label for="disable_self_registration" class="gui-label mb-0">Disable Self Registration:</label>
+                </div>
+                <div class="col-6 d-flex align-items-center">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="disable_self_registration" name="disable_self_registration" {% if config.DISABLE_SELF_REGISTRATION %}checked{% endif %}>
                   </div>
                 </div>
               </div>
-              <div class="gui-setup-row">
-                <label for="enable_registration_captcha" class="gui-label">Enable Registration Captcha:</label>
-                <div class="gui-input">
-                  <div class="form-check form-switch">
+              <div class="gui-setup-row d-flex align-items-center">
+                <div class="col-6">
+                  <label for="enable_registration_captcha" class="gui-label mb-0">Enable Registration Captcha:</label>
+                </div>
+                <div class="col-6 d-flex align-items-center">
+                  <div class="form-check form-switch me-3">
                     <input class="form-check-input" type="checkbox" id="enable_registration_captcha" name="enable_registration_captcha" {% if config.ENABLE_REGISTRATION_CAPTCHA %}checked{% endif %}>
                   </div>
-                </div>
-                <div class="row mb-4">
-                  <div class="col-md-12" style="vertical-align: text-top;">
-                    <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#recaptchaInstructionsModal" style="white-space:nowrap">
-                      reCAPTCHA Setup Instructions
-                    </button>
-                  </div>
+                  <button type="button" class="btn btn-outline-info btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#recaptchaInstructionsModal">
+                    reCAPTCHA Setup Instructions
+                  </button>
                 </div>
               </div>
             </div>
