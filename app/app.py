@@ -1,11 +1,9 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, g, render_template, redirect, url_for, request, jsonify, abort, current_app, session, send_from_directory
-from flask import url_for as flask_url_for
+from flask import Flask, render_template, redirect, url_for, request, abort, send_from_directory, render_template_string
 from flask_login import LoginManager, current_user, login_required
-import werkzeug.wrappers
-from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PrefixLoader
+from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
 from app.services.auth_service_db import setup_database, init_db
 import pkgutil
 import importlib
@@ -13,69 +11,10 @@ from dotenv import load_dotenv
 from app.app_config import Config
 from app.mod_config_manager import ConfigManager
 import os
-import contextlib
 
 #----------------------------------------------------------------------------#
 # Helper functions to register services and modules
 #----------------------------------------------------------------------------#
-def create_module_jinja_env(app, module_name, blueprint_name):
-    module_template_folder = os.path.join(app.root_path, 'modules', module_name, 'templates')
-    module_loader = FileSystemLoader(module_template_folder)
-    
-    # Combine the module loader with the app's existing loaders
-    loaders = [module_loader]
-    if isinstance(app.jinja_loader, ChoiceLoader):
-        loaders.extend(app.jinja_loader.loaders)
-    else:
-        loaders.append(app.jinja_loader)
-    
-    # Create a new Jinja2 environment
-    env = Environment(loader=ChoiceLoader(loaders))
-    
-    # Copy over the filters and globals from the app's Jinja environment
-    env.filters.update(app.jinja_env.filters)
-    env.globals.update(app.jinja_env.globals)
-    
-    # Create a custom url_for function
-    def custom_url_for(endpoint, **values):
-        if endpoint == 'static':
-            filename = values.get('filename', '')
-            if filename.startswith(('css/', 'js/', 'img/')):
-                # Check if this is a module-specific static file
-                module_static_path = os.path.join(app.root_path, 'modules', module_name, 'static', filename)
-                if os.path.exists(module_static_path):
-                    return f"/{blueprint_name}/static/{filename}"
-                else:
-                    return flask_url_for('static', filename=filename)
-            else:
-                return f"/{blueprint_name}/static/{filename}"
-        elif '.' in endpoint:
-            module, view = endpoint.split('.')
-            if module == blueprint_name:
-                return flask_url_for('module_proxy', module_path=f"{blueprint_name}/{view}", **values)
-        return flask_url_for(endpoint, **values)
-
-    env.globals['url_for'] = custom_url_for
-    
-    return env
-
-def create_module_render_template(app, module_name, blueprint_name):
-    module_jinja_env = create_module_jinja_env(app, module_name, blueprint_name)
-    
-    def render_template(template_name, **context):
-        # Add Flask globals to the context
-        context.update(
-            current_app=current_app,
-            g=g,
-            request=request,
-            session=session,
-            current_user=current_user
-        )
-        template = module_jinja_env.get_template(template_name)
-        return template.render(context)
-    
-    return render_template
-
 def register_blueprints(app, package_name):
     # Dynamically discover/add routes for the package_name
     package = importlib.import_module(f'app.{package_name}')
@@ -148,7 +87,7 @@ def create_app():
     # Store config_manager in app for access in route functions
     app.config_manager = config_manager
 
-    # Estbalish method to require login when enabled
+    # Establish method to require login when enabled
     @app.before_request
     def require_login():
         # List of endpoints that don't require login
@@ -211,91 +150,85 @@ def not_found_error(error):
 def not_found_error(error):
     return render_template('errors/403.html', response_color="red"), 404
 
-@contextlib.contextmanager
-def temporary_static_folder(app, folder):
-    original_folder = app.static_folder
-    app.static_folder = folder
-    yield
-    app.static_folder = original_folder
-
 # Proxy for enabled module pages
 @app.route('/<path:module_path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
 def module_proxy(module_path):
+    def custom_url_for(endpoint, **values):
+        if endpoint == 'static':
+            for module in app.config['MODULE_LIST']:
+                if module['enabled']:
+                    module_static_folder = os.path.join(app.root_path, 'modules', module['name'], 'static')
+                    file_path = os.path.join(module_static_folder, values['filename'])
+                    if os.path.isfile(file_path):
+                        return f"/{module['blueprint']}/static/{values['filename']}"
+            return url_for('static', filename=values['filename'])
+        if '.' in endpoint:
+            blueprint, view = endpoint.split('.')
+            for module in app.config['MODULE_LIST']:
+                if module['blueprint'] == blueprint:
+                    return url_for('module_proxy', module_path=f"{blueprint}/{view}", **values)
+        return url_for(endpoint, **values)
+
+    if 'static' in module_path:
+        parts = module_path.split('/')
+        blueprint_name = parts[0]
+        static_path = '/'.join(parts[2:])
+        
+        for module in app.config['MODULE_LIST']:
+            if module['blueprint'] == blueprint_name:
+                module_name = module['name']
+                static_folder = os.path.join(app.root_path, 'modules', module_name, 'static')
+                if os.path.isfile(os.path.join(static_folder, static_path)):
+                    return send_from_directory(static_folder, static_path)
+        
+        return send_from_directory(app.static_folder, static_path)
+    
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
             blueprint_name = module['blueprint']
-            module_file = module['module_file']
-            
-            # Check if this is a static file request
-            if module_path.startswith(f"{blueprint_name}/static/"):
-                filename = module_path[len(f"{blueprint_name}/static/"):]
-                module_static_folder = os.path.join(app.root_path, 'modules', module_name, 'static')
-                return send_from_directory(module_static_folder, filename)
-            
-            # Check if the user has access to this module
-            allowed_modules = current_user.get_allowed_modules()
-            if module_name not in allowed_modules:
-                abort(403)
+            module_file_name = module['module_file']
             
             try:
-                # Import the module file using the module_file information
-                module_file = importlib.import_module(f"app.modules.{module_name}.{module_file}")
+                module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
                     abort(404)
                 
                 blueprint = module_file.blueprint
                 
-                # Extract the specific route within the module
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
                 
-                # Find the appropriate view function based on the module_specific_path
                 view_function = None
                 for route, func_name in module['routes'].items():
                     if module_specific_path.startswith(route):
-                        view_function = getattr(module_file, func_name)
-                        break
+                        if hasattr(module_file, func_name):
+                            view_function = getattr(module_file, func_name)
+                            break
                 
                 if view_function is None:
                     abort(404)
                 
-                # Create a custom Jinja environment for this module
-                module_jinja_env = create_module_jinja_env(app, module_name, blueprint_name)
+                def custom_render_template(template_name, **context):
+                    context['url_for'] = custom_url_for
+                    
+                    template_path = os.path.join(app.root_path, 'modules', module_name, 'templates', template_name)
+                    
+                    try:
+                        with open(template_path, 'r') as file:
+                            template_content = file.read()
+                    except FileNotFoundError:
+                        abort(404)
+                    
+                    return render_template_string(template_content, **context)
                 
-                # Create a custom render_template function for this module
-                def module_render_template(template_name, **context):
-                    # Add Flask globals to the context
-                    context.update(
-                        current_app=current_app,
-                        g=g,
-                        request=request,
-                        session=session,
-                        current_user=current_user,
-                        config=current_app.config,
-                        is_admin=current_user.is_authenticated and current_user.is_admin
-                    )
-                    template = module_jinja_env.get_template(template_name)
-                    return template.render(context)
+                module_file.url_for = custom_url_for
+                module_file.render_template = custom_render_template
                 
-                # Inject the custom render_template function into the module's namespace
-                module_file.render_template = module_render_template
-                
-                # Call the view function
-                response = view_function()
-                
-                # Handle redirects within the module
-                if isinstance(response, werkzeug.wrappers.Response) and response.status_code == 302:
-                    # Extract the relative path from the Location header
-                    location = response.headers['Location']
-                    if location.startswith('/'):
-                        # Redirect to the module_proxy route
-                        return redirect(location)
-                        
-                return response
+                return view_function()
             
             except Exception as e:
-                abort(404)
+                abort(500)
     
     abort(404)
