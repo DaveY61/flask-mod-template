@@ -15,4 +15,8 @@
   <div class="d-flex justify-content-end mb-3">
     <a href="{{ url_for('auth.login') }}">Already have an account? Login</a>
   </div>
+
+  {% if config.ENABLE_REGISTRATION_CAPTCHA %}
+  <div class="g-recaptcha mb-3" data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}"></div>
+  {% endif %}
 {% endblock %}

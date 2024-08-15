@@ -21,6 +21,14 @@
             <input type="hidden" name="action" value="update_access_options">
             <div class="gui-setup-container">
               <div class="gui-setup-row">
+                <label for="require_login_for_site_access" class="gui-label">Require Login for Site Access:</label>
+                <div class="gui-input">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="require_login_for_site_access" name="require_login_for_site_access" {% if config.REQUIRE_LOGIN_FOR_SITE_ACCESS %}checked{% endif %}>
+                  </div>
+                </div>
+              </div>
+              <div class="gui-setup-row">
                 <label for="disable_self_registration" class="gui-label">Disable Self Registration:</label>
                 <div class="gui-input">
                   <div class="form-check form-switch">
@@ -29,10 +37,10 @@
                 </div>
               </div>
               <div class="gui-setup-row">
-                <label for="require_login_for_site_access" class="gui-label">Require Login for Site Access:</label>
+                <label for="enable_registration_captcha" class="gui-label">Enable Registration Captcha:</label>
                 <div class="gui-input">
                   <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="require_login_for_site_access" name="require_login_for_site_access" {% if config.REQUIRE_LOGIN_FOR_SITE_ACCESS %}checked{% endif %}>
+                    <input class="form-check-input" type="checkbox" id="enable_registration_captcha" name="enable_registration_captcha" {% if config.ENABLE_REGISTRATION_CAPTCHA %}checked{% endif %}>
                   </div>
                 </div>
               </div>

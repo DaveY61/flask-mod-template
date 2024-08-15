@@ -361,8 +361,9 @@ def setup_users():
         
         elif action == 'update_access_options':
             user_config = {
+                'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on',
                 'DISABLE_SELF_REGISTRATION': request.form.get('disable_self_registration') == 'on',
-                'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on'
+                'ENABLE_REGISTRATION_CAPTCHA': request.form.get('enable_registration_captcha') == 'on'
             }
             save_user_config(user_config)
             current_app.config.update(user_config)

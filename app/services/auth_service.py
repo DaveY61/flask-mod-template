@@ -5,6 +5,7 @@ from app.services.email_service import EmailService, EmailError
 from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user, get_default_role, update_user_role
 from datetime import datetime
 import uuid
+import requests
 
 blueprint = Blueprint('auth', __name__, template_folder='auth_templates')
 
@@ -36,6 +37,19 @@ def register():
 
     if get_user_by_email(email):
         return render_template('pages/register_failure.html', response_color="red"), 400
+
+    # Verify reCAPTCHA
+    if current_app.config['ENABLE_REGISTRATION_CAPTCHA']:
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        if not recaptcha_response:
+            flash('Please complete the reCAPTCHA.', 'danger')
+            return redirect(url_for('auth.register'))
+
+        verify_response = requests.post(url=f"https://www.google.com/recaptcha/api/siteverify?secret={current_app.config['RECAPTCHA_SECRET_KEY']}&response={recaptcha_response}").json()
+
+        if not verify_response['success']:
+            flash('reCAPTCHA verification failed. Please try again.', 'danger')
+            return redirect(url_for('auth.register'))
 
     user_id = str(uuid.uuid4())
     is_admin = email in current_app.config['ADMIN_USER_LIST']

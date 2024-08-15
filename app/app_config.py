@@ -35,6 +35,11 @@ class Config:
     USER_DATABASE_DIRECTORY = os.environ.get('USER_DATABASE_DIRECTORY') or './app_data/users'
     USER_DATABASE_PATH = os.path.join(USER_DATABASE_DIRECTORY, USER_DATABASE_FILENAME)
 
+    # User Authentication reCAPTCHA
+    ENABLE_REGISTRATION_CAPTCHA = False
+    RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY', '')
+    RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+
     #----------------------------------------------------------------------------
     # Module Configuration from "mod_config.cnf"
     MOD_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'mod_config.cnf')

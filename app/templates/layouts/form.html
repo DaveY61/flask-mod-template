@@ -77,6 +77,11 @@
   <script type="text/javascript" src="/static/js/libs/bootstrap.bundle-5.3.3.min.js" defer></script>
   <script type="text/javascript" src="/static/js/libs/fontawesome-6.6.0.min.js" defer></script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/flash-messages.js') }}" defer></script>
+
+  {% if config.ENABLE_REGISTRATION_CAPTCHA %}
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  {% endif %}
+
   {% block scripts %}{% endblock %}
   <!-- Scripts -->
 
