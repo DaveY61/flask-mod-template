@@ -426,15 +426,20 @@ def setup_users():
                            sidebar_menu=ADMIN_SIDEBAR_MENU)
 
 def setup_email():
-    # Initialize email_config with current values
+    # Load email configuration from app.config
     email_config = {
-        'EMAIL_FROM_ADDRESS': current_app.config['EMAIL_FROM_ADDRESS'],
-        'SMTP_SERVER': current_app.config['SMTP_SERVER'],
-        'SMTP_PORT': current_app.config['SMTP_PORT'],
-        'SMTP_USERNAME': current_app.config['SMTP_USERNAME'],
-        'SMTP_PASSWORD': current_app.config['SMTP_PASSWORD'],
+        'EMAIL_FROM_ADDRESS': current_app.config.get('EMAIL_FROM_ADDRESS', ''),
+        'SMTP_SERVER': current_app.config.get('SMTP_SERVER', ''),
+        'SMTP_PORT': current_app.config.get('SMTP_PORT', 587),
+        'SMTP_USERNAME': current_app.config.get('SMTP_USERNAME', ''),
+        'SMTP_PASSWORD': current_app.config.get('SMTP_PASSWORD', ''),
+        'EMAIL_FAIL_DIRECTORY': current_app.config.get('EMAIL_FAIL_DIRECTORY', '')
     }
-    
+
+    # If session has email_config, use it (it means it was previously updated)
+    if 'email_config' in session:
+        email_config.update(session['email_config'])
+
     # Initialize test_email with the value from the form, session, or current user's email
     test_email = request.form.get('test_email')
     if not test_email:
@@ -444,17 +449,14 @@ def setup_email():
         action = request.form.get('action')
 
         if action == 'test_email':
-            # Create a temporary config for testing
             temp_config = {
                 'EMAIL_FROM_ADDRESS': request.form.get('email_from_address'),
                 'SMTP_SERVER': request.form.get('smtp_server'),
                 'SMTP_PORT': int(request.form.get('smtp_port')),
                 'SMTP_USERNAME': request.form.get('smtp_username'),
                 'SMTP_PASSWORD': request.form.get('smtp_password'),
-                'EMAIL_FAIL_DIRECTORY': current_app.config['EMAIL_FAIL_DIRECTORY']
+                'EMAIL_FAIL_DIRECTORY': current_app.config['EMAIL_FAIL_DIRECTORY']  # Add this line
             }
-            
-            test_email = request.form.get('test_email')
             
             try:
                 email_service = EmailService(temp_config)
@@ -470,60 +472,61 @@ def setup_email():
                 return jsonify({'status': 'error', 'message': f'Unexpected error: {str(e)}'})
 
         elif action == 'update_session':
-            # Update the session with form data
-            session['email_config'] = {
-                'EMAIL_FROM_ADDRESS': request.form.get('email_from_address'),
-                'SMTP_SERVER': request.form.get('smtp_server'),
-                'SMTP_PORT': int(request.form.get('smtp_port')),
-                'SMTP_USERNAME': request.form.get('smtp_username'),
-                'SMTP_PASSWORD': request.form.get('smtp_password'),
-            }
-            return jsonify({'status': 'success', 'message': 'Email configuration updated in session.'})
+            try:
+                email_config = {
+                    'EMAIL_FROM_ADDRESS': request.form.get('email_from_address'),
+                    'SMTP_SERVER': request.form.get('smtp_server'),
+                    'SMTP_PORT': int(request.form.get('smtp_port')),
+                    'SMTP_USERNAME': request.form.get('smtp_username'),
+                    'SMTP_PASSWORD': request.form.get('smtp_password'),
+                }
+                # Update both session and app.config
+                session['email_config'] = email_config
+                current_app.config.update(email_config)
+                return jsonify({'status': 'success', 'message': 'Email configuration updated in session and app config.'})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Error updating configuration: {str(e)}'})
 
         elif action == 'save_settings':
-            # Update .env file with new email configuration
-            env_path = os.path.join(current_app.root_path, '..', '.env')
-            
-            if os.path.exists(env_path):
-                # Email-related variables to update
-                email_vars = [
-                    'EMAIL_FROM_ADDRESS',
-                    'SMTP_SERVER',
-                    'SMTP_PORT',
-                    'SMTP_USERNAME',
-                    'SMTP_PASSWORD'
-                ]
+            try:
+                env_path = os.path.join(current_app.root_path, '..', '.env')
+                
+                if os.path.exists(env_path):
+                    email_vars = [
+                        'EMAIL_FROM_ADDRESS',
+                        'SMTP_SERVER',
+                        'SMTP_PORT',
+                        'SMTP_USERNAME',
+                        'SMTP_PASSWORD'
+                    ]
 
-                # Read existing .env file
-                with open(env_path, 'r') as env_file:
-                    env_lines = env_file.readlines()
+                    with open(env_path, 'r') as env_file:
+                        env_lines = env_file.readlines()
 
-                # Update email-related variables
-                updated_vars = set()
-                for i, line in enumerate(env_lines):
+                    updated_vars = set()
+                    for i, line in enumerate(env_lines):
+                        for var in email_vars:
+                            if line.strip().startswith(f"{var}="):
+                                env_lines[i] = f"{var}={request.form.get(var.lower())}\n"
+                                updated_vars.add(var)
+                                break
+
                     for var in email_vars:
-                        if line.strip().startswith(f"{var}="):
-                            env_lines[i] = f"{var}={session['email_config'][var]}\n"
-                            updated_vars.add(var)
-                            break
+                        if var not in updated_vars:
+                            env_lines.append(f"{var}={request.form.get(var.lower())}\n")
 
-                # Add any missing email-related variables
-                for var in email_vars:
-                    if var not in updated_vars:
-                        env_lines.append(f"{var}={session['email_config'][var]}\n")
+                    with open(env_path, 'w') as env_file:
+                        env_file.writelines(env_lines)
 
-                # Write updated content back to .env file
-                with open(env_path, 'w') as env_file:
-                    env_file.writelines(env_lines)
-
-                return jsonify({'status': 'success', 'message': 'Email settings saved successfully.'})
-
-    # Check if .env file exists
-    env_file_exists = os.path.exists(os.path.join(current_app.root_path, '..', '.env'))
+                    return jsonify({'status': 'success', 'message': 'Email settings saved to .env file. Please restart your application for changes to take effect.'})
+                else:
+                    return jsonify({'status': 'error', 'message': 'No .env file found. Please update your server environment manually.'})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Error saving settings: {str(e)}'})
 
     return render_template('pages/admin_setup_email.html',
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU,
                            email_config=email_config,
                            test_email=test_email,
-                           env_file_exists=env_file_exists)
+                           env_file_exists=os.path.exists(os.path.join(current_app.root_path, '..', '.env')))

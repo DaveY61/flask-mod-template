@@ -72,6 +72,22 @@
     </div>
   </div>
 </div>
+
+<div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 11">
+  <div id="emailToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <strong class="me-auto" id="emailToastTitle">Email Test</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      <span id="emailToastBody"></span>
+      <div class="mt-2 pt-2 border-top">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </form>
 
 {% endblock %}
@@ -82,6 +98,28 @@
       window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
   }
   
+  function showToast(title, message, isError = false) {
+      const toast = document.getElementById('emailToast');
+      const toastTitle = document.getElementById('emailToastTitle');
+      const toastBody = document.getElementById('emailToastBody');
+      
+      toastTitle.textContent = title;
+      toastBody.textContent = message;
+      
+      if (isError) {
+          toast.classList.remove('bg-success');
+          toast.classList.add('bg-danger');
+      } else {
+          toast.classList.remove('bg-danger');
+          toast.classList.add('bg-success');
+      }
+      
+      const bsToast = new bootstrap.Toast(toast, {
+          autohide: false
+      });
+      bsToast.show();
+  }
+  
   document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('email-setup-form');
       const testEmailBtn = document.getElementById('testEmailBtn');
@@ -90,27 +128,11 @@
       const saveSettingsAlert = document.getElementById('saveSettingsAlert');
       const envFileExists = JSON.parse(form.dataset.envFileExists);
   
-      let originalFormData = new FormData(form);
       let sessionData = new FormData(form);
       let isUpdatingSession = false;
       let isTestingEmail = false;
-      let sessionUpdated = false;
-  
-      // Initialize sessionData with the current form values
-      for (let input of form.elements) {
-          if (input.name) {
-              sessionData.set(input.name, input.value);
-          }
-      }
   
       function formDataChanged() {
-          const currentFormData = new FormData(form);
-          return ![...originalFormData.entries()].every(([key, value]) => 
-              currentFormData.get(key) === value
-          );
-      }
-  
-      function sessionDataChanged() {
           const currentFormData = new FormData(form);
           return ![...sessionData.entries()].every(([key, value]) => 
               currentFormData.get(key) === value
@@ -118,11 +140,12 @@
       }
   
       function updateButtonStates() {
-          updateSessionBtn.disabled = !formDataChanged();
+          const formChanged = formDataChanged();
+          updateSessionBtn.disabled = !formChanged;
           if (envFileExists) {
-              saveSettingsBtn.disabled = !sessionUpdated;
-              saveSettingsBtn.classList.remove('btn-outline-secondary');
-              saveSettingsBtn.classList.add('btn-warning');
+              saveSettingsBtn.disabled = !formChanged;
+              saveSettingsBtn.classList.toggle('btn-outline-secondary', !formChanged);
+              saveSettingsBtn.classList.toggle('btn-warning', formChanged);
               saveSettingsAlert.style.display = 'none';
           } else {
               saveSettingsBtn.disabled = true;
@@ -147,14 +170,15 @@
           .then(response => response.json())
           .then(data => {
               if (data.status === 'success') {
-                  alert(data.message);
+                  showToast('Success', data.message);
               } else {
-                  alert('Error: ' + data.message);
+                  showToast('Error', data.message, true);
               }
               isTestingEmail = false;
           })
           .catch(error => {
               console.error('Error:', error);
+              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
               isTestingEmail = false;
           });
       });
@@ -172,17 +196,17 @@
           .then(response => response.json())
           .then(data => {
               if (data.status === 'success') {
-                  sessionData = new FormData(form);
-                  sessionUpdated = true;
-                  alert(data.message);
-                  updateButtonStates();
+                  sessionData = new FormData(form);  // Update sessionData with current form data
+                  showToast('Success', data.message);
+                  updateButtonStates();  // This will disable the button as form now matches session
               } else {
-                  alert('Error: ' + data.message);
+                  showToast('Error', data.message, true);
               }
               isUpdatingSession = false;
           })
           .catch(error => {
               console.error('Error:', error);
+              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
               isUpdatingSession = false;
           });
       });
@@ -199,16 +223,16 @@
           .then(response => response.json())
           .then(data => {
               if (data.status === 'success') {
-                  sessionUpdated = false;
-                  originalFormData = new FormData(form);
-                  alert(data.message);
-                  updateButtonStates();
+                  sessionData = new FormData(form);  // Update sessionData with current form data
+                  showToast('Success', data.message);
+                  updateButtonStates();  // This will update button states
               } else {
-                  alert('Error: ' + data.message);
+                  showToast('Error', data.message, true);
               }
           })
           .catch(error => {
               console.error('Error:', error);
+              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
           });
       });
   
@@ -217,7 +241,7 @@
       });
   
       window.addEventListener('beforeunload', function (e) {
-          if ((formDataChanged() || sessionUpdated) && !isUpdatingSession && !isTestingEmail) {
+          if (formDataChanged() && !isUpdatingSession && !isTestingEmail) {
               e.preventDefault();
               e.returnValue = '';
           }
@@ -289,6 +313,33 @@
 
   #saveSettingsBtn:disabled {
     opacity: 0.5;
+  }
+
+  .toast-container {
+    top: 80px !important; /* Adjust this value to position the toast below your navbar */
+  }
+
+  #emailToast {
+    min-width: 300px; /* Adjust as needed */
+    max-width: 90%; /* Prevents the toast from being too wide on small screens */
+  }
+
+  /* Custom styles for success and error toasts */
+  #emailToast.bg-success {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border-color: #c3e6cb !important;
+  }
+
+  #emailToast.bg-danger {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border-color: #f5c6cb !important;
+  }
+
+  #emailToast .toast-header {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
   </style>
 {% endblock %}
