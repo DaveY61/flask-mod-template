@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const envFileExists = JSON.parse(form.dataset.envFileExists);
 
     let sessionData = new FormData(form);
+    let envData = new FormData(form);  // Initialize with current form data, assuming it reflects .env initially
     let isUpdatingSession = false;
     let isTestingEmail = false;
 
@@ -139,13 +140,19 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
+    function sessionChangedFromEnv() {
+        return ![...sessionData.entries()].every(([key, value]) => 
+            envData.get(key) === value
+        );
+    }
+
     function updateButtonStates() {
         const formChanged = formDataChanged();
         updateSessionBtn.disabled = !formChanged;
         if (envFileExists) {
-            saveSettingsBtn.disabled = !formChanged;
-            saveSettingsBtn.classList.toggle('btn-outline-secondary', !formChanged);
-            saveSettingsBtn.classList.toggle('btn-warning', formChanged);
+            saveSettingsBtn.disabled = !sessionChangedFromEnv();
+            saveSettingsBtn.classList.toggle('btn-outline-secondary', !sessionChangedFromEnv());
+            saveSettingsBtn.classList.toggle('btn-warning', sessionChangedFromEnv());
             saveSettingsAlert.style.display = 'none';
         } else {
             saveSettingsBtn.disabled = true;
@@ -182,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isTestingEmail = false;
         });
     });
-
+    
     updateSessionBtn.addEventListener('click', function(e) {
         e.preventDefault();
         isUpdatingSession = true;
@@ -198,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.status === 'success') {
                 sessionData = new FormData(form);  // Update sessionData with current form data
                 showToast('Success', data.message);
-                updateButtonStates();  // This will disable the button as form now matches session
+                updateButtonStates();  // This will update button states
             } else {
                 showToast('Error', data.message, true);
             }
@@ -223,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                sessionData = new FormData(form);  // Update sessionData with current form data
+                envData = new FormData(form);  // Update envData with current form data
                 showToast('Success', data.message);
                 updateButtonStates();  // This will update button states
             } else {
