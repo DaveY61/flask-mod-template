@@ -94,162 +94,162 @@
 
 {% block scripts %}
 <script>
-  function showAdminSetup(setupType) {
-      window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
-  }
-  
-  function showToast(title, message, isError = false) {
-      const toast = document.getElementById('emailToast');
-      const toastTitle = document.getElementById('emailToastTitle');
-      const toastBody = document.getElementById('emailToastBody');
-      
-      toastTitle.textContent = title;
-      toastBody.textContent = message;
-      
-      if (isError) {
-          toast.classList.remove('bg-success');
-          toast.classList.add('bg-danger');
-      } else {
-          toast.classList.remove('bg-danger');
-          toast.classList.add('bg-success');
-      }
-      
-      const bsToast = new bootstrap.Toast(toast, {
-          autohide: false
-      });
-      bsToast.show();
-  }
-  
-  document.addEventListener('DOMContentLoaded', function() {
-      const form = document.getElementById('email-setup-form');
-      const testEmailBtn = document.getElementById('testEmailBtn');
-      const updateSessionBtn = document.getElementById('updateSessionBtn');
-      const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-      const saveSettingsAlert = document.getElementById('saveSettingsAlert');
-      const envFileExists = JSON.parse(form.dataset.envFileExists);
-  
-      let sessionData = new FormData(form);
-      let isUpdatingSession = false;
-      let isTestingEmail = false;
-  
-      function formDataChanged() {
-          const currentFormData = new FormData(form);
-          return ![...sessionData.entries()].every(([key, value]) => 
-              currentFormData.get(key) === value
-          );
-      }
-  
-      function updateButtonStates() {
-          const formChanged = formDataChanged();
-          updateSessionBtn.disabled = !formChanged;
-          if (envFileExists) {
-              saveSettingsBtn.disabled = !formChanged;
-              saveSettingsBtn.classList.toggle('btn-outline-secondary', !formChanged);
-              saveSettingsBtn.classList.toggle('btn-warning', formChanged);
-              saveSettingsAlert.style.display = 'none';
-          } else {
-              saveSettingsBtn.disabled = true;
-              saveSettingsBtn.classList.remove('btn-warning');
-              saveSettingsBtn.classList.add('btn-outline-secondary');
-              saveSettingsAlert.style.display = 'inline-block';
-          }
-      }
-  
-      form.addEventListener('input', updateButtonStates);
-  
-      testEmailBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          isTestingEmail = true;
-          const formData = new FormData(form);
-          formData.append('action', 'test_email');
-          
-          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
-              method: 'POST',
-              body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.status === 'success') {
-                  showToast('Success', data.message);
-              } else {
-                  showToast('Error', data.message, true);
-              }
-              isTestingEmail = false;
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
-              isTestingEmail = false;
-          });
-      });
-  
-      updateSessionBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          isUpdatingSession = true;
-          const formData = new FormData(form);
-          formData.append('action', 'update_session');
-          
-          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
-              method: 'POST',
-              body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.status === 'success') {
-                  sessionData = new FormData(form);  // Update sessionData with current form data
-                  showToast('Success', data.message);
-                  updateButtonStates();  // This will disable the button as form now matches session
-              } else {
-                  showToast('Error', data.message, true);
-              }
-              isUpdatingSession = false;
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
-              isUpdatingSession = false;
-          });
-      });
-  
-      saveSettingsBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          const formData = new FormData(form);
-          formData.append('action', 'save_settings');
-          
-          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
-              method: 'POST',
-              body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.status === 'success') {
-                  sessionData = new FormData(form);  // Update sessionData with current form data
-                  showToast('Success', data.message);
-                  updateButtonStates();  // This will update button states
-              } else {
-                  showToast('Error', data.message, true);
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
-          });
-      });
-  
-      saveSettingsAlert.addEventListener('click', function() {
-          $('#saveSettingsModal').modal('show');
-      });
-  
-      window.addEventListener('beforeunload', function (e) {
-          if (formDataChanged() && !isUpdatingSession && !isTestingEmail) {
-              e.preventDefault();
-              e.returnValue = '';
-          }
-      });
-  
-      updateButtonStates();
-  });
-  </script>
+function showAdminSetup(setupType) {
+    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+}
+
+function showToast(title, message, isError = false) {
+    const toast = document.getElementById('emailToast');
+    const toastTitle = document.getElementById('emailToastTitle');
+    const toastBody = document.getElementById('emailToastBody');
+    
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+    
+    if (isError) {
+        toast.classList.remove('bg-success');
+        toast.classList.add('bg-danger');
+    } else {
+        toast.classList.remove('bg-danger');
+        toast.classList.add('bg-success');
+    }
+    
+    const bsToast = new bootstrap.Toast(toast, {
+        autohide: false
+    });
+    bsToast.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('email-setup-form');
+    const testEmailBtn = document.getElementById('testEmailBtn');
+    const updateSessionBtn = document.getElementById('updateSessionBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const saveSettingsAlert = document.getElementById('saveSettingsAlert');
+    const envFileExists = JSON.parse(form.dataset.envFileExists);
+
+    let sessionData = new FormData(form);
+    let isUpdatingSession = false;
+    let isTestingEmail = false;
+
+    function formDataChanged() {
+        const currentFormData = new FormData(form);
+        return ![...sessionData.entries()].every(([key, value]) => 
+            currentFormData.get(key) === value
+        );
+    }
+
+    function updateButtonStates() {
+        const formChanged = formDataChanged();
+        updateSessionBtn.disabled = !formChanged;
+        if (envFileExists) {
+            saveSettingsBtn.disabled = !formChanged;
+            saveSettingsBtn.classList.toggle('btn-outline-secondary', !formChanged);
+            saveSettingsBtn.classList.toggle('btn-warning', formChanged);
+            saveSettingsAlert.style.display = 'none';
+        } else {
+            saveSettingsBtn.disabled = true;
+            saveSettingsBtn.classList.remove('btn-warning');
+            saveSettingsBtn.classList.add('btn-outline-secondary');
+            saveSettingsAlert.style.display = 'inline-block';
+        }
+    }
+
+    form.addEventListener('input', updateButtonStates);
+
+    testEmailBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        isTestingEmail = true;
+        const formData = new FormData(form);
+        formData.append('action', 'test_email');
+        
+        fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast('Success', data.message);
+            } else {
+                showToast('Error', data.message, true);
+            }
+            isTestingEmail = false;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
+            isTestingEmail = false;
+        });
+    });
+
+    updateSessionBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        isUpdatingSession = true;
+        const formData = new FormData(form);
+        formData.append('action', 'update_session');
+        
+        fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                sessionData = new FormData(form);  // Update sessionData with current form data
+                showToast('Success', data.message);
+                updateButtonStates();  // This will disable the button as form now matches session
+            } else {
+                showToast('Error', data.message, true);
+            }
+            isUpdatingSession = false;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
+            isUpdatingSession = false;
+        });
+    });
+
+    saveSettingsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        formData.append('action', 'save_settings');
+        
+        fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                sessionData = new FormData(form);  // Update sessionData with current form data
+                showToast('Success', data.message);
+                updateButtonStates();  // This will update button states
+            } else {
+                showToast('Error', data.message, true);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error', 'An unexpected error occurred. Please check the console for details.', true);
+        });
+    });
+
+    saveSettingsAlert.addEventListener('click', function() {
+        $('#saveSettingsModal').modal('show');
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        if (formDataChanged() && !isUpdatingSession && !isTestingEmail) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    updateButtonStates();
+});
+</script>
 {% endblock %}
 
 {% block additional_styles %}
