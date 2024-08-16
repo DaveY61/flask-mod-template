@@ -11,6 +11,7 @@
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
 - [User Management](#user-management)
+- [User Registration: reCAPTCHA](#User-Registration-reCAPTCHA)
 - [Email Setup](#Email-Setup)
 - [License](#license)
 - [Deployment](#deployment)
@@ -221,9 +222,9 @@ Note: Icon images should be in PNG format and appropriately sized for best resul
 
 5. All changes in user management take effect immediately after saving.
 
-## reCAPTCHA Setup for Registration
+## User Registration: reCAPTCHA
 
-To enable reCAPTCHA on the registration form:
+To enable reCAPTCHA on the user self-registration form:
 
 1. In the Admin Setup, go to the "User Setup" page.
 2. In the "Access Options" section, you'll see an option to "Enable Registration Captcha".
