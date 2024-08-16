@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const envFileExists = JSON.parse(form.dataset.envFileExists);
 
     let sessionData = new FormData(form);
-    let envData = new FormData(form);  // Initialize with current form data, assuming it reflects .env initially
+    let envData = new FormData(form);
     let isUpdatingSession = false;
     let isTestingEmail = false;
 
@@ -248,12 +248,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     window.addEventListener('beforeunload', function (e) {
-        if (formDataChanged() && !isUpdatingSession && !isTestingEmail) {
+        if ((formDataChanged() || (envFileExists && sessionChangedFromEnv())) && !isUpdatingSession && !isTestingEmail) {
             e.preventDefault();
             e.returnValue = '';
         }
     });
-
     updateButtonStates();
 });
 </script>
