@@ -78,90 +78,154 @@
 
 {% block scripts %}
 <script>
-function showAdminSetup(setupType) {
-    window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('email-setup-form');
-    const testEmailBtn = document.getElementById('testEmailBtn');
-    const updateSessionBtn = document.getElementById('updateSessionBtn');
-    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    const saveSettingsAlert = document.getElementById('saveSettingsAlert');
-    const envFileExists = JSON.parse(form.dataset.envFileExists);
-
-    let originalFormData = new FormData(form);
-    let sessionData = new FormData(form);
-    let isUpdatingSession = false;
-
-    // Initialize sessionData with the current form values
-    for (let input of form.elements) {
-        if (input.name) {
-            sessionData.set(input.name, input.value);
-        }
-    }
-
-    function formDataChanged() {
-        const currentFormData = new FormData(form);
-        return ![...originalFormData.entries()].every(([key, value]) => 
-            currentFormData.get(key) === value
-        );
-    }
-
-    function sessionDataChanged() {
-        const currentFormData = new FormData(form);
-        return ![...sessionData.entries()].every(([key, value]) => 
-            currentFormData.get(key) === value
-        );
-    }
-
-    function updateButtonStates() {
-        updateSessionBtn.disabled = !formDataChanged();
-        if (envFileExists) {
-            saveSettingsBtn.disabled = !sessionDataChanged();
-            saveSettingsBtn.classList.remove('btn-outline-secondary');
-            saveSettingsBtn.classList.add('btn-warning');
-            saveSettingsAlert.style.display = 'none';
-        } else {
-            saveSettingsBtn.disabled = true;
-            saveSettingsBtn.classList.remove('btn-warning');
-            saveSettingsBtn.classList.add('btn-outline-secondary');
-            saveSettingsAlert.style.display = 'inline-block';
-        }
-    }
-
-    form.addEventListener('input', updateButtonStates);
-
-    testEmailBtn.addEventListener('click', function() {
-        form.action.value = 'test_email';
-        form.submit();
-    });
-
-    updateSessionBtn.addEventListener('click', function() {
-        isUpdatingSession = true;
-        form.action.value = 'update_session';
-        form.submit();
-    });
-
-    saveSettingsBtn.addEventListener('click', function() {
-        form.action.value = 'save_settings';
-        form.submit();
-    });
-
-    saveSettingsAlert.addEventListener('click', function() {
-        $('#saveSettingsModal').modal('show');
-    });
-
-    window.addEventListener('beforeunload', function (e) {
-        if (formDataChanged() && !isUpdatingSession) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    });
-
-    updateButtonStates();
-});
-</script>
+  function showAdminSetup(setupType) {
+      window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
+  }
+  
+  document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('email-setup-form');
+      const testEmailBtn = document.getElementById('testEmailBtn');
+      const updateSessionBtn = document.getElementById('updateSessionBtn');
+      const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+      const saveSettingsAlert = document.getElementById('saveSettingsAlert');
+      const envFileExists = JSON.parse(form.dataset.envFileExists);
+  
+      let originalFormData = new FormData(form);
+      let sessionData = new FormData(form);
+      let isUpdatingSession = false;
+      let isTestingEmail = false;
+      let sessionUpdated = false;
+  
+      // Initialize sessionData with the current form values
+      for (let input of form.elements) {
+          if (input.name) {
+              sessionData.set(input.name, input.value);
+          }
+      }
+  
+      function formDataChanged() {
+          const currentFormData = new FormData(form);
+          return ![...originalFormData.entries()].every(([key, value]) => 
+              currentFormData.get(key) === value
+          );
+      }
+  
+      function sessionDataChanged() {
+          const currentFormData = new FormData(form);
+          return ![...sessionData.entries()].every(([key, value]) => 
+              currentFormData.get(key) === value
+          );
+      }
+  
+      function updateButtonStates() {
+          updateSessionBtn.disabled = !formDataChanged();
+          if (envFileExists) {
+              saveSettingsBtn.disabled = !sessionUpdated;
+              saveSettingsBtn.classList.remove('btn-outline-secondary');
+              saveSettingsBtn.classList.add('btn-warning');
+              saveSettingsAlert.style.display = 'none';
+          } else {
+              saveSettingsBtn.disabled = true;
+              saveSettingsBtn.classList.remove('btn-warning');
+              saveSettingsBtn.classList.add('btn-outline-secondary');
+              saveSettingsAlert.style.display = 'inline-block';
+          }
+      }
+  
+      form.addEventListener('input', updateButtonStates);
+  
+      testEmailBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          isTestingEmail = true;
+          const formData = new FormData(form);
+          formData.append('action', 'test_email');
+          
+          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+              method: 'POST',
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  alert(data.message);
+              } else {
+                  alert('Error: ' + data.message);
+              }
+              isTestingEmail = false;
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              isTestingEmail = false;
+          });
+      });
+  
+      updateSessionBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          isUpdatingSession = true;
+          const formData = new FormData(form);
+          formData.append('action', 'update_session');
+          
+          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+              method: 'POST',
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  sessionData = new FormData(form);
+                  sessionUpdated = true;
+                  alert(data.message);
+                  updateButtonStates();
+              } else {
+                  alert('Error: ' + data.message);
+              }
+              isUpdatingSession = false;
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              isUpdatingSession = false;
+          });
+      });
+  
+      saveSettingsBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const formData = new FormData(form);
+          formData.append('action', 'save_settings');
+          
+          fetch('{{ url_for("admin.setup_type", setup_type="email") }}', {
+              method: 'POST',
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  sessionUpdated = false;
+                  originalFormData = new FormData(form);
+                  alert(data.message);
+                  updateButtonStates();
+              } else {
+                  alert('Error: ' + data.message);
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+          });
+      });
+  
+      saveSettingsAlert.addEventListener('click', function() {
+          $('#saveSettingsModal').modal('show');
+      });
+  
+      window.addEventListener('beforeunload', function (e) {
+          if ((formDataChanged() || sessionUpdated) && !isUpdatingSession && !isTestingEmail) {
+              e.preventDefault();
+              e.returnValue = '';
+          }
+      });
+  
+      updateButtonStates();
+  });
+  </script>
 {% endblock %}
 
 {% block additional_styles %}

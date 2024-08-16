@@ -61,13 +61,21 @@ class EmailService:
             self.connect_to_smtp()  # Ensure SMTP connection is established
             recipients = to + (cc if cc else []) + (bcc if bcc else [])
             self.smtp_server.sendmail(self.config['EMAIL_FROM_ADDRESS'], recipients, msg.as_string())
+
+        except smtplib.SMTPException as e:
+            self.save_failed_email(msg)
+            raise EmailError(f"SMTP error: {str(e)}")
         except Exception as e:
             self.save_failed_email(msg)
-            raise EmailError(f"Failed to send email: {str(e)}")
-
+            raise EmailError(f"Unexpected error: {str(e)}")
+        
     def save_failed_email(self, msg):
+        if 'EMAIL_FAIL_DIRECTORY' not in self.config:
+            raise EmailError("EMAIL_FAIL_DIRECTORY not configured")
+        
         if not os.path.exists(self.config['EMAIL_FAIL_DIRECTORY']):
             os.makedirs(self.config['EMAIL_FAIL_DIRECTORY'])
+            
         failed_email_path = os.path.join(self.config['EMAIL_FAIL_DIRECTORY'], f"failed_{int(datetime.now().timestamp())}.eml")
         with open(failed_email_path, 'w') as f:
             f.write(msg.as_string())

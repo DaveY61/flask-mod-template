@@ -451,19 +451,23 @@ def setup_email():
                 'SMTP_PORT': int(request.form.get('smtp_port')),
                 'SMTP_USERNAME': request.form.get('smtp_username'),
                 'SMTP_PASSWORD': request.form.get('smtp_password'),
+                'EMAIL_FAIL_DIRECTORY': current_app.config['EMAIL_FAIL_DIRECTORY']
             }
             
-            # Create a temporary EmailService instance with the temp config
-            temp_email_service = EmailService(temp_config)
-
-            subject = "Test Email from Admin Setup"
-            body = "This is a test email sent from the Admin Setup page."
-
+            test_email = request.form.get('test_email')
+            
             try:
-                temp_email_service.send_email([test_email], subject, body)
-                flash('Test email sent successfully!', 'success')
+                email_service = EmailService(temp_config)
+                email_service.send_email(
+                    [test_email],
+                    "Test Email from Admin Setup",
+                    "This is a test email sent from the Admin Setup page."
+                )
+                return jsonify({'status': 'success', 'message': 'Test email sent successfully!'})
+            except EmailError as e:
+                return jsonify({'status': 'error', 'message': str(e)})
             except Exception as e:
-                flash(f'Error sending test email: {str(e)}', 'danger')
+                return jsonify({'status': 'error', 'message': f'Unexpected error: {str(e)}'})
 
         elif action == 'update_session':
             # Update the session with form data
@@ -474,7 +478,7 @@ def setup_email():
                 'SMTP_USERNAME': request.form.get('smtp_username'),
                 'SMTP_PASSWORD': request.form.get('smtp_password'),
             }
-            flash('Email configuration updated in current session.', 'success')
+            return jsonify({'status': 'success', 'message': 'Email configuration updated in session.'})
 
         elif action == 'save_settings':
             # Update .env file with new email configuration
@@ -512,9 +516,7 @@ def setup_email():
                 with open(env_path, 'w') as env_file:
                     env_file.writelines(env_lines)
 
-                flash('Email settings saved to .env file. Please restart your application for changes to take effect.', 'success')
-            else:
-                flash('No .env file found. Please update your server environment manually.', 'warning')
+                return jsonify({'status': 'success', 'message': 'Email settings saved successfully.'})
 
     # Check if .env file exists
     env_file_exists = os.path.exists(os.path.join(current_app.root_path, '..', '.env'))
