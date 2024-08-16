@@ -299,17 +299,29 @@ document.addEventListener('DOMContentLoaded', function() {
     width: 100%;
     padding-bottom: 15px;
   }
+
   .gui-input input[type="text"],
   .gui-input input[type="email"],
   .gui-input input[type="number"],
-  .gui-input input[type="password"] {
-    width: 250px;
+  .gui-input input[type="password"],
+  .gui-input .input-group {
+    width: 250px; 
   }
 
-  .toggle-password {
-    width: 38px;
+  .gui-input .input-group {
+    display: flex;
   }
-  
+
+  .gui-input .input-group .form-control {
+    flex: 1;
+    width: auto;
+  }
+
+  .gui-input .input-group .toggle-password {
+    width: 38px;
+    flex-shrink: 0;
+  }
+
   .save-settings-warning {
     border: 2px solid red;
   }
