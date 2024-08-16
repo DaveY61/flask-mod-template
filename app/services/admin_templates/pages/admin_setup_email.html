@@ -54,21 +54,24 @@
     </div>
   </div>
   
-  <div class="modal fade" id="saveSettingsModal" tabindex="-1" aria-labelledby="saveSettingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="saveSettingsModalLabel">Save Settings Warning</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          The "Save Setting" operation is not supported (no .env file). <br>
-          Be sure to update your server environment with any changes. <br>
-          <b>Updates to the session will be lost if the server restarts.</b>
-        </div>
+<!-- Modal for Save Settings Warning -->
+<div class="modal fade" id="saveSettingsModal" tabindex="-1" aria-labelledby="saveSettingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content save-settings-warning">
+      <div class="modal-header">
+        <h5 class="modal-title" id="saveSettingsModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>Save Settings Warning
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>The "Save Setting" operation is not supported (no .env file).</p>
+        <p>Be sure to update your server environment with any changes.</p>
+        <p><strong>Updates to the session will be lost if the server restarts.</strong></p>
       </div>
     </div>
   </div>
+</div>
 </form>
 
 {% endblock %}
@@ -190,9 +193,34 @@ document.addEventListener('DOMContentLoaded', function() {
     width: 250px;
   }
 
+  .save-settings-warning {
+    border: 2px solid red;
+  }
+
+  .save-settings-warning .modal-header {
+    background-color: #fff3cd;
+    color: red;
+    border-bottom: 1px solid #ffeeba;
+  }
+
+  .save-settings-warning .modal-body {
+    background-color: #fff3cd;
+    color: red;
+  }
+
+  .save-settings-warning .modal-title {
+    display: flex;
+    align-items: center;
+  }
+
+  .save-settings-warning .btn-close {
+    color: #856404;
+  }
+
   #saveSettingsAlert {
     font-size: 1.2em;
     margin-left: 5px;
+    color: #ffc107;
   }
 
   #saveSettingsBtn:disabled {
