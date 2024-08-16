@@ -6,7 +6,7 @@
   <h2>Email Setup</h2>
 </div>
 
-<form method="POST" id="email-setup-form" class="col-md-8">
+<form method="POST" id="email-setup-form" class="col-md-8" data-env-file-exists="{{ env_file_exists|tojson }}">
   <div class="gui-setup-container">
     <div class="gui-setup-row">
       <label for="email_from_address" class="gui-label">From Email Address:</label>
@@ -45,10 +45,29 @@
       </div>
     </div>
   </div>
-  <div class="mt-3">
-    <button type="submit" name="action" value="update_config" class="btn btn-primary btn-sm">Update Config</button>
-    <button type="submit" name="action" value="test_email" class="btn btn-light btn-outline-secondary btn-sm">Send Test Email</button>
-    <button type="submit" name="action" value="save_and_restart" class="btn btn-warning btn-sm">Save to .env and Restart</button>
+  <div class="mt-3 d-flex align-items-center">
+    <button type="button" id="testEmailBtn" class="btn btn-success btn-sm me-2">Test Email</button>
+    <button type="button" id="updateSessionBtn" class="btn btn-primary btn-sm me-2" disabled>Update Session</button>
+    <div class="d-flex align-items-center">
+      <button type="button" id="saveSettingsBtn" class="btn btn-warning btn-sm me-1" disabled>Save Settings</button>
+      <i id="saveSettingsAlert" class="fas fa-exclamation-circle text-warning" style="cursor: pointer; display: none;"></i>
+    </div>
+  </div>
+  
+  <div class="modal fade" id="saveSettingsModal" tabindex="-1" aria-labelledby="saveSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saveSettingsModalLabel">Save Settings Warning</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          The "Save Setting" operation is not supported (no .env file). <br>
+          Be sure to update your server environment with any changes. <br>
+          <b>Updates to the session will be lost if the server restarts.</b>
+        </div>
+      </div>
+    </div>
   </div>
 </form>
 
@@ -59,6 +78,86 @@
 function showAdminSetup(setupType) {
     window.location.href = "{{ url_for('admin.setup_type', setup_type='') }}" + setupType;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('email-setup-form');
+    const testEmailBtn = document.getElementById('testEmailBtn');
+    const updateSessionBtn = document.getElementById('updateSessionBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const saveSettingsAlert = document.getElementById('saveSettingsAlert');
+    const envFileExists = JSON.parse(form.dataset.envFileExists);
+
+    let originalFormData = new FormData(form);
+    let sessionData = new FormData(form);
+    let isUpdatingSession = false;
+
+    // Initialize sessionData with the current form values
+    for (let input of form.elements) {
+        if (input.name) {
+            sessionData.set(input.name, input.value);
+        }
+    }
+
+    function formDataChanged() {
+        const currentFormData = new FormData(form);
+        return ![...originalFormData.entries()].every(([key, value]) => 
+            currentFormData.get(key) === value
+        );
+    }
+
+    function sessionDataChanged() {
+        const currentFormData = new FormData(form);
+        return ![...sessionData.entries()].every(([key, value]) => 
+            currentFormData.get(key) === value
+        );
+    }
+
+    function updateButtonStates() {
+        updateSessionBtn.disabled = !formDataChanged();
+        if (envFileExists) {
+            saveSettingsBtn.disabled = !sessionDataChanged();
+            saveSettingsBtn.classList.remove('btn-outline-secondary');
+            saveSettingsBtn.classList.add('btn-warning');
+            saveSettingsAlert.style.display = 'none';
+        } else {
+            saveSettingsBtn.disabled = true;
+            saveSettingsBtn.classList.remove('btn-warning');
+            saveSettingsBtn.classList.add('btn-outline-secondary');
+            saveSettingsAlert.style.display = 'inline-block';
+        }
+    }
+
+    form.addEventListener('input', updateButtonStates);
+
+    testEmailBtn.addEventListener('click', function() {
+        form.action.value = 'test_email';
+        form.submit();
+    });
+
+    updateSessionBtn.addEventListener('click', function() {
+        isUpdatingSession = true;
+        form.action.value = 'update_session';
+        form.submit();
+    });
+
+    saveSettingsBtn.addEventListener('click', function() {
+        form.action.value = 'save_settings';
+        form.submit();
+    });
+
+    saveSettingsAlert.addEventListener('click', function() {
+        $('#saveSettingsModal').modal('show');
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        if (formDataChanged() && !isUpdatingSession) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    updateButtonStates();
+});
 </script>
 {% endblock %}
 
@@ -90,5 +189,14 @@ function showAdminSetup(setupType) {
   .gui-input input[type="password"] {
     width: 250px;
   }
-</style>
+
+  #saveSettingsAlert {
+    font-size: 1.2em;
+    margin-left: 5px;
+  }
+
+  #saveSettingsBtn:disabled {
+    opacity: 0.5;
+  }
+  </style>
 {% endblock %}

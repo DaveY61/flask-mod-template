@@ -443,25 +443,18 @@ def setup_email():
     if request.method == 'POST':
         action = request.form.get('action')
 
-        # Update the email_config with form data for all actions
-        email_config['EMAIL_FROM_ADDRESS'] = request.form.get('email_from_address')
-        email_config['SMTP_SERVER'] = request.form.get('smtp_server')
-        email_config['SMTP_PORT'] = int(request.form.get('smtp_port'))
-        email_config['SMTP_USERNAME'] = request.form.get('smtp_username')
-        email_config['SMTP_PASSWORD'] = request.form.get('smtp_password')
-
-        # Update current_app.config
-        current_app.config.update(email_config)
-
-        # Save the test email in the session
-        session['admin_test_email'] = test_email
-
-        if action == 'update_config':
-            flash('Email configuration updated in current session.', 'success')
-
-        elif action == 'test_email':
-            # Create a temporary EmailService instance with the current configuration
-            temp_email_service = EmailService(current_app.config)
+        if action == 'test_email':
+            # Create a temporary config for testing
+            temp_config = {
+                'EMAIL_FROM_ADDRESS': request.form.get('email_from_address'),
+                'SMTP_SERVER': request.form.get('smtp_server'),
+                'SMTP_PORT': int(request.form.get('smtp_port')),
+                'SMTP_USERNAME': request.form.get('smtp_username'),
+                'SMTP_PASSWORD': request.form.get('smtp_password'),
+            }
+            
+            # Create a temporary EmailService instance with the temp config
+            temp_email_service = EmailService(temp_config)
 
             subject = "Test Email from Admin Setup"
             body = "This is a test email sent from the Admin Setup page."
@@ -472,53 +465,63 @@ def setup_email():
             except Exception as e:
                 flash(f'Error sending test email: {str(e)}', 'danger')
 
-        elif action == 'save_and_restart':
+        elif action == 'update_session':
+            # Update the session with form data
+            session['email_config'] = {
+                'EMAIL_FROM_ADDRESS': request.form.get('email_from_address'),
+                'SMTP_SERVER': request.form.get('smtp_server'),
+                'SMTP_PORT': int(request.form.get('smtp_port')),
+                'SMTP_USERNAME': request.form.get('smtp_username'),
+                'SMTP_PASSWORD': request.form.get('smtp_password'),
+            }
+            flash('Email configuration updated in current session.', 'success')
+
+        elif action == 'save_settings':
             # Update .env file with new email configuration
             env_path = os.path.join(current_app.root_path, '..', '.env')
             
-            # Email-related variables to update
-            email_vars = [
-                'EMAIL_FROM_ADDRESS',
-                'SMTP_SERVER',
-                'SMTP_PORT',
-                'SMTP_USERNAME',
-                'SMTP_PASSWORD'
-            ]
-
-            # Read existing .env file
             if os.path.exists(env_path):
+                # Email-related variables to update
+                email_vars = [
+                    'EMAIL_FROM_ADDRESS',
+                    'SMTP_SERVER',
+                    'SMTP_PORT',
+                    'SMTP_USERNAME',
+                    'SMTP_PASSWORD'
+                ]
+
+                # Read existing .env file
                 with open(env_path, 'r') as env_file:
                     env_lines = env_file.readlines()
-            else:
-                env_lines = []
 
-            # Update email-related variables
-            updated_vars = set()
-            for i, line in enumerate(env_lines):
+                # Update email-related variables
+                updated_vars = set()
+                for i, line in enumerate(env_lines):
+                    for var in email_vars:
+                        if line.strip().startswith(f"{var}="):
+                            env_lines[i] = f"{var}={session['email_config'][var]}\n"
+                            updated_vars.add(var)
+                            break
+
+                # Add any missing email-related variables
                 for var in email_vars:
-                    if line.strip().startswith(f"{var}="):
-                        env_lines[i] = f"{var}={current_app.config[var]}\n"
-                        updated_vars.add(var)
-                        break
+                    if var not in updated_vars:
+                        env_lines.append(f"{var}={session['email_config'][var]}\n")
 
-            # Add any missing email-related variables
-            for var in email_vars:
-                if var not in updated_vars:
-                    env_lines.append(f"{var}={current_app.config[var]}\n")
+                # Write updated content back to .env file
+                with open(env_path, 'w') as env_file:
+                    env_file.writelines(env_lines)
 
-            # Write updated content back to .env file
-            with open(env_path, 'w') as env_file:
-                env_file.writelines(env_lines)
+                flash('Email settings saved to .env file. Please restart your application for changes to take effect.', 'success')
+            else:
+                flash('No .env file found. Please update your server environment manually.', 'warning')
 
-            # Update the current process environment
-            for var in email_vars:
-                os.environ[var] = str(current_app.config[var])
-
-            # Restart the Flask application
-            os.execv(sys.executable, ['python'] + sys.argv)
+    # Check if .env file exists
+    env_file_exists = os.path.exists(os.path.join(current_app.root_path, '..', '.env'))
 
     return render_template('pages/admin_setup_email.html',
                            use_sidebar=True,
                            sidebar_menu=ADMIN_SIDEBAR_MENU,
                            email_config=email_config,
-                           test_email=test_email)
+                           test_email=test_email,
+                           env_file_exists=env_file_exists)
