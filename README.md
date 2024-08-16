@@ -11,6 +11,7 @@
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
 - [User Management](#user-management)
+- [Email Setup](#Email-Setup)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -234,6 +235,44 @@ To enable reCAPTCHA on the registration form:
 5. Once enabled, the registration form will include a reCAPTCHA "I'm not a robot" checkbox.
 
 Note: Ensure you keep your reCAPTCHA Secret Key confidential and never expose it in client-side code or public repositories.
+
+## Email Setup
+
+The Email Setup interface allows administrators to configure and test email settings without immediately applying changes to the application's configuration. This process ensures that email settings are working correctly before updating the application's session or the `.env` file.
+
+1. In the Admin Setup, go to the "Email Setup" page.
+
+2. Here you can configure:
+   - From Email Address
+   - SMTP Server
+   - SMTP Port
+   - SMTP Username
+   - SMTP Password
+   - Test Email Address (for sending test emails)
+
+3. Testing Email Configuration:
+   - After entering the email configuration, click the "Test Email" button.
+   - This will attempt to send a test email using the entered configuration.
+   - If successful, you'll see a success message. If not, an error message will be displayed.
+   - This test does not update the session or `.env` file, allowing you to safely test different configurations.
+
+4. Updating Session:
+   - Once you've successfully tested the email configuration, click the "Update Session" button.
+   - This will update the current application session with the new email settings.
+   - The changes will be active for the duration of the current application run but will not persist after a restart unless saved to the `.env` file.
+
+5. Saving Settings (if .env file is available):
+   - If your application is set up with a `.env` file, you'll see a "Save Settings" button.
+   - After updating the session, click "Save Settings" to write the new email configuration to your `.env` file.
+   - This ensures that your email settings persist across application restarts.
+   - If no `.env` file is available, you'll see a warning icon next to the "Save Settings" button. Hovering over this icon will explain that the save operation is not supported without a `.env` file.
+
+6. Important Notes:
+   - Always test your email configuration before updating the session or saving to `.env`.
+   - If you're using a `.env` file, remember to restart your application after saving new settings for them to take effect.
+   - If you're not using a `.env` file, you'll need to manually update your server environment with any changes you want to persist across restarts.
+
+By following this process, you can ensure that your email configuration is working correctly before applying it to your application, reducing the risk of email-related issues in your production environment.
 
 ## License
 
