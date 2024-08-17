@@ -61,7 +61,7 @@ def install_requirements():
     else:
         pip_executable = os.path.join("venv", "bin", "pip")
 
-    subprocess.check_call([pip_executable, "install", "-r", "requirements.txt"])
+    subprocess.check_call([pip_executable, "install", "-r", "fmt_requirements.txt"])
     print("Requirements installed")
 
 def rename_example_files():
