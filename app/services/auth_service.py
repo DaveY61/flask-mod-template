@@ -104,7 +104,7 @@ def create_password(token):
     else:
         form = CreatePasswordForm()
 
-    return render_template('forms/create_password.html', form=form, token=token)
+    return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=not user.is_active)
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
@@ -123,11 +123,26 @@ def login():
         return render_template('pages/login_failure.html', response_color='red'), 400
 
     user = get_user_by_email(email)
-    if not user or not user.check_password(password) or not user.is_active:
+    
+    # Check if the email is in the ADMIN_USER_LIST and not in the database
+    admin_emails = current_app.config['ADMIN_USER_LIST']
+    is_admin_email = email in admin_emails
+
+    if not user and is_admin_email and password == 'admin':
+        # Create a new inactive admin user
+        user_id = str(uuid.uuid4())
+        user = add_user(user_id, email.split('@')[0], email, 'temporary', is_active=False, is_admin=True)
+        
+        # Generate a token for password creation
+        token = generate_token(user.id, 'activation', expiration=None)
+        
+        # Redirect to create password form
+        return redirect(url_for('auth.create_password', token=token))
+    elif not user or not user.check_password(password) or not user.is_active:
         return render_template('pages/login_failure.html', response_color='red'), 400
 
     # Update is_admin status based on ADMIN_USER_LIST
-    is_admin = email in current_app.config['ADMIN_USER_LIST']
+    is_admin = email in admin_emails
     user.is_admin = is_admin
     update_user(user)
 
