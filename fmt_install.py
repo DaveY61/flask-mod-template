@@ -37,6 +37,11 @@ RECAPTCHA_SITE_KEY=your_captcha_site_key
 RECAPTCHA_SECRET_KEY=your_captcha_secret_key
 """
 
+def confirm_new_install():
+    if os.path.exists(".env"):
+        print("Install already was performed")
+        sys.exit(0)
+
 def create_directories():
     directories = []
     for line in env_content.strip().split("\n"):
@@ -108,6 +113,12 @@ def update_gitignore():
 
     print("Updated .gitignore file")
 
+
+def write_env_template():
+    with open(".env", "w") as f:
+        f.write(env_content.strip())
+    print(".env file created")
+
 def print_env_reminder():
     reminder = """
 ╔════════════════════════════════════════════════════════════════════════════╗
@@ -115,14 +126,14 @@ def print_env_reminder():
 ╠════════════════════════════════════════════════════════════════════════════╣
 ║  You need to modify the following keys in the .env file:                   ║
 ║                                                                            ║
-║  - GitHub_SECRET                                                           ║
-║  - EMAIL_FROM_ADDRESS                                                      ║
-║  - SMTP_SERVER                                                             ║
-║  - SMTP_USERNAME                                                           ║
-║  - SMTP_PASSWORD                                                           ║
-║  - ADMIN_USER_LIST                                                         ║
-║  - RECAPTCHA_SITE_KEY                                                      ║
-║  - RECAPTCHA_SECRET_KEY                                                    ║
+║  - GitHub_SECRET        - Optional, if using GitHub push trigger           ║
+║  - EMAIL_FROM_ADDRESS   - matches your SMTP account                        ║
+║  - SMTP_SERVER          - ie smtp.gmail.com                                ║
+║  - SMTP_USERNAME        - Required, SMTP email for user registration       ║
+║  - SMTP_PASSWORD        - Required, SMTP email for user registration       ║
+║  - ADMIN_USER_LIST      - Required, intial Admin login, Admin Setup        ║
+║  - RECAPTCHA_SITE_KEY   - Optional, if reCAPTCHA used for registraion      ║
+║  - RECAPTCHA_SECRET_KEY - Optional, if reCAPTCHA used for registraion      ║
 ║                                                                            ║
 ║  These values are crucial for the proper functioning of your application.  ║
 ╚════════════════════════════════════════════════════════════════════════════╝
@@ -130,20 +141,18 @@ def print_env_reminder():
     print(reminder)
 
 def main():
-    if os.path.exists(".env"):
-        print("Install already was performed")
-        sys.exit(0)
-    
+    # Check and exit if already performed
+    confirm_new_install()
+
+    # Run the other update steps to prepare the application
     create_virtual_environment()
     install_requirements()
     create_directories()
     rename_example_files()
     update_gitignore()
 
-    with open(".env", "w") as f:
-        f.write(env_content.strip())
-    print(".env file created")
-
+    # Create a template .env file
+    write_env_template()
     print_env_reminder()
 
 if __name__ == "__main__":
