@@ -65,13 +65,22 @@ def install_requirements():
     print("Requirements installed")
 
 def rename_example_files():
-    for root, dirs, files in os.walk('.'):
+    for root, dirs, files in os.walk('.', topdown=False):
+        # Rename files
         for file in files:
             if file.endswith('.example'):
                 old_path = os.path.join(root, file)
                 new_path = os.path.join(root, file[:-8])  # Remove '.example'
                 shutil.move(old_path, new_path)
-                print(f"Renamed: {old_path} to {new_path}")
+                print(f"Renamed file: {old_path} to {new_path}")
+        
+        # Rename directories
+        for dir in dirs:
+            if dir.endswith('.example'):
+                old_path = os.path.join(root, dir)
+                new_path = os.path.join(root, dir[:-8])  # Remove '.example'
+                shutil.move(old_path, new_path)
+                print(f"Renamed directory: {old_path} to {new_path}")
 
 def update_gitignore():
     gitignore_path = '.gitignore'
