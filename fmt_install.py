@@ -66,8 +66,18 @@ def install_requirements():
     else:
         pip_executable = os.path.join("venv", "bin", "pip")
 
-    subprocess.check_call([pip_executable, "install", "-r", "fmt_requirements.txt"])
-    print("Requirements installed")
+    requirements_file = "fmt_requirements.txt"
+    
+    # Read and display package names from requirements file
+    with open(requirements_file, 'r') as f:
+        packages = [line.strip().split('==')[0] for line in f if line.strip() and not line.startswith('#')]
+
+    print("Installing packages:")
+    for package in packages:
+        print(f"  - {package}")
+        subprocess.check_call([pip_executable, "install", "--quiet", package])
+
+    print("Requirements Installed.")
 
 def rename_example_files():
     for root, dirs, files in os.walk('.', topdown=False):
@@ -99,11 +109,10 @@ def update_gitignore():
     start_index = None
     end_index = None
     for i, line in enumerate(lines):
-        if line.strip() == "# Ignore specific template files":
+        if line.find("Ignore specific template files") > 0:
             start_index = i
-        elif start_index is not None and line.strip() == "":
-            end_index = i
-            break
+        elif start_index is not None:
+            end_index = i+1
 
     if start_index is not None and end_index is not None:
         del lines[start_index:end_index]
