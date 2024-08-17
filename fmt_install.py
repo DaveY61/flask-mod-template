@@ -104,9 +104,6 @@ def print_env_reminder():
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                             IMPORTANT REMINDER                             ║
 ╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  Don't forget to update your .env file with your specific configuration!   ║
-║                                                                            ║
 ║  You need to modify the following keys in the .env file:                   ║
 ║                                                                            ║
 ║  - GitHub_SECRET                                                           ║
@@ -119,7 +116,6 @@ def print_env_reminder():
 ║  - RECAPTCHA_SECRET_KEY                                                    ║
 ║                                                                            ║
 ║  These values are crucial for the proper functioning of your application.  ║
-║                                                                            ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 """
     print(reminder)
