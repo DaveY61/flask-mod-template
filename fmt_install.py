@@ -29,7 +29,11 @@ SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your_smtp_username_here
 SMTP_PASSWORD=your_smtp_password_here
-ADMIN_ERROR_ROUTING=admin_email_here
+ADMIN_USER_LIST=admin_email_list_here
+
+# User Self-Registration reCAPTCHA
+RECAPTCHA_SITE_KEY=your_captcha_site_key
+RECAPTCHA_SECRET_KEY=your_captcha_secret_key
 """
 
 def create_directories():
@@ -61,7 +65,7 @@ def install_requirements():
 
 def main():
     if os.path.exists(".env"):
-        print("Install already was performed")
+        print("Install already was performed (.env exists)")
         sys.exit(0)
     
     create_virtual_environment()

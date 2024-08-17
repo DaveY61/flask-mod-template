@@ -72,7 +72,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 
 4. Create a `.env` file in the root directory and add the following configurations:
    ```
-   VS_PROJECT_FOLDER_NAME=flask-mod-template
+   VS_PROJECT_FOLDER_NAME=your_project_folder_name
    LOG_FILE_DIRECTORY=./app_logs
    LOG_RETENTION_DAYS=30
    EMAIL_FAIL_DIRECTORY=./app_data/email
