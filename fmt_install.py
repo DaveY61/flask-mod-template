@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import shutil
 
 # Get the current working directory name
 project_folder_name = os.path.basename(os.getcwd())
@@ -29,7 +30,7 @@ SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your_smtp_username_here
 SMTP_PASSWORD=your_smtp_password_here
-ADMIN_USER_LIST=admin_email_list_here
+ADMIN_USER_LIST=admin1@example.com,admin2@example.com
 
 # User Self-Registration reCAPTCHA
 RECAPTCHA_SITE_KEY=your_captcha_site_key
@@ -63,18 +64,82 @@ def install_requirements():
     subprocess.check_call([pip_executable, "install", "-r", "requirements.txt"])
     print("Requirements installed")
 
+def rename_example_files():
+    for root, dirs, files in os.walk('.'):
+        for file in files:
+            if file.endswith('.example'):
+                old_path = os.path.join(root, file)
+                new_path = os.path.join(root, file[:-8])  # Remove '.example'
+                shutil.move(old_path, new_path)
+                print(f"Renamed: {old_path} to {new_path}")
+
+def update_gitignore():
+    gitignore_path = '.gitignore'
+    if not os.path.exists(gitignore_path):
+        print(".gitignore file not found")
+        return
+
+    with open(gitignore_path, 'r') as file:
+        lines = file.readlines()
+
+    start_index = None
+    end_index = None
+    for i, line in enumerate(lines):
+        if line.strip() == "# Ignore specific template files":
+            start_index = i
+        elif start_index is not None and line.strip() == "":
+            end_index = i
+            break
+
+    if start_index is not None and end_index is not None:
+        del lines[start_index:end_index]
+
+    with open(gitignore_path, 'w') as file:
+        file.writelines(lines)
+
+    print("Updated .gitignore file")
+
+def print_env_reminder():
+    reminder = """
+╔════════════════════════════════════════════════════════════════════════════╗
+║                             IMPORTANT REMINDER                             ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  Don't forget to update your .env file with your specific configuration!   ║
+║                                                                            ║
+║  You need to modify the following keys in the .env file:                   ║
+║                                                                            ║
+║  - GitHub_SECRET                                                           ║
+║  - EMAIL_FROM_ADDRESS                                                      ║
+║  - SMTP_SERVER                                                             ║
+║  - SMTP_USERNAME                                                           ║
+║  - SMTP_PASSWORD                                                           ║
+║  - ADMIN_USER_LIST                                                         ║
+║  - RECAPTCHA_SITE_KEY                                                      ║
+║  - RECAPTCHA_SECRET_KEY                                                    ║
+║                                                                            ║
+║  These values are crucial for the proper functioning of your application.  ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+"""
+    print(reminder)
+
 def main():
     if os.path.exists(".env"):
-        print("Install already was performed (.env exists)")
+        print("Install already was performed")
         sys.exit(0)
     
     create_virtual_environment()
     install_requirements()
     create_directories()
+    rename_example_files()
+    update_gitignore()
 
     with open(".env", "w") as f:
         f.write(env_content.strip())
     print(".env file created")
+
+    print_env_reminder()
 
 if __name__ == "__main__":
     main()
