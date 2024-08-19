@@ -23,18 +23,33 @@ def should_exclude(path, exclude_list):
 def generate_project_tree(root_dir, output_file, exclude_list):
     def write_tree(dir_path, file, prefix=''):
         contents = sorted(os.listdir(dir_path))
-        for i, path in enumerate(contents):
+        files = []
+        dirs = []
+        
+        for path in contents:
             full_path = os.path.join(dir_path, path)
             if should_exclude(full_path, exclude_list):
                 continue
-            
-            is_last = (i == len(contents) - 1)
+            if os.path.isfile(full_path):
+                files.append(path)
+            elif os.path.isdir(full_path):
+                dirs.append(path)
+        
+        # Write files first
+        for i, path in enumerate(files):
+            is_last = (i == len(files) - 1 and len(dirs) == 0)
+            pointer = '└── ' if is_last else '├── '
+            file.write(f'{prefix}{pointer}{path}\n')
+        
+        # Then write directories
+        for i, path in enumerate(dirs):
+            is_last = (i == len(dirs) - 1)
             pointer = '└── ' if is_last else '├── '
             file.write(f'{prefix}{pointer}{path}\n')
             
-            if os.path.isdir(full_path):
-                extension = '    ' if is_last else '│   '
-                write_tree(full_path, file, prefix + extension)
+            full_path = os.path.join(dir_path, path)
+            extension = '    ' if is_last else '│   '
+            write_tree(full_path, file, prefix + extension)
 
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(f'{os.path.basename(root_dir)}/\n')
@@ -97,7 +112,8 @@ if __name__ == '__main__':
         'node_modules',
         '.DS_Store',
         'project_tree.txt',
-        'project_code.txt'
+        'project_code.txt',
+        'example'
     ]
 
     # Define additional exclusions for code generation
