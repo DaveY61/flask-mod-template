@@ -4,15 +4,18 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Technologies Used](#technologies-used)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [GUI Customization](#GUI-Customization)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Make Local Repository](#make-local-repository)
+  - [Establish Admin User](#establish-admin-user)
+  - [Review Admin Setup](#review-admin-setup)
+- [GUI Customization](#gui-customization)
 - [Adding New Modules](#adding-new-modules)
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
 - [User Management](#user-management)
-- [User Registration: reCAPTCHA](#User-Registration-reCAPTCHA)
-- [Email Setup](#Email-Setup)
+- [User Registration: reCAPTCHA](#user-registration-recaptcha)
+- [Email Setup](#email-setup)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -46,62 +49,57 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - jQuery 3.7.1
 - Chart.js (for Pie Chart module)
 
-## Prerequisites
+## Getting Started
+
+### Prerequisites
 
 - Python 3.7+
 - pip (Python package manager)
 
-## Installation
+### Make Local Repository
 
-1. Clone the repository:
+1. Fork the current repository on GitHub.
+2. Clone your forked repository to your local PC:
    ```
    git clone https://github.com/yourusername/flask-mod-template.git
    cd flask-mod-template
    ```
+3. Run the `fmt_install.py` script:
+   ```
+   python fmt_install.py
+   ```
+   This script will:
+   - Create a virtual environment
+   - Install required packages
+   - Create necessary directories
+   - Rename example files (removing .example extensions)
+   - Update .gitignore
+   - Create a .env file
 
-2. Create a virtual environment:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
+4. Update the `.env` file with your specific configuration values.
 
-3. Install the required packages:
-   ```
-   pip install -r requirements.txt
-   ```
+### Establish Admin User
 
-4. Create a `.env` file in the root directory and add the following configurations:
+1. Add your email to the `ADMIN_USER_LIST` in the `.env` file.
+2. Run the local server:
    ```
-   VS_PROJECT_FOLDER_NAME=your_project_folder_name
-   LOG_FILE_DIRECTORY=./app_logs
-   LOG_RETENTION_DAYS=30
-   EMAIL_FAIL_DIRECTORY=./app_data/email
-   EMAIL_FROM_ADDRESS=your_email@example.com
-   EMAIL_ENABLE_ERROR=1
-   SMTP_SERVER=your_smtp_server
-   SMTP_PORT=587
-   SMTP_USERNAME=your_smtp_username
-   SMTP_PASSWORD=your_smtp_password
-   ADMIN_USER_LIST=admin1@example.com,admin2@example.com
-   USER_DATABASE_FILENAME=users.db
-   USER_DATABASE_DIRECTORY=./app_data/users
-   RECAPTCHA_SITE_KEY=your_captcha_site_key
-   RECAPTCHA_SECRET_KEY=your_captcha_secret_key
+   python run_local.py
    ```
+3. Open your web browser and navigate to `http://localhost:5000`.
+4. Click on "Login" and use your email address (from `.env`) with the password "admin".
+5. You will be redirected to the Create Password page. Set your new admin password.
 
-   Note: Email-related settings can be configured through the Admin Setup Email page after initial setup.
+### Review Admin Setup
 
-5. Initialize the database:
-   ```
-   python -c "from app.services.auth_service_db import init_db; init_db()"
-   ```
+After logging in as an admin, you can access the Admin Setup page. Here are the options provided:
 
-6. Run the application:
-   ```
-   python run.py
-   ```
+- [GUI Setup](#gui-customization): Customize the application's appearance
+- [Module Setup](#enabling-modules-and-managing-access): Manage and configure modules
+- [Role Setup](#role-based-access-control): Define and manage user roles
+- [User Setup](#user-management): Manage users and their permissions
+- [Email Setup](#email-setup): Configure email settings for the application
 
-The application should now be running at `http://localhost:5000`.
+Refer to the linked sections in this document for more details on each setup area.
 
 ## GUI Customization
 
