@@ -66,6 +66,11 @@ def install_requirements():
     else:
         pip_executable = os.path.join("venv", "bin", "pip")
 
+    # Update pip first
+    print("Updating pip...")
+    subprocess.check_call([pip_executable, "install", "--upgrade", "pip"])
+    print("Pip updated successfully.")
+
     requirements_file = "fmt_requirements.txt"
     
     # Read and display package names from requirements file
