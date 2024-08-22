@@ -62,14 +62,19 @@ def create_virtual_environment():
 
 def install_requirements():
     if os.name == 'nt':
+        python_executable = os.path.join("venv", "Scripts", "python.exe")
         pip_executable = os.path.join("venv", "Scripts", "pip.exe")
     else:
+        python_executable = os.path.join("venv", "bin", "python")
         pip_executable = os.path.join("venv", "bin", "pip")
 
     # Update pip first
     print("Updating pip...")
-    subprocess.check_call([pip_executable, "install", "--upgrade", "pip"])
-    print("Pip updated successfully.")
+    try:
+        subprocess.check_call([python_executable, "-m", "pip", "install", "--upgrade", "pip"])
+        print("Pip updated successfully.")
+    except subprocess.CalledProcessError:
+        print("Failed to update pip. Continuing with package installation...")
 
     requirements_file = "fmt_requirements.txt"
     
@@ -80,9 +85,12 @@ def install_requirements():
     print("Installing packages:")
     for package in packages:
         print(f"  - {package}")
-        subprocess.check_call([pip_executable, "install", "--quiet", package])
+        try:
+            subprocess.check_call([pip_executable, "install", "--quiet", package])
+        except subprocess.CalledProcessError:
+            print(f"Failed to install {package}. Continuing with next package...")
 
-    print("Requirements Installed.")
+    print("Requirements installation completed.")
 
 def rename_example_files():
     for root, dirs, files in os.walk('.', topdown=False):
