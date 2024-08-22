@@ -68,10 +68,10 @@ def install_requirements():
         python_executable = os.path.join("venv", "bin", "python")
         pip_executable = os.path.join("venv", "bin", "pip")
 
-    # Update pip first
+    # Update pip first, quietly
     print("Updating pip...")
     try:
-        subprocess.check_call([python_executable, "-m", "pip", "install", "--upgrade", "pip"])
+        subprocess.check_call([python_executable, "-m", "pip", "install", "--upgrade", "pip", "--quiet"])
         print("Pip updated successfully.")
     except subprocess.CalledProcessError:
         print("Failed to update pip. Continuing with package installation...")
