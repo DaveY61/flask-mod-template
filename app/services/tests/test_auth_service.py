@@ -66,7 +66,8 @@ def app(db):
         'SERVER_NAME': 'localhost',
         'APPLICATION_ROOT': '/', 
         'PREFERRED_URL_SCHEME': 'http',
-        'ROLE_LIST': None
+        'ROLE_LIST': None,
+        'ENABLE_REGISTRATION_CAPTCHA': False
     })
     
     app.template_folder = os.path.join(project_path, 'app', 'templates')
