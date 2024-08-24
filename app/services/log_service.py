@@ -1,76 +1,98 @@
+import logging
 import os
-import csv
-from datetime import datetime, date
-from inspect import currentframe, getframeinfo
-from app.services.email_service import EmailService
+from logging.handlers import TimedRotatingFileHandler
+from flask import request, has_request_context
+from flask.logging import default_handler
+import smtplib
+from email.message import EmailMessage
 
-class LogService:
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        if has_request_context():
+            record.url = request.url
+            record.remote_addr = request.remote_addr
+            record.user_id = getattr(request, 'user_id', 'N/A')
+        else:
+            record.url = None
+            record.remote_addr = None
+            record.user_id = 'N/A'
+
+        return super().format(record)
+
+class EmailHandler(logging.Handler):
     def __init__(self, config):
+        super().__init__()
         self.config = config
-        self.log_file_directory = config['LOG_FILE_DIRECTORY']
-        self.retention_days = config['LOG_RETENTION_DAYS']
-        self.enable_error_email = config['EMAIL_ENABLE_ERROR']
-        self.admin_emails = config['ADMIN_USER_LIST']
-        self.email_service = EmailService(config)
 
-        if not os.path.exists(self.log_file_directory):
-            os.makedirs(self.log_file_directory)
+    def emit(self, record):
+        if record.levelno == logging.ERROR:
+            subject = "Error Log Notification"
+            body = f"Error log entry:\n{self.format(record)}"
+            self.send_email(subject, body)
 
-    def log(self, log_type, message, user_id=None):
-        log_file_path = self.get_log_file_path()
-        frameinfo = getframeinfo(currentframe().f_back)
-        log_entry = {
-            'date': datetime.now().strftime('%Y-%m-%d'),
-            'time': datetime.now().strftime('%H:%M:%S'),
-            'type': log_type,
-            'message': message,
-            'user_id': user_id,
-            'function': frameinfo.function,
-            'line': frameinfo.lineno,
-            'file': frameinfo.filename,
-        }
+    def send_email(self, subject, body):
+        msg = EmailMessage()
+        msg.set_content(body)
+        msg['Subject'] = subject
+        msg['From'] = self.config['EMAIL_FROM_ADDRESS']
+        msg['To'] = self.config['ADMIN_USER_LIST']
 
-        with open(log_file_path, 'a', newline='') as log_file:
-            writer = csv.DictWriter(log_file, fieldnames=log_entry.keys())
+        try:
+            with smtplib.SMTP(self.config['SMTP_SERVER'], self.config['SMTP_PORT']) as server:
+                server.starttls()
+                server.login(self.config['SMTP_USERNAME'], self.config['SMTP_PASSWORD'])
+                server.send_message(msg)
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
 
-            # New log file is being created
-            if log_file.tell() == 0:
-                writer.writeheader()  # Write headers (once) in the new file
-                self.clean_old_logs() # Check and remove any old log files
+def setup_logger(app):
+    app.logger.removeHandler(default_handler)
 
-            # Write new row to the file
-            writer.writerow(log_entry)
+    formatter = RequestFormatter(
+        '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
+        '%(levelname)s in %(module)s: %(message)s\n'
+        'User ID: %(user_id)s\n'
+        'Function: %(funcName)s, Line: %(lineno)d, File: %(filename)s\n'
+    )
 
-        if self.enable_error_email and log_type == 'ERROR':
-            self.send_error_email(log_entry)
+    log_dir = app.config['LOG_FILE_DIRECTORY']
+    os.makedirs(log_dir, exist_ok=True)
 
-    def get_log_file_path(self):
-        # Build the fully path specified log filename
-        log_file_name = f"log_{date.today().strftime('%Y-%m-%d')}.csv"
-        return os.path.join(self.log_file_directory, log_file_name)
+    file_handler = TimedRotatingFileHandler(
+        filename=os.path.join(log_dir, 'app.log'),
+        when='midnight',
+        interval=1,
+        backupCount=app.config['LOG_RETENTION_DAYS']
+    )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(file_handler)
 
-    def clean_old_logs(self):
-        # Determine "date" for today
-        today = date.today()
+    if app.config['EMAIL_ENABLE_ERROR']:
+        email_handler = EmailHandler(app.config)
+        email_handler.setLevel(logging.ERROR)
+        email_handler.setFormatter(formatter)
+        app.logger.addHandler(email_handler)
 
-        # Check for old log files
-        for log_file in os.listdir(self.log_file_directory):
+    app.logger.setLevel(logging.DEBUG)
 
-            # Build the fully path specified log filename
-            log_file_path = os.path.join(self.log_file_directory, log_file)
+def init_app_logger(app):
+    setup_logger(app)
 
-            # Get the file creation date from the file name
-            file_date_str = log_file.split('_')[1].split('.')[0]
-            file_creation_date = datetime.strptime(file_date_str, "%Y-%m-%d").date()
+    @app.before_request
+    def add_user_id_to_request():
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            request.user_id = request.user.id
+        else:
+            request.user_id = 'N/A'
 
-            # Calculate the elapsed days
-            elapsed_days = (today - file_creation_date).days
+# Usage in app.py or wherever you initialize your Flask app:
+# from log_service import init_app
+# init_app(app)
 
-            # Compare elapsed with target days for log removal
-            if (elapsed_days > self.retention_days):
-                os.remove(log_file_path)
-
-    def send_error_email(self, log_entry):
-        subject = "Error Log Notification"
-        body = f"Error log entry:\n{log_entry}"
-        self.email_service.send_email(self.admin_emails, subject, body)
+# Usage in your routes or other parts of your application:
+# current_app.logger.debug("This is a debug message")
+# current_app.logger.info("This is an info message")
+# current_app.logger.warning("This is a warning message")
+# current_app.logger.error("This is an error message")
+# current_app.logger.critical("This is a critical message")

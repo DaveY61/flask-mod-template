@@ -5,6 +5,7 @@ from flask import Flask, render_template, redirect, url_for, request, abort, sen
 from flask_login import LoginManager, current_user, login_required
 from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
 from app.services.auth_service_db import setup_database, init_db
+from app.services.log_service import init_app_logger
 import pkgutil
 import importlib
 from dotenv import load_dotenv
@@ -96,6 +97,9 @@ def create_app():
         if app.config['REQUIRE_LOGIN_FOR_SITE_ACCESS']:
             if not current_user.is_authenticated and request.endpoint not in public_endpoints:
                 return redirect(url_for('auth.login', next=request.url))
+
+    # Initialize the app logger service
+    init_app_logger(app)
 
     return app
 
