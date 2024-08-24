@@ -21,41 +21,35 @@ def should_exclude(path, exclude_list):
     )
 
 def generate_project_tree(root_dir, output_file, exclude_list):
-    def write_tree(dir_path, file, prefix=''):
-        contents = sorted(os.listdir(dir_path))
-        files = []
-        dirs = []
+    def tree(dir_path, prefix=""):
+        contents = list(os.scandir(dir_path))
+        folders = [item for item in contents if item.is_dir() and item.name not in exclude_list]
+        files = [item for item in contents if item.is_file() and item.name not in exclude_list]
         
-        for path in contents:
-            full_path = os.path.join(dir_path, path)
-            if should_exclude(full_path, exclude_list):
-                continue
-            if os.path.isfile(full_path):
-                files.append(path)
-            elif os.path.isdir(full_path):
-                dirs.append(path)
+        folders.sort(key=lambda x: x.name.lower())
+        files.sort(key=lambda x: x.name.lower())
         
-        # Write files first
-        for i, path in enumerate(files):
-            is_last = (i == len(files) - 1 and len(dirs) == 0)
-            pointer = '└── ' if is_last else '├── '
-            file.write(f'{prefix}{pointer}{path}\n')
+        tree_str = ""
+        items = folders + files
+        for i, item in enumerate(items):
+            if i == len(items) - 1:
+                tree_str += f"{prefix}└── {item.name}\n"
+                if item.is_dir():
+                    tree_str += tree(item.path, prefix + "    ")
+            else:
+                tree_str += f"{prefix}├── {item.name}\n"
+                if item.is_dir():
+                    tree_str += tree(item.path, prefix + "│   ")
         
-        # Then write directories
-        for i, path in enumerate(dirs):
-            is_last = (i == len(dirs) - 1)
-            pointer = '└── ' if is_last else '├── '
-            file.write(f'{prefix}{pointer}{path}\n')
-            
-            full_path = os.path.join(dir_path, path)
-            extension = '    ' if is_last else '│   '
-            write_tree(full_path, file, prefix + extension)
+        return tree_str
 
+    project_tree = f"{os.path.basename(root_dir)}/\n" + tree(root_dir)
+    
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(f'{os.path.basename(root_dir)}/\n')
-        write_tree(root_dir, f, '')
-
+        f.write(project_tree)
+    
     print(f"Project tree has been generated and saved to {output_file}")
+
 
 def read_file_content(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
