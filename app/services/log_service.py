@@ -12,10 +12,12 @@ class RequestFormatter(logging.Formatter):
             record.url = request.url
             record.remote_addr = request.remote_addr
             record.user_id = getattr(request, 'user_id', 'N/A')
+            record.user_email = getattr(request, 'user_email', 'N/A')
         else:
             record.url = None
             record.remote_addr = None
             record.user_id = 'N/A'
+            record.user_email = 'N/A'
 
         return super().format(record)
 
@@ -45,20 +47,35 @@ class EmailHandler(logging.Handler):
         except Exception as e:
             print(f"Failed to send email: {str(e)}")
 
+class HeaderFileHandler(TimedRotatingFileHandler):
+    def __init__(self, filename, when='h', interval=1, backupCount=0, encoding=None, delay=False, utc=False, atTime=None):
+        super().__init__(filename, when, interval, backupCount, encoding, delay, utc, atTime)
+        self.header_written = False
+
+    def emit(self, record):
+        if not self.header_written:
+            header = "Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n"
+            self.stream.write(header)
+            self.header_written = True
+        super().emit(record)
+
+    def doRollover(self):
+        super().doRollover()
+        self.header_written = False
+
 def setup_logger(app):
     app.logger.removeHandler(default_handler)
 
     formatter = RequestFormatter(
-        '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
-        '%(levelname)s in %(module)s: %(message)s\n'
-        'User ID: %(user_id)s\n'
-        'Function: %(funcName)s, Line: %(lineno)d, File: %(filename)s\n'
+        '%(asctime)s\t%(levelname)s\t%(module)s\t%(message)s\t'
+        '%(user_id)s\t%(user_email)s\t%(remote_addr)s\t%(url)s\t'
+        '%(funcName)s\t%(lineno)d\t%(filename)s'
     )
 
     log_dir = app.config['LOG_FILE_DIRECTORY']
     os.makedirs(log_dir, exist_ok=True)
 
-    file_handler = TimedRotatingFileHandler(
+    file_handler = HeaderFileHandler(
         filename=os.path.join(log_dir, 'app.log'),
         when='midnight',
         interval=1,
@@ -74,17 +91,25 @@ def setup_logger(app):
         email_handler.setFormatter(formatter)
         app.logger.addHandler(email_handler)
 
+    if app.debug:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(logging.DEBUG)
+        app.logger.addHandler(console_handler)
+
     app.logger.setLevel(logging.DEBUG)
 
-def init_app_logger(app):
+def init_app(app):
     setup_logger(app)
 
     @app.before_request
-    def add_user_id_to_request():
+    def add_user_info_to_request():
         if hasattr(request, 'user') and request.user.is_authenticated:
             request.user_id = request.user.id
+            request.user_email = request.user.email
         else:
             request.user_id = 'N/A'
+            request.user_email = 'N/A'
 
 # Usage in app.py or wherever you initialize your Flask app:
 # from log_service import init_app
