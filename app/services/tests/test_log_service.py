@@ -17,19 +17,19 @@ sys.path.insert(0, project_path)
 #----------------------------------------------------------------------------
 import pytest
 from flask import Flask, request
-from app.services.log_service import setup_logger, init_app, HeaderFileHandler, EmailHandler, RequestFormatter
+from app.services.log_service import init_logger, setup_logger, HeaderFileHandler, EmailHandler, RequestFormatter
 from unittest.mock import patch, MagicMock
 import tempfile
 import logging
-import os
-import time
+from freezegun import freeze_time
+from datetime import datetime
 
 @pytest.fixture
 def app():
     app = Flask(__name__)
     app.config.update({
-        'LOG_FILE_DIRECTORY': tempfile.mkdtemp(),
-        'LOG_RETENTION_DAYS': 7,
+        'LOG_FILE_DIRECTORY': tempfile.gettempdir(),
+        'LOG_RETENTION_DAYS': 3,
         'EMAIL_ENABLE_ERROR': False,
         'ADMIN_USER_LIST': ['admin@example.com'],
         'EMAIL_FROM_ADDRESS': 'test@example.com',
@@ -96,7 +96,7 @@ def test_email_error_log(mock_smtp, app):
     mock_smtp.assert_not_called()
 
 def test_add_user_info_to_request(app):
-    init_app(app)
+    init_logger(app)
     with app.test_request_context('/'):
         for func in app.before_request_funcs[None]:
             func()
@@ -158,3 +158,126 @@ def test_request_formatter(app):
             )
             formatted = formatter.format(record)
             assert 'http://localhost/test - 127.0.0.1 - N/A - N/A - Test message' in formatted
+
+@freeze_time("2023-01-01 00:00:00")
+def test_log_file_rotation(app):
+    with app.app_context():
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app.config['LOG_FILE_DIRECTORY'] = temp_dir
+            setup_logger(app)
+            file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+            assert file_handler is not None
+
+            # Log a message to create the initial log file
+            app.logger.info("Test log message")
+            log_file_path = file_handler.baseFilename
+            assert os.path.exists(log_file_path)
+            print(f"Initial log file: {log_file_path}")  # Debug print
+
+            # List files before rotation
+            print(f"Files in temp directory before rotation: {temp_dir}")
+            for file in os.listdir(temp_dir):
+                print(file)
+
+            # Move time forward to trigger rotation
+            frozen_datetime = datetime(2023, 1, 2, 0, 0, 1)
+            with freeze_time(frozen_datetime):
+                # Close the current log file before rotation
+                file_handler.close()
+
+                # Force the rotation
+                file_handler.doRollover()
+
+                # Check if a new log file was created
+                new_log_file_path = file_handler.baseFilename
+                assert os.path.exists(new_log_file_path)
+                print(f"New log file: {new_log_file_path}")  # Debug print
+
+                # List all files in the temporary directory after rotation
+                print("Files in temp directory after rotation:")
+                for file in os.listdir(temp_dir):
+                    print(file)
+
+                # Check if both log files exist
+                assert os.path.exists(os.path.join(temp_dir, f"app_2023-01-01.log")), "Log file for 2023-01-01 not found"
+                assert os.path.exists(os.path.join(temp_dir, f"app_2023-01-02.log")), "Log file for 2023-01-02 not found"
+
+@freeze_time("2023-01-01 00:00:00")
+def test_log_retention(app):
+    with app.app_context():
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app.config['LOG_FILE_DIRECTORY'] = temp_dir
+            setup_logger(app)
+            file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+            assert file_handler is not None
+
+            # Create log files for four days
+            for i in range(4):
+                frozen_datetime = datetime(2023, 1, 1 + i, 0, 0, 0)
+                with freeze_time(frozen_datetime):
+                    app.logger.info(f"Log message for day {i+1}")
+                    file_handler.doRollover()
+
+            # List files before retention
+            print("Files in temp directory before retention:")
+            for file in os.listdir(temp_dir):
+                print(file)
+
+            # Call deleteOldLogs to remove old logs
+            file_handler.deleteOldLogs()
+
+            # List all files in the temporary directory after retention
+            print("Files in temp directory after retention:")
+            log_files = os.listdir(temp_dir)
+            for file in log_files:
+                print(file)
+
+            # Expecting only three files to remain
+            assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}"
+
+            # Check that the correct files are present
+            expected_files = {f"app_2023-01-02.log", f"app_2023-01-03.log", f"app_2023-01-04.log"}
+            actual_files = set(log_files)
+            assert expected_files == actual_files, f"Expected files {expected_files}, but found {actual_files}"
+
+def test_request_formatter_with_context(app):
+    with app.app_context():
+        formatter = RequestFormatter('%(url)s - %(remote_addr)s - %(user_id)s - %(user_email)s - %(message)s')
+        with app.test_request_context('/test', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
+            request.user_id = '123'
+            request.user_email = 'test@example.com'
+            record = logging.LogRecord(
+                name='test', level=logging.INFO, pathname='', lineno=0,
+                msg='Test message', args=(), exc_info=None
+            )
+            formatted = formatter.format(record)
+            assert 'http://localhost/test - 127.0.0.1 - 123 - test@example.com - Test message' in formatted
+
+def test_request_formatter_without_context(app):
+    with app.app_context():
+        formatter = RequestFormatter('%(url)s - %(remote_addr)s - %(user_id)s - %(user_email)s - %(message)s')
+        record = logging.LogRecord(
+            name='test', level=logging.INFO, pathname='', lineno=0,
+            msg='Test message', args=(), exc_info=None
+        )
+        formatted = formatter.format(record)
+        assert 'None - None - N/A - N/A - Test message' in formatted
+
+def test_email_handler_configuration(app):
+    app.config['EMAIL_ENABLE_ERROR'] = True
+    with app.app_context():
+        handlers = setup_logger(app)
+        email_handler = next((h for h in handlers if isinstance(h, EmailHandler)), None)
+        assert email_handler is not None
+        assert email_handler.level == logging.ERROR
+        assert email_handler.config['SMTP_SERVER'] == app.config['SMTP_SERVER']
+        assert email_handler.config['SMTP_PORT'] == app.config['SMTP_PORT']
+        assert email_handler.config['SMTP_USERNAME'] == app.config['SMTP_USERNAME']
+        assert email_handler.config['SMTP_PASSWORD'] == app.config['SMTP_PASSWORD']
+
+def test_console_logging_in_non_debug_mode(app):
+    app.debug = False
+    with app.app_context():
+        handlers = setup_logger(app)
+        console_handlers = [h for h in handlers if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)]
+        assert len(console_handlers) == 0
