@@ -16,191 +16,145 @@ sys.path.insert(0, project_path)
 # Begin Test Code
 #----------------------------------------------------------------------------
 import pytest
-import csv
-from datetime import datetime, timedelta, date
-from app.services.log_service import LogService
-from unittest.mock import MagicMock
+from flask import Flask, request
+from app.services.log_service import setup_logger, init_app, HeaderFileHandler, EmailHandler, RequestFormatter
+from unittest.mock import patch, MagicMock
 import tempfile
+import logging
+import os
+import time
 
 @pytest.fixture
-def log_service():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        config = {
-            'LOG_FILE_DIRECTORY': temp_dir,
-            'LOG_RETENTION_DAYS': 7,
-            'EMAIL_ENABLE_ERROR': False,
-            'ADMIN_USER_LIST': ['admin@example.com']
-        }
-        yield LogService(config)
+def app():
+    app = Flask(__name__)
+    app.config.update({
+        'LOG_FILE_DIRECTORY': tempfile.mkdtemp(),
+        'LOG_RETENTION_DAYS': 7,
+        'EMAIL_ENABLE_ERROR': False,
+        'ADMIN_USER_LIST': ['admin@example.com'],
+        'EMAIL_FROM_ADDRESS': 'test@example.com',
+        'SMTP_SERVER': 'smtp.example.com',
+        'SMTP_PORT': 587,
+        'SMTP_USERNAME': 'test_user',
+        'SMTP_PASSWORD': 'test_password'
+    })
+    return app
 
-def test_log_creation(log_service):
-    log_service.log('INFO', 'Test info message')
-    log_service.log('WARNING', 'Test warning message')
-    log_service.log('ERROR', 'Test error message')
+def test_setup_logger(app):
+    with app.app_context():
+        handlers = setup_logger(app)
+        assert any(isinstance(h, HeaderFileHandler) for h in handlers)
+        assert app.logger.level == logging.DEBUG
 
-    log_file_path = log_service.get_log_file_path()
-    assert os.path.exists(log_file_path)
-
-    with open(log_file_path, 'r') as log_file:
-        csv_reader = csv.DictReader(log_file)
-        logs = list(csv_reader)
-
-    assert len(logs) == 3
-    assert logs[0]['type'] == 'INFO'
-    assert logs[1]['type'] == 'WARNING'
-    assert logs[2]['type'] == 'ERROR'
-
-def test_log_with_user_id(log_service):
-    log_service.log('INFO', 'Test message with user ID', user_id='TEST_USER')
-
-    log_file_path = log_service.get_log_file_path()
-    with open(log_file_path, 'r') as log_file:
-        csv_reader = csv.DictReader(log_file)
-        logs = list(csv_reader)
-
-    assert logs[-1]['user_id'] == 'TEST_USER'
-
-def test_clean_old_logs(log_service):
-    # Create an old log file
-    old_date = datetime.now() - timedelta(days=log_service.retention_days + 2)
-    old_log_file = f"log_{old_date.strftime('%Y-%m-%d')}.csv"
-    old_log_path = os.path.join(log_service.log_file_directory, old_log_file)
-    
-    with open(old_log_path, 'w') as f:
-        f.write('date,time,type,message,user_id,function,line,file\n')
-        f.write('2023-01-01,00:00:00,INFO,Old log,,,,,\n')
-
-    # Set the file's modification time to the old date
-    old_time = old_date.timestamp()
-    os.utime(old_log_path, (old_time, old_time))
-
-    assert os.path.exists(old_log_path)
-
-    # Run the clean_old_logs method
-    log_service.clean_old_logs()
-
-    # Check if the old log file has been removed
-    assert not os.path.exists(old_log_path)
-
-def test_get_log_file_path(log_service):
-    log_file_path = log_service.get_log_file_path()
-    assert log_file_path.startswith(log_service.log_file_directory)
-    assert log_file_path.endswith('.csv')
-    assert datetime.now().strftime('%Y-%m-%d') in log_file_path
-
-def test_error_log_email(log_service):
-    # Configure log_service to enable error emails
-    log_service.enable_error_email = True
-    
-    # Mock the EmailService
-    mock_email_service = MagicMock()
-    log_service.email_service = mock_email_service
-
-    # Log an error message
-    log_service.log('ERROR', 'Test error message for email')
-
-    # Check if send_email was called
-    mock_email_service.send_email.assert_called_once()
-
-    # Check the arguments of the send_email call
-    call_args = mock_email_service.send_email.call_args
-    assert call_args is not None
-    args, kwargs = call_args
-
-    # Check that the email is sent to admin emails
-    assert args[0] == log_service.admin_emails
-
-    # Check that the email subject contains "Error Log Notification"
-    assert 'Error Log Notification' in args[1]
-
-    # Check that the email body contains the error message
-    assert 'Test error message for email' in args[2]
-
-def test_log_file_rotation(log_service, monkeypatch):
-    # Create a mock date class
-    class MockDate:
-        _today = date(2023, 1, 1)  # Start with a fixed date
-
-        @classmethod
-        def today(cls):
-            return cls._today
-
-        @classmethod
-        def fromtimestamp(cls, timestamp):
-            return cls._today
-
-        @classmethod
-        def set_today(cls, new_date):
-            cls._today = new_date
-
-    # Patch the date in log_service
-    monkeypatch.setattr('app.services.log_service.date', MockDate)
-
-    # Create logs for the first day
-    log_service.log('INFO', 'Day 1 log 1')
-    log_service.log('INFO', 'Day 1 log 2')
-
-    # Move to the next day
-    MockDate.set_today(date(2023, 1, 2))
-    log_service.log('INFO', 'Day 2 log')
-
-    # Check that two log files exist
-    log_files = os.listdir(log_service.log_file_directory)
-    assert len(log_files) == 2, f"Expected 2 log files, but found: {log_files}"
-
-    # Now simulate passage of time beyond retention period
-    MockDate.set_today(date(2023, 1, 10))  # 9 days later
-
-    # Modify the retention period for the test
-    log_service.retention_days = 7
-
-    # Create a new log, which should trigger cleaning of old logs
-    log_service.log('INFO', 'Day 10 log')
-
-    # Check that only one log file remains (the newest one)
-    log_files = os.listdir(log_service.log_file_directory)
-    assert len(log_files) == 1, f"Expected 1 log file, but found: {log_files}"
-    assert log_files[0] == 'log_2023-01-10.csv'
-
-    # Verify the content of the remaining log file
-    with open(os.path.join(log_service.log_file_directory, log_files[0]), 'r') as f:
-        content = f.read()
-        assert 'Day 10 log' in content
-        assert 'Day 1 log' not in content
-        assert 'Day 2 log' not in content
-
-    # Test that creating a log on the same day doesn't create a new file or remove the existing one
-    log_service.log('INFO', 'Another Day 10 log')
-    log_files = os.listdir(log_service.log_file_directory)
-    assert len(log_files) == 1, f"Expected 1 log file, but found: {log_files}"
-    assert log_files[0] == 'log_2023-01-10.csv'
-
-    with open(os.path.join(log_service.log_file_directory, log_files[0]), 'r') as f:
-        content = f.read()
-        assert 'Another Day 10 log' in content
+def test_log_file_creation(app):
+    with app.app_context():
+        setup_logger(app)
+        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+        assert file_handler is not None
+        log_file_path = file_handler.baseFilename
         
-def test_log_content_format(log_service):
-    log_service.log('INFO', 'Test log message', user_id='TEST_USER')
+        app.logger.info("Test log message")
+        
+        assert os.path.exists(log_file_path)
+        
+        with open(log_file_path, 'r') as f:
+            content = f.read()
+        
+        assert "Test log message" in content
 
-    log_file_path = log_service.get_log_file_path()
-    with open(log_file_path, 'r') as log_file:
-        csv_reader = csv.DictReader(log_file)
-        log_entry = next(csv_reader)
+def test_log_format(app):
+    with app.app_context():
+        setup_logger(app)
+        with patch.object(app.logger.handlers[0], 'emit') as mock_emit:
+            app.logger.info("Test log message")
+            record = mock_emit.call_args[0][0]
+            assert 'Test log message' in record.getMessage()
+            assert record.levelname == 'INFO'
 
-    assert set(log_entry.keys()) == {'date', 'time', 'type', 'message', 'user_id', 'function', 'line', 'file'}
-    assert log_entry['type'] == 'INFO'
-    assert log_entry['message'] == 'Test log message'
-    assert log_entry['user_id'] == 'TEST_USER'
+@patch('smtplib.SMTP')
+def test_email_error_log(mock_smtp, app):
+    app.config['EMAIL_ENABLE_ERROR'] = True
+    app.config['ADMIN_USER_LIST'] = ['admin@example.com']
+    app.config['EMAIL_FROM_ADDRESS'] = 'test@example.com'
+    app.config['SMTP_SERVER'] = 'smtp.example.com'
+    app.config['SMTP_PORT'] = 587
+    app.config['SMTP_USERNAME'] = 'test_user'
+    app.config['SMTP_PASSWORD'] = 'test_password'
 
-def test_multiple_log_entries(log_service):
-    for i in range(10):
-        log_service.log('INFO', f'Log message {i}')
+    mock_smtp_instance = MagicMock()
+    mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
 
-    log_file_path = log_service.get_log_file_path()
-    with open(log_file_path, 'r') as log_file:
-        csv_reader = csv.DictReader(log_file)
-        logs = list(csv_reader)
+    with app.app_context():
+        handlers = setup_logger(app)
+        email_handler = next((h for h in handlers if isinstance(h, EmailHandler)), None)
+        assert email_handler is not None, "EmailHandler not found in logger handlers"
+        
+        with patch.object(EmailHandler, 'send_email') as mock_send_email:
+            app.logger.error("Test error message")
+            mock_send_email.assert_called_once()
 
-    assert len(logs) == 10
-    for i, log in enumerate(logs):
-        assert log['message'] == f'Log message {i}'
+    mock_smtp.assert_not_called()
+
+def test_add_user_info_to_request(app):
+    init_app(app)
+    with app.test_request_context('/'):
+        for func in app.before_request_funcs[None]:
+            func()
+        assert hasattr(request, 'user_id')
+        assert hasattr(request, 'user_email')
+        assert request.user_id == 'N/A'
+        assert request.user_email == 'N/A'
+
+def test_console_logging_in_debug_mode(app):
+    app.debug = True
+    with app.app_context():
+        handlers = setup_logger(app)
+        handler_types = [type(h) for h in handlers]
+        assert HeaderFileHandler in handler_types
+        assert any(isinstance(h, logging.StreamHandler) for h in handlers)
+
+def test_multiple_setup_logger_calls(app):
+    with app.app_context():
+        initial_handlers = setup_logger(app)
+        second_call_handlers = setup_logger(app)
+        assert len(second_call_handlers) == len(initial_handlers)
+        assert set(type(h) for h in second_call_handlers) == set(type(h) for h in initial_handlers)
+
+def test_email_handler_creation(app):
+    app.config['EMAIL_ENABLE_ERROR'] = True
+    with app.app_context():
+        handlers = setup_logger(app)
+        email_handlers = [h for h in handlers if isinstance(h, EmailHandler)]
+        assert len(email_handlers) == 1
+
+@patch('smtplib.SMTP')
+def test_log_levels(mock_smtp, app):
+    app.config['EMAIL_ENABLE_ERROR'] = True
+    with app.app_context():
+        setup_logger(app)
+        with patch.object(app.logger.handlers[0], 'emit') as mock_file_emit, \
+             patch.object(EmailHandler, 'send_email') as mock_send_email:
+            
+            app.logger.debug("Debug message")
+            app.logger.info("Info message")
+            app.logger.warning("Warning message")
+            app.logger.error("Error message")
+            app.logger.critical("Critical message")
+            
+            assert mock_file_emit.call_count == 5
+            log_levels = [mock_file_emit.call_args_list[i][0][0].levelname for i in range(5)]
+            assert log_levels == ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+            
+            assert mock_send_email.call_count == 2  # Called for ERROR and CRITICAL
+
+def test_request_formatter(app):
+    with app.app_context():
+        setup_logger(app)
+        formatter = RequestFormatter('%(url)s - %(remote_addr)s - %(user_id)s - %(user_email)s - %(message)s')
+        with app.test_request_context('/test', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
+            record = logging.LogRecord(
+                name='test', level=logging.INFO, pathname='', lineno=0,
+                msg='Test message', args=(), exc_info=None
+            )
+            formatted = formatter.format(record)
+            assert 'http://localhost/test - 127.0.0.1 - N/A - N/A - Test message' in formatted

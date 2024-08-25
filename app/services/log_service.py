@@ -25,9 +25,10 @@ class EmailHandler(logging.Handler):
     def __init__(self, config):
         super().__init__()
         self.config = config
+        self.setLevel(logging.ERROR)
 
     def emit(self, record):
-        if record.levelno == logging.ERROR:
+        if record.levelno >= logging.ERROR:
             subject = "Error Log Notification"
             body = f"Error log entry:\n{self.format(record)}"
             self.send_email(subject, body)
@@ -39,13 +40,10 @@ class EmailHandler(logging.Handler):
         msg['From'] = self.config['EMAIL_FROM_ADDRESS']
         msg['To'] = self.config['ADMIN_USER_LIST']
 
-        try:
-            with smtplib.SMTP(self.config['SMTP_SERVER'], self.config['SMTP_PORT']) as server:
-                server.starttls()
-                server.login(self.config['SMTP_USERNAME'], self.config['SMTP_PASSWORD'])
-                server.send_message(msg)
-        except Exception as e:
-            print(f"Failed to send email: {str(e)}")
+        with smtplib.SMTP(self.config['SMTP_SERVER'], self.config['SMTP_PORT']) as server:
+            server.starttls()
+            server.login(self.config['SMTP_USERNAME'], self.config['SMTP_PASSWORD'])
+            server.send_message(msg)
 
 class HeaderFileHandler(TimedRotatingFileHandler):
     def __init__(self, filename, when='h', interval=1, backupCount=0, encoding=None, delay=False, utc=False, atTime=None):
@@ -58,46 +56,49 @@ class HeaderFileHandler(TimedRotatingFileHandler):
             self.stream.write(header)
             self.header_written = True
         super().emit(record)
+        self.flush()
 
     def doRollover(self):
         super().doRollover()
         self.header_written = False
 
 def setup_logger(app):
-    app.logger.removeHandler(default_handler)
+    if not app.logger.handlers:
+        app.logger.removeHandler(default_handler)
 
-    formatter = RequestFormatter(
-        '%(asctime)s\t%(levelname)s\t%(module)s\t%(message)s\t'
-        '%(user_id)s\t%(user_email)s\t%(remote_addr)s\t%(url)s\t'
-        '%(funcName)s\t%(lineno)d\t%(filename)s'
-    )
+        formatter = RequestFormatter(
+            '%(asctime)s\t%(levelname)s\t%(module)s\t%(message)s\t'
+            '%(user_id)s\t%(user_email)s\t%(remote_addr)s\t%(url)s\t'
+            '%(funcName)s\t%(lineno)d\t%(filename)s'
+        )
 
-    log_dir = app.config['LOG_FILE_DIRECTORY']
-    os.makedirs(log_dir, exist_ok=True)
+        log_dir = app.config['LOG_FILE_DIRECTORY']
+        os.makedirs(log_dir, exist_ok=True)
 
-    file_handler = HeaderFileHandler(
-        filename=os.path.join(log_dir, 'app.log'),
-        when='midnight',
-        interval=1,
-        backupCount=app.config['LOG_RETENTION_DAYS']
-    )
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.DEBUG)
-    app.logger.addHandler(file_handler)
+        log_file_path = os.path.join(log_dir, 'app.log')
+        file_handler = HeaderFileHandler(
+            filename=log_file_path,
+            when='midnight',
+            interval=1,
+            backupCount=app.config['LOG_RETENTION_DAYS']
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.DEBUG)
+        app.logger.addHandler(file_handler)
 
-    if app.config['EMAIL_ENABLE_ERROR']:
         email_handler = EmailHandler(app.config)
-        email_handler.setLevel(logging.ERROR)
         email_handler.setFormatter(formatter)
         app.logger.addHandler(email_handler)
 
-    if app.debug:
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.DEBUG)
-        app.logger.addHandler(console_handler)
+        if app.debug:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            console_handler.setLevel(logging.DEBUG)
+            app.logger.addHandler(console_handler)
 
-    app.logger.setLevel(logging.DEBUG)
+        app.logger.setLevel(logging.DEBUG)
+
+    return app.logger.handlers
 
 def init_app(app):
     setup_logger(app)
@@ -110,14 +111,3 @@ def init_app(app):
         else:
             request.user_id = 'N/A'
             request.user_email = 'N/A'
-
-# Usage in app.py or wherever you initialize your Flask app:
-# from log_service import init_app
-# init_app(app)
-
-# Usage in your routes or other parts of your application:
-# current_app.logger.debug("This is a debug message")
-# current_app.logger.info("This is an info message")
-# current_app.logger.warning("This is a warning message")
-# current_app.logger.error("This is an error message")
-# current_app.logger.critical("This is a critical message")
