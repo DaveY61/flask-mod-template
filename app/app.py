@@ -5,7 +5,7 @@ from flask import Flask, render_template, redirect, url_for, request, abort, sen
 from flask_login import LoginManager, current_user, login_required
 from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
 from app.services.auth_service_db import setup_database, init_db
-from app.services.log_service import init_app_logger
+from app.services.log_service import init_logger
 import pkgutil
 import importlib
 from dotenv import load_dotenv
@@ -63,7 +63,7 @@ def setup_module_loader(app):
     ])
 
 #----------------------------------------------------------------------------#
-# Define App/Blueprint Functions for "create_app"
+# Define method for "create_app"
 #----------------------------------------------------------------------------#
 def create_app():
     # Load environment variables from .env file
@@ -72,9 +72,6 @@ def create_app():
     # Create the Flask app with the specified template folder
     app = Flask(__name__)
     app.config.from_object(Config)
-
-    # Store the original static folder
-    app.config['ORIGINAL_STATIC_FOLDER'] = app.static_folder
 
     # Setup and initialize the database
     setup_database(app.config)
@@ -99,7 +96,7 @@ def create_app():
                 return redirect(url_for('auth.login', next=request.url))
 
     # Initialize the app logger service
-    init_app_logger(app)
+    init_logger(app)
 
     return app
 
