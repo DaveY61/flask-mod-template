@@ -82,13 +82,6 @@ def test_log_format(app):
 @patch('smtplib.SMTP')
 def test_email_error_log(mock_smtp, app):
     app.config['EMAIL_ENABLE_ERROR'] = True
-    app.config['ADMIN_USER_LIST'] = ['admin@example.com']
-    app.config['EMAIL_FROM_ADDRESS'] = 'test@example.com'
-    app.config['SMTP_SERVER'] = 'smtp.example.com'
-    app.config['SMTP_PORT'] = 587
-    app.config['SMTP_USERNAME'] = 'test_user'
-    app.config['SMTP_PASSWORD'] = 'test_password'
-
     mock_smtp_instance = MagicMock()
     mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
 
