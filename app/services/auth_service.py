@@ -205,7 +205,14 @@ def reset_password(token):
     user = get_user(token_data.user_id)
     if user:
         update_user_password(user.id, new_password)
+        
+        # Check if the user's account is inactive, and activate it if so
+        if not user.is_active:
+            update_user_activation(user.id)
+            flash('Your account has been activated.', 'success')
+        
         delete_token(token)
+        flash('Your password has been reset successfully.', 'success')
         return render_template('pages/reset_success.html', response_color="green"), 200
 
     return render_template('pages/invalid_input.html', response_color="red"), 400
