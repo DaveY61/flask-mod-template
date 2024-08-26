@@ -361,3 +361,61 @@ def test_user_allowed_modules(client, app, db):
                 session['user_id'] = user.id
             allowed_modules = user.get_allowed_modules()
             assert set(allowed_modules) == {'module1', 'module2'}
+
+def test_admin_first_time_login(client, app, db):
+    with app.app_context():
+        # Ensure the email is in the ADMIN_USER_LIST
+        admin_email = 'admin@example.com'
+        app.config['ADMIN_USER_LIST'] = [admin_email]
+
+        # Attempt to login with admin email and 'admin' password
+        response = client.post('/login', data={
+            'email': admin_email,
+            'password': 'admin'
+        })
+
+        # Check if the response is a redirect (302)
+        assert response.status_code == 302
+
+        # The redirect should be to the create_password page
+        assert 'create_password' in response.location
+
+        # Verify that a new inactive admin user was created
+        user = get_user_by_email(admin_email)
+        assert user is not None
+        assert user.is_admin == True
+        assert user.is_active == False
+
+        # Extract the token from the redirect URL
+        token = response.location.split('/create_password/')[1]
+
+        # Use the token to set a new password
+        response = client.post(f'/create_password/{token}', data={
+            'password': 'newpassword',
+            'confirm': 'newpassword'
+        })
+
+        # Check if the password creation was successful (should redirect to login)
+        assert response.status_code == 302
+        assert response.location.endswith('/login')
+
+        # Verify that the user is now active
+        user = get_user_by_email(admin_email)
+        assert user.is_active == True
+
+        # Try logging in with the new password
+        response = client.post('/login', data={
+            'email': admin_email,
+            'password': 'newpassword'
+        })
+
+        # Check if login was successful (should redirect)
+        assert response.status_code == 302
+        assert response.location.endswith('/')  # Assuming successful login redirects to home
+
+        # Verify that the 'admin' password no longer works
+        response = client.post('/login', data={
+            'email': admin_email,
+            'password': 'admin'
+        })
+        assert response.status_code == 400  # Bad request for invalid credentials
