@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config.COMPANY_NAME }} - End User License Agreement</title>
+    <title>End User License Agreement</title>
     <style>
         body {
             font-family: Arial, sans-serif;
