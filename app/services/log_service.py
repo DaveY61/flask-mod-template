@@ -5,7 +5,7 @@ from flask import request, has_request_context
 from flask.logging import default_handler
 import smtplib
 from email.message import EmailMessage
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 
 class RequestFormatter(logging.Formatter):
@@ -69,7 +69,6 @@ class HeaderFileHandler(TimedRotatingFileHandler):
             self.stream.close()
             self.stream = None
         
-        # Get the new filename
         self.baseFilename = os.path.join(os.path.dirname(self.baseFilename), self._get_formatted_filename())
         
         self.stream = self._open()
@@ -82,7 +81,6 @@ class HeaderFileHandler(TimedRotatingFileHandler):
 
     def deleteOldLogs(self):
         dir_name = os.path.dirname(self.baseFilename)
-        current_date = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
         
         log_files = []
         for filename in os.listdir(dir_name):
@@ -97,8 +95,7 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         # Sort log files by date, newest first
         log_files.sort(reverse=True)
         
-        # Keep only the most recent backupCount files (including today's file)
-        files_to_keep = log_files[:self.backupCount]
+        # Keep only the most recent backupCount files
         files_to_delete = log_files[self.backupCount:]
         
         for _, filename in files_to_delete:
