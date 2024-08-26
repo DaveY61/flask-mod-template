@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.COMPANY_NAME }} - End User License Agreement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            font-size: x-large;
+        }
+        h2 {
+            color: #2980b9;
+            font-size: large;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .company-info {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+        .highlight {
+            background-color: #f1c40f;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ config.COMPANY_NAME }} - End User License Agreement</h1>
+    
+    <p>This End User License Agreement ("Agreement") is a legal agreement between you (either an individual or a single entity) and {{ config.COMPANY_NAME }} ("Company") for the software product identified above, which includes computer software and may include associated media, printed materials, and "online" or electronic documentation ("Software").</p>
+    
+    <p><strong>By installing, copying, or otherwise using the Software, you agree to be bound by the terms of this Agreement. If you do not agree to the terms of this Agreement, do not install or use the Software.</strong></p>
+
+    <div class="section">
+        <h2>1. GRANT OF LICENSE</h2>
+        <p>Company grants you the following rights provided that you comply with all terms and conditions of this Agreement:</p>
+        <p>1.1 Installation and Use. You may install and use one copy of the Software on a single computer.</p>
+    </div>
+
+    <div class="section">
+        <h2>2. DESCRIPTION OF OTHER RIGHTS AND LIMITATIONS</h2>
+        <p>2.1 Maintenance of Copyright Notices. You must not remove or alter any copyright notices on any and all copies of the Software.</p>
+        <p>2.2 Distribution. You may not distribute registered copies of the Software to third parties.</p>
+        <p>2.3 Prohibition on Reverse Engineering, Decompilation, and Disassembly. You may not reverse engineer, decompile, or disassemble the Software, except and only to the extent that such activity is expressly permitted by applicable law notwithstanding this limitation.</p>
+    </div>
+
+    <div class="section">
+        <h2>3. COPYRIGHT</h2>
+        <p>All title, including but not limited to copyrights, in and to the Software and any copies thereof are owned by Company or its suppliers. All title and intellectual property rights in and to the content which may be accessed through use of the Software is the property of the respective content owner and may be protected by applicable copyright or other intellectual property laws and treaties.</p>
+    </div>
+
+    <div class="section">
+        <h2>4. NO WARRANTIES</h2>
+        <p>Company expressly disclaims any warranty for the Software. The Software is provided 'As Is' without any express or implied warranty of any kind, including but not limited to any warranties of merchantability, noninfringement, or fitness of a particular purpose.</p>
+    </div>
+
+    <div class="section">
+        <h2>5. LIMITATION OF LIABILITY</h2>
+        <p>In no event shall Company be liable for any damages (including, without limitation, lost profits, business interruption, or lost information) rising out of use of or inability to use the Software, even if Company has been advised of the possibility of such damages. In no event will Company be liable for loss of data or for indirect, special, incidental, consequential (including lost profit), or other damages based in contract, tort or otherwise.</p>
+    </div>
+
+    <div class="section">
+        <h2>6. TERMINATION</h2>
+        <p>Without prejudice to any other rights, Company may terminate this Agreement if you fail to comply with the terms and conditions of this Agreement. In such event, you must destroy all copies of the Software in your possession.</p>
+    </div>
+
+    <div class="section">
+        <h2>7. GOVERNING LAW</h2>
+        <p>This Agreement shall be governed by the laws of <span class="highlight">{{ config.JURISDICTION }}</span>.</p>
+    </div>
+
+    <p>By installing and using the Software, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
+
+    <div class="company-info">
+        <p><strong>{{ config.COMPANY_NAME }}</strong><br>
+        {{ config.COMPANY_ADDRESS }}<br>
+        {{ config.COMPANY_CONTACT }}</p>
+    </div>
+</body>
+</html>

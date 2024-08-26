@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from flask import Flask, render_template, redirect, url_for, request, abort, send_from_directory, render_template_string
+from flask import Flask, render_template, redirect, url_for, request, abort, send_from_directory, render_template_string, current_app
 from flask_login import LoginManager, current_user, login_required
 from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
 from app.services.auth_service_db import setup_database, init_db
@@ -130,6 +130,12 @@ def inject_user():
 @app.route('/')
 def home():
     return render_template('pages/home.html')
+
+@app.route('/eula')
+def eula():
+    if not current_app.config.get('ENABLE_EULA', False):
+        abort(404)  # This will raise a 404 error
+    return render_template('pages/eula.html')
 
 @app.route('/about')
 def about():
