@@ -22,13 +22,15 @@ from unittest.mock import patch, MagicMock
 import tempfile
 import logging
 from freezegun import freeze_time
-from datetime import datetime
+from datetime import datetime, timedelta
+import shutil
 
 @pytest.fixture
 def app():
     app = Flask(__name__)
+    temp_dir = tempfile.mkdtemp()
     app.config.update({
-        'LOG_FILE_DIRECTORY': tempfile.gettempdir(),
+        'LOG_FILE_DIRECTORY': temp_dir,
         'LOG_RETENTION_DAYS': 3,
         'EMAIL_ENABLE_ERROR': False,
         'ADMIN_USER_LIST': ['admin@example.com'],
@@ -38,7 +40,13 @@ def app():
         'SMTP_USERNAME': 'test_user',
         'SMTP_PASSWORD': 'test_password'
     })
-    return app
+    yield app
+    # Cleanup after tests
+    for handler in app.logger.handlers[:]:
+        app.logger.removeHandler(handler)
+        if isinstance(handler, logging.FileHandler):
+            handler.close()
+    shutil.rmtree(temp_dir)
 
 def test_setup_logger(app):
     with app.app_context():
@@ -159,86 +167,51 @@ def test_request_formatter(app):
             formatted = formatter.format(record)
             assert 'http://localhost/test - 127.0.0.1 - N/A - N/A - Test message' in formatted
 
-@freeze_time("2023-01-01 00:00:00")
+@freeze_time("2023-01-01")
 def test_log_file_rotation(app):
     with app.app_context():
-        with tempfile.TemporaryDirectory() as temp_dir:
-            app.config['LOG_FILE_DIRECTORY'] = temp_dir
-            setup_logger(app)
-            file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
-            assert file_handler is not None
+        setup_logger(app)
+        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+        assert file_handler is not None
 
-            # Log a message to create the initial log file
-            app.logger.info("Test log message")
-            log_file_path = file_handler.baseFilename
-            assert os.path.exists(log_file_path)
-            print(f"Initial log file: {log_file_path}")  # Debug print
+        # Log a message to create the initial log file
+        app.logger.info("Test log message")
+        log_file_path = file_handler.baseFilename
+        assert os.path.exists(log_file_path)
+        assert log_file_path.endswith("app_2023-01-01.log")
 
-            # List files before rotation
-            print(f"Files in temp directory before rotation: {temp_dir}")
-            for file in os.listdir(temp_dir):
-                print(file)
+        # Move time forward to trigger rotation
+        with freeze_time("2023-01-02"):
+            app.logger.info("New day log message")
+            file_handler.doRollover()  # Force rollover
+            new_log_file_path = file_handler.baseFilename
+            assert os.path.exists(new_log_file_path)
+            assert new_log_file_path.endswith("app_2023-01-02.log")
 
-            # Move time forward to trigger rotation
-            frozen_datetime = datetime(2023, 1, 2, 0, 0, 1)
-            with freeze_time(frozen_datetime):
-                # Close the current log file before rotation
-                file_handler.close()
+        # Check if both log files exist
+        assert os.path.exists(os.path.join(app.config['LOG_FILE_DIRECTORY'], "app_2023-01-01.log"))
+        assert os.path.exists(os.path.join(app.config['LOG_FILE_DIRECTORY'], "app_2023-01-02.log"))
 
-                # Force the rotation
-                file_handler.doRollover()
-
-                # Check if a new log file was created
-                new_log_file_path = file_handler.baseFilename
-                assert os.path.exists(new_log_file_path)
-                print(f"New log file: {new_log_file_path}")  # Debug print
-
-                # List all files in the temporary directory after rotation
-                print("Files in temp directory after rotation:")
-                for file in os.listdir(temp_dir):
-                    print(file)
-
-                # Check if both log files exist
-                assert os.path.exists(os.path.join(temp_dir, f"app_2023-01-01.log")), "Log file for 2023-01-01 not found"
-                assert os.path.exists(os.path.join(temp_dir, f"app_2023-01-02.log")), "Log file for 2023-01-02 not found"
-
-@freeze_time("2023-01-01 00:00:00")
+@freeze_time("2023-01-01")
 def test_log_retention(app):
     with app.app_context():
-        with tempfile.TemporaryDirectory() as temp_dir:
-            app.config['LOG_FILE_DIRECTORY'] = temp_dir
-            setup_logger(app)
-            file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
-            assert file_handler is not None
+        app.config['LOG_RETENTION_DAYS'] = 3
+        setup_logger(app)
+        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+        assert file_handler is not None
 
-            # Create log files for four days
-            for i in range(4):
-                frozen_datetime = datetime(2023, 1, 1 + i, 0, 0, 0)
-                with freeze_time(frozen_datetime):
-                    app.logger.info(f"Log message for day {i+1}")
-                    file_handler.doRollover()
+        # Create log files for five days
+        for i in range(5):
+            with freeze_time(datetime(2023, 1, 1) + timedelta(days=i)):
+                app.logger.info(f"Log message for day {i+1}")
+                file_handler.doRollover()  # Force rollover
 
-            # List files before retention
-            print("Files in temp directory before retention:")
-            for file in os.listdir(temp_dir):
-                print(file)
-
-            # Call deleteOldLogs to remove old logs
-            file_handler.deleteOldLogs()
-
-            # List all files in the temporary directory after retention
-            print("Files in temp directory after retention:")
-            log_files = os.listdir(temp_dir)
-            for file in log_files:
-                print(file)
-
-            # Expecting only three files to remain
-            assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}"
-
-            # Check that the correct files are present
-            expected_files = {f"app_2023-01-02.log", f"app_2023-01-03.log", f"app_2023-01-04.log"}
-            actual_files = set(log_files)
-            assert expected_files == actual_files, f"Expected files {expected_files}, but found {actual_files}"
+        # Check that only the last 3 log files exist
+        log_files = os.listdir(app.config['LOG_FILE_DIRECTORY'])
+        assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}: {log_files}"
+        assert "app_2023-01-03.log" in log_files
+        assert "app_2023-01-04.log" in log_files
+        assert "app_2023-01-05.log" in log_files
 
 def test_request_formatter_with_context(app):
     with app.app_context():

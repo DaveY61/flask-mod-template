@@ -48,37 +48,52 @@ class EmailHandler(logging.Handler):
             server.send_message(msg)
 
 class HeaderFileHandler(TimedRotatingFileHandler):
-    def __init__(self, filename, when='midnight', interval=1, backupCount=0, encoding=None, delay=False, utc=False, atTime=None):
-        # Define filename prefix and extenstion
+    def __init__(self, filename, when='midnight', interval=1, backupCount=0, encoding=None, utc=False, atTime=None):
         self.prefix = "app"
         self.ext = ".log"
+        self.backupCount = backupCount
         
-        # Generate the initial filename with the correct date format
-        initial_filename = self._get_formatted_filename(filename)
-        super().__init__(initial_filename, when, interval, backupCount, encoding, delay, utc, atTime)
+        # Ensure the initial filename is in the correct format
+        dir_name = os.path.dirname(filename)
+        self.baseFilename = os.path.join(dir_name, self._get_formatted_filename())
+        
+        super().__init__(self.baseFilename, when, interval, backupCount, encoding, utc=utc, atTime=atTime)
         self.header_written = False
-        self.namer = self._namer
 
-    def _get_formatted_filename(self, base_filename):
-        dir_name, _ = os.path.split(base_filename)
-        return os.path.join(dir_name, f"{self.prefix}_{datetime.now().strftime('%Y-%m-%d')}{self.ext}")
-
-    def _namer(self, default_name):
-        dir_name, _ = os.path.split(default_name)
-        return self._get_formatted_filename(default_name)
+    def _get_formatted_filename(self):
+        current_time = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
+        return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}{self.ext}"
 
     def doRollover(self):
         if self.stream:
             self.stream.close()
             self.stream = None
         
-        self.baseFilename = self._get_formatted_filename(self.baseFilename)
-        self.stream = self._open()
+        # Get the new filename
+        self.baseFilename = os.path.join(os.path.dirname(self.baseFilename), self._get_formatted_filename())
         
-        self.deleteOldLogs()
+        self.stream = self._open()
         
         self.rolloverAt = self.computeRollover(int(time.time()))
         self.header_written = False
+        
+        # Clean up old log files
+        self.deleteOldLogs()
+
+    def deleteOldLogs(self):
+        dir_name = os.path.dirname(self.baseFilename)
+        retention_date = datetime.now() - timedelta(days=self.backupCount)
+        
+        for filename in os.listdir(dir_name):
+            if filename.startswith(self.prefix) and filename.endswith(self.ext):
+                try:
+                    file_date_str = filename.split('_')[1].split('.')[0]
+                    file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
+                    file_path = os.path.join(dir_name, filename)
+                    if file_date < retention_date and file_path != self.baseFilename:
+                        os.remove(file_path)
+                except (IndexError, ValueError):
+                    continue  # Skip files that don't match the expected format
 
     def emit(self, record):
         try:
@@ -93,33 +108,6 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         except Exception:
             self.handleError(record)
 
-    def _open(self):
-        stream = super()._open()
-        if os.path.getsize(self.baseFilename) == 0:
-            self.header_written = False
-        return stream
-
-    def deleteOldLogs(self):
-        """Delete log files older than the retention period."""
-        dir_name, base_name = os.path.split(self.baseFilename)
-        file_names = os.listdir(dir_name)
-        base_name, ext = os.path.splitext(base_name)
-        base_name = base_name.rsplit('_', 1)[0]  # Remove the date part
-        retention_date = datetime.now() - timedelta(days=self.backupCount)
-        print(f"Deleting log files older than: {retention_date}")  # Debug print
-        
-        for file_name in file_names:
-            if file_name.startswith(base_name) and file_name.endswith(ext):
-                file_date_str = file_name.rsplit('_', 1)[-1].split('.')[0]
-                try:
-                    file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-                    if file_date < retention_date:
-                        os.remove(os.path.join(dir_name, file_name))
-                        print(f"Removed old log file: {file_name}")  # Debug print
-                except ValueError:
-                    # If the date parsing fails, skip this file
-                    continue
-
 def setup_logger(app):
     if not app.logger.handlers:
         app.logger.removeHandler(default_handler)
@@ -133,7 +121,7 @@ def setup_logger(app):
         log_dir = app.config['LOG_FILE_DIRECTORY']
         os.makedirs(log_dir, exist_ok=True)
 
-        log_file_path = os.path.join(log_dir, 'app.log')  # This will be formatted correctly by HeaderFileHandler
+        log_file_path = os.path.join(log_dir, 'app.log')
         file_handler = HeaderFileHandler(
             filename=log_file_path,
             when='midnight',
