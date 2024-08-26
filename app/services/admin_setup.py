@@ -142,7 +142,12 @@ def setup_gui():
         # Update GUI config
         new_gui_values = {
             'COMPANY_NAME': request.form.get('company_name'),
+            'COMPANY_ADDRESS': request.form.get('company_address'),
+            'COMPANY_CONTACT': request.form.get('company_contact'),
+            'JURISDICTION': request.form.get('jurisdiction'),
+
             'BODY_COLOR': request.form.get('body_color'),
+
             'PROJECT_NAME': request.form.get('project_name'),
             'PROJECT_NAME_COLOR': request.form.get('project_name_color')
         }
@@ -176,7 +181,12 @@ def setup_gui():
     # Read current GUI values
     form_data = {
         'company_name': current_app.config['COMPANY_NAME'],
+        'company_address': current_app.config['COMPANY_ADDRESS'],
+        'company_contact': current_app.config['COMPANY_CONTACT'],
+        'jurisdiction': current_app.config['JURISDICTION'],
+
         'body_color': current_app.config['BODY_COLOR'],
+
         'project_name': current_app.config['PROJECT_NAME'],
         'project_name_color': current_app.config['PROJECT_NAME_COLOR']
     }
@@ -372,7 +382,9 @@ def setup_users():
             user_config = {
                 'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on',
                 'DISABLE_SELF_REGISTRATION': request.form.get('disable_self_registration') == 'on',
-                'ENABLE_REGISTRATION_CAPTCHA': request.form.get('enable_registration_captcha') == 'on'
+                'ENABLE_REGISTRATION_CAPTCHA': request.form.get('enable_registration_captcha') == 'on',
+                'ENABLE_EULA': request.form.get('enable_eula') == 'on',
+                'ENABLE_EULA_ACKNOWLEDGEMENT': request.form.get('enable_eula_acknowledgement') == 'on'
             }
             save_user_config(user_config)
             current_app.config.update(user_config)

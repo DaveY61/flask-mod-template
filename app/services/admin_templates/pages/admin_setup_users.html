@@ -93,6 +93,27 @@ RECAPTCHA_SECRET_KEY=your_secret_key_here</code></pre>
                   </button>
                 </div>
               </div>
+              <div class="gui-setup-row d-flex align-items-center">
+                <div class="col-6">
+                    <label for="enable_eula" class="gui-label mb-0">Enable EULA:</label>
+                </div>
+                <div class="col-6 d-flex align-items-center">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enable_eula" name="enable_eula" {% if config.ENABLE_EULA %}checked{% endif %}>
+                    </div>
+                </div>
+              </div>
+              <div class="gui-setup-row d-flex align-items-center">
+                  <div class="col-6">
+                      <label for="enable_eula_acknowledgement" class="gui-label mb-0">Enable EULA Acknowledgement:</label>
+                  </div>
+                  <div class="col-6 d-flex align-items-center">
+                      <div class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" id="enable_eula_acknowledgement" name="enable_eula_acknowledgement" {% if config.ENABLE_EULA_ACKNOWLEDGEMENT %}checked{% endif %}>
+                      </div>
+                      <i id="eula_warning" class="fas fa-exclamation-triangle text-warning ms-2" style="display: none;" title="EULA must be enabled for acknowledgement to take effect"></i>
+                  </div>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary mt-3 btn-sm">Update Config</button>
           </form>
@@ -158,6 +179,7 @@ RECAPTCHA_SECRET_KEY=your_secret_key_here</code></pre>
             <th>Email</th>
             <th>Active</th>
             <th>Admin</th>
+            <th>EULA</th>
             <th>Role</th>
             <th>Created At</th>
             <th>Action</th>
@@ -170,6 +192,7 @@ RECAPTCHA_SECRET_KEY=your_secret_key_here</code></pre>
               <td>{{ user.email }}</td>
               <td>{{ 'Yes' if user.is_active else 'No' }}</td>
               <td>{{ 'Yes' if user.is_admin else 'No' }}</td>
+              <td>{{ 'Yes' if user.eula_acknowledged else 'No' }}</td>
               <td>
                 <form method="POST" class="update-role-form">
                   <input type="hidden" name="action" value="update_role">
@@ -204,6 +227,17 @@ RECAPTCHA_SECRET_KEY=your_secret_key_here</code></pre>
 <script src="{{ url_for('static', filename='libs/datatables/jquery.dataTables.min.js') }}"></script>
 <script src="{{ url_for('static', filename='libs/datatables/dataTables.bootstrap5.min.js') }}"></script>
 <script>
+$(document).ready(function() {
+    function updateEulaWarning() {
+        var enableEula = $('#enable_eula').is(':checked');
+        var enableEulaAcknowledgement = $('#enable_eula_acknowledgement').is(':checked');
+        $('#eula_warning').toggle(enableEulaAcknowledgement && !enableEula);
+    }
+
+    $('#enable_eula, #enable_eula_acknowledgement').change(updateEulaWarning);
+    updateEulaWarning();
+});
+
 $(document).ready(function() {
     $('#user-table').DataTable({
         "pageLength": 25,

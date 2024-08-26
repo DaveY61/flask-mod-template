@@ -1,8 +1,8 @@
 {
     "COMPANY_NAME": "My Awesome Company",
-    "JURISDICTION": "Your Jurisdiction",
     "COMPANY_ADDRESS": "123 Main St, Anytown, AN 12345",
     "COMPANY_CONTACT": "contact@yourcompany.com | (123) 456-7890",
+    "JURISDICTION": "Your Jurisdiction",
 
     "BODY_COLOR": "#f0fff0",
 
