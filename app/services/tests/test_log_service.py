@@ -206,12 +206,14 @@ def test_log_retention(app):
                 app.logger.info(f"Log message for day {i+1}")
                 file_handler.doRollover()  # Force rollover
 
+        # Move to the last day to trigger cleanup
+        with freeze_time("2023-01-05"):
+            file_handler.doRollover()
+
         # Check that only the last 3 log files exist
-        log_files = os.listdir(app.config['LOG_FILE_DIRECTORY'])
+        log_files = sorted(os.listdir(app.config['LOG_FILE_DIRECTORY']))
         assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}: {log_files}"
-        assert "app_2023-01-03.log" in log_files
-        assert "app_2023-01-04.log" in log_files
-        assert "app_2023-01-05.log" in log_files
+        assert log_files == ['app_2023-01-03.log', 'app_2023-01-04.log', 'app_2023-01-05.log']
 
 def test_request_formatter_with_context(app):
     with app.app_context():

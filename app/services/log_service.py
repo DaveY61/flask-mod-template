@@ -82,18 +82,27 @@ class HeaderFileHandler(TimedRotatingFileHandler):
 
     def deleteOldLogs(self):
         dir_name = os.path.dirname(self.baseFilename)
-        retention_date = datetime.now() - timedelta(days=self.backupCount)
+        current_date = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
         
+        log_files = []
         for filename in os.listdir(dir_name):
             if filename.startswith(self.prefix) and filename.endswith(self.ext):
                 try:
                     file_date_str = filename.split('_')[1].split('.')[0]
                     file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-                    file_path = os.path.join(dir_name, filename)
-                    if file_date < retention_date and file_path != self.baseFilename:
-                        os.remove(file_path)
+                    log_files.append((file_date, filename))
                 except (IndexError, ValueError):
                     continue  # Skip files that don't match the expected format
+        
+        # Sort log files by date, newest first
+        log_files.sort(reverse=True)
+        
+        # Keep only the most recent backupCount files (including today's file)
+        files_to_keep = log_files[:self.backupCount]
+        files_to_delete = log_files[self.backupCount:]
+        
+        for _, filename in files_to_delete:
+            os.remove(os.path.join(dir_name, filename))
 
     def emit(self, record):
         try:
