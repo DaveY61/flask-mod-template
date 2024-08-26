@@ -20,7 +20,7 @@ from flask import Flask, redirect, url_for, request
 from flask_login import LoginManager, current_user
 from werkzeug.security import check_password_hash
 from app.services.auth_service import blueprint as auth_blueprint
-from app.services.auth_service_db import add_user, get_user_by_email, update_user_activation, setup_database, init_db, get_base, generate_token, get_user
+from app.services.auth_service_db import add_user, get_user_by_email, update_user_activation, setup_database, init_db, get_base, generate_token, get_user, get_token
 from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -419,3 +419,35 @@ def test_admin_first_time_login(client, app, db):
             'password': 'admin'
         })
         assert response.status_code == 400  # Bad request for invalid credentials
+
+@patch('app.services.auth_service.EmailService.send_email')
+def test_reset_password_activates_inactive_account(mock_send_email, client, app, db):
+    with app.app_context():
+        # Create an inactive user
+        user = add_user('inactive_id', 'inactiveuser', 'inactive@example.com', 'oldpassword', is_active=False)
+        assert not user.is_active
+
+        # Generate a reset token for the inactive user
+        token = generate_token(user.id, 'reset')
+
+        # Simulate password reset
+        response = client.post(f'/reset_password/{token}', data={
+            'password': 'newpassword'
+        })
+
+        # Check if the response is successful
+        assert response.status_code == 200
+
+        # Verify that the user is now active
+        updated_user = get_user('inactive_id')
+        assert updated_user.is_active
+
+        # Verify that the password has been changed
+        assert updated_user.check_password('newpassword')
+
+        # Check for success messages
+        assert b'Your account has been activated' in response.data
+        assert b'Your password has been reset successfully' in response.data
+
+        # Verify that the reset token has been deleted
+        assert get_token(token, 'reset') is None
