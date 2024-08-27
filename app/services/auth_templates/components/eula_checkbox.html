@@ -1,0 +1,8 @@
+{% if config.ENABLE_EULA and config.ENABLE_EULA_ACKNOWLEDGEMENT %}
+<div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="eula_acknowledged" name="eula_acknowledged">
+    <label class="form-check-label" for="eula_acknowledged">
+        I acknowledge the <a href="{{ url_for('eula') }}" target="_blank">End User License Agreement</a>
+    </label>
+</div>
+{% endif %}
