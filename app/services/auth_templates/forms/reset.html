@@ -11,7 +11,7 @@
     <a href="{{ url_for('auth.login') }}">Login</a>
   </div>
 
-  {% if not user.is_active %}
+  {% if not user.eula_acknowledged %}
     {% include 'components/eula_checkbox.html' %}
   {% endif %}
 {% endblock %}
