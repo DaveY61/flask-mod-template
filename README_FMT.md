@@ -14,8 +14,10 @@
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
 - [Role-Based Access Control](#role-based-access-control)
 - [User Management](#user-management)
-- [User Registration: reCAPTCHA](#user-registration-recaptcha)
+  - [User Registration: reCAPTCHA](#user-registration-recaptcha)
+  - [End User License Agreement (EULA)](#end-user-license-agreement-eula)
 - [Email Setup](#email-setup)
+- [Error Handling and Logging](#error-handling-and-logging)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -36,6 +38,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - Sidebar navigation for admin pages and new modules
 - User management includes: require login for site access, disable self-registration, and enable reCAPTCHA for registration
 - Direct user addition by administrators with automatic activation email
+- Customizable End User License Agreement (EULA) with optional acknowledgment requirement
 
 ## Technologies Used
 
@@ -219,10 +222,12 @@ Note: Icon images should be in PNG format and appropriately sized for best resul
    - Require Login for Site Access: When enabled, makes the entire site (except login and registration pages) accessible only to logged-in users
    - Disable Self Registration: When enabled, prevents new users from registering themselves
    - Enable reCAPTCHA for Self Registration (see details in next section)
+   - Enable/disable End User License Agreement (EULA)
+   - Require EULA acknowledgment for new users and password resets
 
 5. All changes in user management take effect immediately after saving.
 
-## User Registration: reCAPTCHA
+### User Registration: reCAPTCHA
 
 To enable reCAPTCHA on the user self-registration form:
 
@@ -237,9 +242,25 @@ To enable reCAPTCHA on the user self-registration form:
 
 Note: Ensure you keep your reCAPTCHA Secret Key confidential and never expose it in client-side code or public repositories.
 
+### End User License Agreement (EULA)
+
+The application includes a customizable EULA feature:
+
+1. In the Admin Setup, go to the "User Setup" page.
+2. In the "Access Options" section, you can:
+   - Enable or disable the EULA
+   - Require EULA acknowledgment for new users and password resets
+3. Customize the EULA content by editing the `app/templates/pages/eula.html` file.
+4. The EULA will be presented to users during registration and password resets when enabled.
+
 ## Email Setup
 
-The Email Setup interface allows administrators to configure and test email settings without immediately applying changes to the application's configuration. This process ensures that email settings are working correctly before updating the application's session or the `.env` file.
+The Email Setup interface now allows administrators to:
+- Test email configuration without saving changes
+- Update the current session with new email settings
+- Save email settings to the .env file (if available)
+
+This process ensures that email settings are working correctly before updating the application's configuration.
 
 1. In the Admin Setup, go to the "Email Setup" page.
 
@@ -274,6 +295,16 @@ The Email Setup interface allows administrators to configure and test email sett
    - If you're not using a `.env` file, you'll need to manually update your server environment with any changes you want to persist across restarts.
 
 By following this process, you can ensure that your email configuration is working correctly before applying it to your application, reducing the risk of email-related issues in your production environment.
+
+## Error Handling and Logging
+
+The application includes improved error handling and logging:
+
+- Detailed error logs are stored in the `app_logs` directory
+- Error emails can be sent to administrators (configurable in the Email Setup)
+- User-friendly error pages for common HTTP errors (403, 404, 500)
+
+Administrators can review logs and configure email notifications to stay informed about application issues.
 
 ## License
 
