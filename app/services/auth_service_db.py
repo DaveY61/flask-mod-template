@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
@@ -19,7 +19,11 @@ Session = None
 def is_email_taken(email):
     with get_db() as session:
         return session.query(User).filter(func.lower(User.email) == func.lower(email)).first() is not None
-    
+
+# function to ensure all columns exist
+def ensure_user_columns():
+    User.ensure_columns()
+
 def get_base():
     Base = declarative_base()
 
@@ -31,10 +35,11 @@ def get_base():
         password = Column(String, nullable=False)
         is_active = Column(Boolean, default=False)
         is_admin = Column(Boolean, default=False)
+        eula_acknowledged = Column(Boolean, default=False)
         created_at = Column(DateTime, default=func.now())
         user_role = Column(String)
         tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
-
+                        
         def check_password(self, password):
             return check_password_hash(self.password, password)
 
@@ -79,11 +84,46 @@ def setup_database(config):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    with get_db() as session:
+        inspector = inspect(engine)
+        existing_columns = {c['name'] for c in inspector.get_columns('users')}
+        model_columns = {c.key: c for c in User.__table__.columns}
+
+        for col_name, col in model_columns.items():
+            if col_name not in existing_columns:
+                col_type = col.type
+                default = col.default.arg if col.default else None
+                nullable = '' if col.nullable else 'NOT NULL'
+
+                if isinstance(col_type, String):
+                    col_type_str = f'VARCHAR({col_type.length})' if col_type.length else 'TEXT'
+                elif isinstance(col_type, Boolean):
+                    col_type_str = 'BOOLEAN'
+                elif isinstance(col_type, DateTime):
+                    col_type_str = 'DATETIME'
+                elif isinstance(col_type, Integer):
+                    col_type_str = 'INTEGER'
+                else:
+                    col_type_str = str(col_type)
+
+                default_str = f"DEFAULT {default}" if default is not None else ""
+                
+                alter_statement = f'ALTER TABLE users ADD COLUMN {col_name} {col_type_str} {nullable} {default_str}'
+                session.execute(alter_statement)
+
+        session.commit()
 
 def get_db():
     if Session is None:
         raise RuntimeError("Database is not initialized. Call setup_database first.")
-    return Session()
+    
+    session = Session()
+    
+    # Ensure the users table exists
+    Base.metadata.create_all(bind=engine)
+    
+    return session
 
 def admin_required(func):
     @wraps(func)
@@ -96,7 +136,7 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_view
 
-def add_user(id, username, email, password, is_active=False, is_admin=False, user_role=None):
+def add_user(id, username, email, password, is_active=False, is_admin=False, user_role=None, eula_acknowledged=False):
     with get_db() as session:
         user = User(
             id=id,
@@ -105,7 +145,8 @@ def add_user(id, username, email, password, is_active=False, is_admin=False, use
             password=generate_password_hash(password, method='scrypt'),
             is_active=is_active,
             is_admin=is_admin,
-            user_role=user_role
+            user_role=user_role,
+            eula_acknowledged=eula_acknowledged
         )
         session.add(user)
         session.commit()
@@ -124,6 +165,13 @@ def update_user(user):
     with get_db() as session:
         session.merge(user)
         session.commit()
+
+def update_user_eula_acknowledgement(user_id, acknowledged):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.eula_acknowledged = acknowledged
+            session.commit()
 
 def delete_user(user_id):
     with get_db() as session:
@@ -170,7 +218,6 @@ def delete_token(token):
             session.commit()
 
 # Support for Default role
-
 def get_default_role():
     try:
         with get_db() as session:
@@ -201,7 +248,6 @@ def update_default_role(role_name):
             session.commit()
 
 # Additional helper functions
-
 def update_user_role(user_id, role):
     with get_db() as session:
         user = session.query(User).filter(User.id == user_id).first()
