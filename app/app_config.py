@@ -3,8 +3,10 @@ import binascii
 import json
 
 class Config:
-    # Set debug mode
-    DEBUG = False
+    # Set debug mode 
+    #  - use .env setting, but default to 'False' for Production (if not defined in the .env)
+    #  - use 'app.run(debug=True)' in the 'run_local.py' for Development
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False') == 'True'
 
     # Generate a random secret key and convert it to a hexadecimal string
     SECRET_KEY = binascii.hexlify(os.urandom(32)).decode()
