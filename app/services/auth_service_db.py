@@ -131,7 +131,7 @@ def admin_required(func):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
         if not current_user.is_admin:
-            flash("Access to Administer pages is restricted", "error")
+            flash("Access to Administer pages is restricted", "warning")
             return redirect(url_for('home'))
         return func(*args, **kwargs)
     return decorated_view
