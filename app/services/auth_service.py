@@ -177,14 +177,21 @@ def login():
 
     user = get_user_by_email(email)
     
-    # Check if the email is in the ADMIN_USER_LIST and not in the database
+    # Check if the email is in the ADMIN_USER_LIST
     admin_emails = current_app.config['ADMIN_USER_LIST']
     is_admin_email = email in admin_emails
 
-    if not user and is_admin_email and password == 'admin':
-        # Create a new inactive admin user
-        user_id = str(uuid.uuid4())
-        user = add_user(user_id, email.split('@')[0], email, 'temporary', is_active=False, is_admin=True)
+    if is_admin_email and password == 'admin':
+        if not user:
+            # Create a new inactive admin user
+            user_id = str(uuid.uuid4())
+            user = add_user(user_id, email.split('@')[0], email, 'temporary', is_active=False, is_admin=True)
+        elif not user.is_active:
+            # If user exists but is not active, allow them to reset their password
+            pass
+        else:
+            # If user exists and is active, this is an invalid login attempt
+            return render_template('pages/login_failure.html', response_color='red'), 400
         
         # Generate a token for password creation
         token = generate_token(user.id, 'activation', expiration=None)
