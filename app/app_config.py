@@ -6,7 +6,7 @@ class Config:
     # Set debug mode 
     #  - use .env setting, but default to 'False' for Production (if not defined in the .env)
     #  - use 'app.run(debug=True)' in the 'run_local.py' for Development
-    DEBUG = os.environ.get('FLASK_DEBUG', 'False') == 'True'
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
     # Generate a random secret key and convert it to a hexadecimal string
     SECRET_KEY = binascii.hexlify(os.urandom(32)).decode()

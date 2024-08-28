@@ -145,11 +145,13 @@ def setup_logger(app):
         email_handler.setFormatter(formatter)
         app.logger.addHandler(email_handler)
 
+    # Always add console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     console_handler.setLevel(logging.DEBUG)
     app.logger.addHandler(console_handler)
 
+    # Ensure all messages are passed to handlers
     app.logger.setLevel(logging.DEBUG)
 
     return app.logger.handlers
