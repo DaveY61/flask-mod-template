@@ -181,3 +181,13 @@ def init_logger(app):
         else:
             request.user_id = 'N/A'
             request.user_email = 'N/A'
+
+    # Log App Startup
+    app.logger.info("Application started")
+
+    # Log Test log entries
+    app.logger.debug("Debug log test")
+    app.logger.info("Info log test")
+    app.logger.warning("Warning log test")
+    app.logger.error("Error log test")
+    app.logger.critical("Critical log test")
