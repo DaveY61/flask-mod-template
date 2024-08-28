@@ -18,9 +18,16 @@
 
   {% if config.ENABLE_REGISTRATION_CAPTCHA %}
   <div class="mb-3 d-flex justify-content-center">
-    <div class="g-recaptcha mb-3" data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}"></div>
+    <div class="g-recaptcha" data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}" data-callback="recaptchaCallback"></div>
   </div>
   {% endif %}
 
   {% include 'components/eula_checkbox.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if config.ENABLE_REGISTRATION_CAPTCHA %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endif %}
 {% endblock %}

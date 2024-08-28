@@ -18,7 +18,11 @@
     <button type="submit" class="btn btn-primary btn-lg w-100" id="submit-button">Submit</button>
     <div id="eula-warning" class="text-warning mt-2" style="display: none;">
       <i class="fas fa-exclamation-triangle"></i>
-      Review and accept the EULA before submitting.
+      Review and accept the EULA to submit.
+    </div>
+    <div id="captcha-warning" class="text-warning mt-2" style="display: none;">
+      <i class="fas fa-exclamation-triangle"></i>
+      Complete the reCAPTCHA to submit.
     </div>
   </form>
 {% endblock %}
@@ -40,29 +44,59 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('auth-form');
     const submitButton = document.getElementById('submit-button');
-    const warningElement = document.getElementById('eula-warning');
+    const eulaWarning = document.getElementById('eula-warning');
+    const captchaWarning = document.getElementById('captcha-warning');
     const eulaCheckbox = document.getElementById('eula_acknowledged');
+    const recaptchaElement = document.querySelector('.g-recaptcha');
 
     function updateSubmitButton() {
+        let isDisabled = false;
+        
         if (eulaCheckbox) {
-            submitButton.disabled = !eulaCheckbox.checked;
-            warningElement.style.display = eulaCheckbox.checked ? 'none' : 'block';
+            const eulaUnchecked = !eulaCheckbox.checked;
+            isDisabled = isDisabled || eulaUnchecked;
+            eulaWarning.style.display = eulaUnchecked ? 'block' : 'none';
         }
+        
+        if (recaptchaElement) {
+            const recaptchaResponse = grecaptcha && grecaptcha.getResponse();
+            const captchaUncompleted = !recaptchaResponse;
+            isDisabled = isDisabled || captchaUncompleted;
+            captchaWarning.style.display = captchaUncompleted ? 'block' : 'none';
+        }
+        
+        submitButton.disabled = isDisabled;
     }
 
     if (eulaCheckbox) {
         eulaCheckbox.addEventListener('change', updateSubmitButton);
-        updateSubmitButton(); // Initial state
+    }
+
+    if (recaptchaElement) {
+        // This will be called when the user completes the reCAPTCHA
+        window.recaptchaCallback = function() {
+            updateSubmitButton();
+        };
+    }
+
+    // Initial state
+    if (recaptchaElement) {
+        // We need to wait for the reCAPTCHA to load before we can check its state
+        var checkRecaptchaLoaded = setInterval(function() {
+            if (window.grecaptcha && grecaptcha.getResponse !== undefined) {
+                clearInterval(checkRecaptchaLoaded);
+                updateSubmitButton();
+            }
+        }, 100);
     } else {
-        // If there's no EULA checkbox, ensure the button is enabled and warning is hidden
-        submitButton.disabled = false;
-        warningElement.style.display = 'none';
+        updateSubmitButton();
     }
 
     form.addEventListener('submit', function(event) {
-        if (eulaCheckbox && !eulaCheckbox.checked) {
+        if ((eulaCheckbox && !eulaCheckbox.checked) || 
+            (recaptchaElement && (!grecaptcha || !grecaptcha.getResponse()))) {
             event.preventDefault();
-            warningElement.style.display = 'block';
+            updateSubmitButton();
         }
     });
 });
