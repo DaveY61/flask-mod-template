@@ -46,6 +46,7 @@ def register():
     username = data.get('username')
     email = data.get('email').lower()
     password = data.get('password')
+    eula_acknowledged = data.get('eula_acknowledged') == 'on'
 
     if not username or not email or not password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
@@ -57,12 +58,15 @@ def register():
     if is_admin_email and password == 'admin':
         # Create a new inactive admin user
         user_id = str(uuid.uuid4())
-        user = add_user(user_id, username, email, 'temporary', is_active=False, is_admin=True)
+        user = add_user(user_id, username, email, 'temporary', is_active=False, is_admin=True, eula_acknowledged=eula_acknowledged)
         
         # Generate a token for password creation
         token = generate_token(user.id, 'activation', expiration=None)
         
-        # Redirect to create password form
+        # Store EULA acknowledgment in session
+        session['eula_acknowledged'] = eula_acknowledged
+        
+        # Redirect to create password form without eula_acknowledged parameter
         return redirect(url_for('auth.create_password', token=token))
 
     if get_user_by_email(email):
@@ -134,23 +138,26 @@ def create_password(token):
         abort(404)
 
     is_admin_setup = user.is_admin and not user.is_active
+    eula_acknowledged = session.get('eula_acknowledged', False)
 
     if request.method == 'POST':
         form = CreatePasswordForm(request.form)
         if form.validate():
-            # Verify EULA Acknowledgement
-            if not handle_eula_acknowledgement(request.form, user):
-                return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup)
+            # Only check EULA if it wasn't already acknowledged
+            if not eula_acknowledged and not handle_eula_acknowledgement(request.form, user):
+                return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup, eula_acknowledged=eula_acknowledged)
 
             update_user_password(user.id, form.password.data)
             update_user_activation(user.id)
             delete_token(token)
+            # Clear the session data
+            session.pop('eula_acknowledged', None)
             flash('Password created successfully. You can now log in.', 'success')
             return redirect(url_for('auth.login'))
     else:
         form = CreatePasswordForm()
 
-    return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup)
+    return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup, eula_acknowledged=eula_acknowledged)
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
