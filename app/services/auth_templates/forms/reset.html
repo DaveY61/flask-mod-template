@@ -10,4 +10,8 @@
     <a href="{{ url_for('auth.forgot') }}">Forgot Password?</a>
     <a href="{{ url_for('auth.login') }}">Login</a>
   </div>
+
+  {% if not user.is_active %}
+    {% include 'components/eula_checkbox.html' %}
+  {% endif %}
 {% endblock %}
