@@ -2,13 +2,17 @@ from flask import Blueprint, request, render_template, redirect, url_for, curren
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm, CreatePasswordForm
 from app.services.email_service import EmailService, EmailError
-from app.services.auth_service_db import add_user, get_user_by_email, get_user, update_user, update_user_activation, generate_token, get_token, delete_token, update_user_password, delete_user, get_default_role, update_user_role
+from app.services.auth_service_db import (
+    add_user, get_user_by_email, get_user, get_default_role, delete_user,
+    generate_token, get_token, delete_token, 
+    update_user, update_user_password, update_user_activation, update_user_role, update_user_eula_acknowledgement)
 from datetime import datetime
 import uuid
 import requests
 
 blueprint = Blueprint('auth', __name__, template_folder='auth_templates')
 
+# Auth Service Helper Functions
 def send_email_wrapper(to, subject, body, html=False):
     try:
         email_service = EmailService(current_app.config)
@@ -17,6 +21,17 @@ def send_email_wrapper(to, subject, body, html=False):
         flash(f"Failed to send email: {str(e)}", "danger")
         current_app.logger.error(f"Email sending failed: {str(e)}")
 
+def handle_eula_acknowledgement(form_data, user=None):
+    if current_app.config['ENABLE_EULA'] and current_app.config['ENABLE_EULA_ACKNOWLEDGEMENT']:
+        eula_acknowledged = form_data.get('eula_acknowledged') == 'on'
+        if not eula_acknowledged:
+            flash('Please acknowledge the End User License Agreement.', 'warning')
+            return False
+        if user:
+            update_user_eula_acknowledgement(user.id, True)
+    return True
+
+# Auth Service routes
 @blueprint.route('/register', methods=['GET', 'POST'])
 def register():
     if current_app.config['DISABLE_SELF_REGISTRATION']:
@@ -51,10 +66,20 @@ def register():
             flash('reCAPTCHA verification failed. Please try again.', 'danger')
             return redirect(url_for('auth.register'))
 
+    # Verify EULA Acknowledgement
+    if not handle_eula_acknowledgement(request.form):
+        return redirect(url_for('auth.register'))
+    
+    # Verified, so mark "acknowledged"" as "True" when it is enabled
+    acknowledged = False
+    if current_app.config['ENABLE_EULA'] and current_app.config['ENABLE_EULA_ACKNOWLEDGEMENT']:
+        acknowledged = True
+    
     user_id = str(uuid.uuid4())
     is_admin = email in current_app.config['ADMIN_USER_LIST']
 
-    add_user(user_id, username, email, password, is_active=False, is_admin=is_admin)
+    # Pass all checks, add the new user
+    add_user(user_id, username, email, password, is_active=False, is_admin=is_admin, eula_acknowledged=acknowledged)
 
     default_role = get_default_role()
     if default_role:
@@ -93,9 +118,15 @@ def create_password(token):
     if not user:
         abort(404)
 
+    is_admin_setup = user.is_admin and not user.is_active
+
     if request.method == 'POST':
         form = CreatePasswordForm(request.form)
         if form.validate():
+            # Verify EULA Acknowledgement
+            if not handle_eula_acknowledgement(request.form, user):
+                return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup)
+
             update_user_password(user.id, form.password.data)
             update_user_activation(user.id)
             delete_token(token)
@@ -104,7 +135,7 @@ def create_password(token):
     else:
         form = CreatePasswordForm()
 
-    return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=not user.is_active)
+    return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup)
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
@@ -187,9 +218,17 @@ def forgot():
 
 @blueprint.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):  
+    token_data = get_token(token, 'reset')
+    if not token_data or token_data.expires_at < datetime.now():
+        return render_template('pages/invalid_input.html', response_color="red"), 400
+
+    user = get_user(token_data.user_id)
+    if not user:
+        return render_template('pages/invalid_input.html', response_color="red"), 400
+
     if request.method == 'GET':
         form = ResetForm(request.form)
-        return render_template('forms/reset.html', token=token, form=form)
+        return render_template('forms/reset.html', token=token, form=form, user=user)
 
     # Otherwise handle the POST
     data = request.form
@@ -198,24 +237,20 @@ def reset_password(token):
     if not new_password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    token_data = get_token(token, 'reset')
-    if not token_data or token_data.expires_at < datetime.now():
-        return render_template('pages/invalid_input.html', response_color="red"), 400
+    # Verify EULA Acknowledgement (if inactive accounts)
+    if not user.is_active and not handle_eula_acknowledgement(request.form, user):
+        form = ResetForm(request.form)
+        return render_template('forms/reset.html', token=token, form=form, user=user)
 
-    user = get_user(token_data.user_id)
-    if user:
-        update_user_password(user.id, new_password)
-        
-        # Check if the user's account is inactive, and activate it if so
-        if not user.is_active:
-            update_user_activation(user.id)
-            flash('Your account has been activated.', 'success')
-        
-        delete_token(token)
-        flash('Your password has been reset successfully.', 'success')
-        return render_template('pages/reset_success.html', response_color="green"), 200
-
-    return render_template('pages/invalid_input.html', response_color="red"), 400
+    update_user_password(user.id, new_password)
+    
+    # Check if the user's account is inactive, and activate it if so
+    if not user.is_active:
+        update_user_activation(user.id)
+        flash('Your account has been activated.', 'success')
+    
+    delete_token(token)
+    return render_template('pages/reset_success.html', response_color="green"), 200
 
 @blueprint.route('/delete', methods=['GET', 'POST'])
 @login_required
