@@ -17,6 +17,10 @@
   </div>
 
   {% if config.ENABLE_REGISTRATION_CAPTCHA %}
-  <div class="g-recaptcha mb-3" data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}"></div>
+  <div class="mb-3 d-flex justify-content-center">
+    <div class="g-recaptcha mb-3" data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}"></div>
+  </div>
   {% endif %}
+
+  {% include 'components/eula_checkbox.html' %}
 {% endblock %}
