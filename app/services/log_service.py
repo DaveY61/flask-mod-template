@@ -115,44 +115,62 @@ class HeaderFileHandler(TimedRotatingFileHandler):
             self.handleError(record)
 
 def setup_logger(app):
-    if not app.logger.handlers:
-        app.logger.removeHandler(default_handler)
+    # Remove all existing handlers
+    for handler in app.logger.handlers[:]:
+        app.logger.removeHandler(handler)
 
-        formatter = RequestFormatter(
-            '%(asctime)s\t%(levelname)s\t%(module)s\t%(message)s\t'
-            '%(user_id)s\t%(user_email)s\t%(remote_addr)s\t%(url)s\t'
-            '%(funcName)s\t%(lineno)d\t%(filename)s'
-        )
+    formatter = RequestFormatter(
+        '%(asctime)s\t%(levelname)s\t%(module)s\t%(message)s\t'
+        '%(user_id)s\t%(user_email)s\t%(remote_addr)s\t%(url)s\t'
+        '%(funcName)s\t%(lineno)d\t%(filename)s'
+    )
 
-        log_dir = app.config['LOG_FILE_DIRECTORY']
-        os.makedirs(log_dir, exist_ok=True)
+    log_dir = app.config['LOG_FILE_DIRECTORY']
+    os.makedirs(log_dir, exist_ok=True)
 
-        log_file_path = os.path.join(log_dir, 'app.log')
-        file_handler = HeaderFileHandler(
-            filename=log_file_path,
-            when='midnight',
-            interval=1,
-            backupCount=app.config['LOG_RETENTION_DAYS']
-        )
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.DEBUG)
-        app.logger.addHandler(file_handler)
+    log_file_path = os.path.join(log_dir, 'app.log')
+    file_handler = HeaderFileHandler(
+        filename=log_file_path,
+        when='midnight',
+        interval=1,
+        backupCount=app.config['LOG_RETENTION_DAYS']
+    )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(file_handler)
 
+    # Only add email handler if EMAIL_ENABLE_ERROR is True
+    if app.config.get('EMAIL_ENABLE_ERROR', False):
         email_handler = EmailHandler(app.config)
         email_handler.setFormatter(formatter)
         app.logger.addHandler(email_handler)
 
-        if app.debug:
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
-            console_handler.setLevel(logging.DEBUG)
-            app.logger.addHandler(console_handler)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(console_handler)
 
-        app.logger.setLevel(logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)
 
     return app.logger.handlers
 
 def init_logger(app):
+    # Check if this is the main process
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        return  # Skip logger initialization for reloader process
+
+    # Get the log directory from the config
+    log_dir = app.config['LOG_FILE_DIRECTORY']
+
+    # Check if the path is relative
+    if not os.path.isabs(log_dir):
+        # If it's relative, make it absolute based on the app's root path
+        log_dir = os.path.abspath(os.path.join(app.root_path, '..', log_dir))
+    
+    # Update the config with the absolute path
+    app.config['LOG_FILE_DIRECTORY'] = log_dir
+
+    # Create the logger handlers (which also makes the folder if needed)
     setup_logger(app)
 
     @app.before_request

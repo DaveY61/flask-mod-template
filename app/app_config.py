@@ -25,7 +25,7 @@ class Config:
     # Email Settings
     EMAIL_FAIL_DIRECTORY = os.environ.get('EMAIL_FAIL_DIRECTORY') or './app_data/email'
     EMAIL_FROM_ADDRESS = os.environ.get('EMAIL_FROM_ADDRESS')
-    EMAIL_ENABLE_ERROR = (os.environ.get('EMAIL_ENABLE_ERROR') == '1')
+    EMAIL_ENABLE_ERROR = os.environ.get('EMAIL_ENABLE_ERROR', '0').lower() in ('1', 'true', 'yes', 'on')
     SMTP_SERVER = os.environ.get('SMTP_SERVER')
     SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
     SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
