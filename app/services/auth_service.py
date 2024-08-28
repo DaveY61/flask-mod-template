@@ -295,7 +295,23 @@ def delete():
         return render_template('forms/delete.html', form=form)
 
     # Otherwise handle the POST
+    data = request.form
+    email = data.get('email').lower()
+    password = data.get('password')
+
+    if not email or not password:
+        flash('Please provide both email and password.', 'warning')
+        return redirect(url_for('auth.delete'))
+
+    if email != current_user.email:
+        flash('The provided email does not match your account.', 'warning')
+        return redirect(url_for('auth.delete'))
+
+    if not current_user.check_password(password):
+        flash('Incorrect password.', 'warning')
+        return redirect(url_for('auth.delete'))
+
     delete_user(current_user.id)
     logout_user()
 
-    return render_template('pages/delete_success.html', response_color="green"), 200
+    return render_template('pages/delete_success.html', response_color="green"), 200    
