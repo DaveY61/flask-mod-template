@@ -50,6 +50,21 @@ def register():
     if not username or not email or not password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
+    # Check if the email is in the ADMIN_USER_LIST
+    admin_emails = current_app.config['ADMIN_USER_LIST']
+    is_admin_email = email in admin_emails
+
+    if is_admin_email and password == 'admin':
+        # Create a new inactive admin user
+        user_id = str(uuid.uuid4())
+        user = add_user(user_id, username, email, 'temporary', is_active=False, is_admin=True)
+        
+        # Generate a token for password creation
+        token = generate_token(user.id, 'activation', expiration=None)
+        
+        # Redirect to create password form
+        return redirect(url_for('auth.create_password', token=token))
+
     if get_user_by_email(email):
         return render_template('pages/register_failure.html', response_color="red"), 400
 
