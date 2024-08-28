@@ -23,6 +23,9 @@ def send_email_wrapper(to, subject, body, html=False):
 
 def handle_eula_acknowledgement(form_data, user=None):
     if current_app.config['ENABLE_EULA'] and current_app.config['ENABLE_EULA_ACKNOWLEDGEMENT']:
+        if user and user.eula_acknowledged:
+            return True  # User has already acknowledged EULA
+        
         eula_acknowledged = form_data.get('eula_acknowledged') == 'on'
         if not eula_acknowledged:
             flash('Please acknowledge the End User License Agreement.', 'warning')
@@ -266,8 +269,8 @@ def reset_password(token):
     if not new_password:
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
-    # Verify EULA Acknowledgement (if inactive accounts)
-    if not user.is_active and not handle_eula_acknowledgement(request.form, user):
+    # Pass the user object to handle_eula_acknowledgement
+    if not handle_eula_acknowledgement(request.form, user):
         form = ResetForm(request.form)
         return render_template('forms/reset.html', token=token, form=form, user=user)
 
@@ -280,6 +283,9 @@ def reset_password(token):
     
     delete_token(token)
     return render_template('pages/reset_success.html', response_color="green"), 200
+
+    form = ResetForm()
+    return render_template('forms/reset.html', token=token, form=form, user=user)
 
 @blueprint.route('/delete', methods=['GET', 'POST'])
 @login_required
