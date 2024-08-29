@@ -11,6 +11,9 @@ env_content = f"""
 # Project Configuration
 VS_PROJECT_FOLDER_NAME={project_folder_name}
 
+# Flask Debug Control (use 'False' for Production, 'True' for Development)
+FLASK_DEBUG=False
+
 # GitHub Configuration
 GitHub_SECRET=your_github_secret_here
 
@@ -146,8 +149,9 @@ def print_env_reminder():
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                             IMPORTANT REMINDER                             ║
 ╠════════════════════════════════════════════════════════════════════════════╣
-║  You need to modify the following keys in the .env file:                   ║
+║  Modify the following keys in the .env file:                               ║
 ║                                                                            ║
+║  - FLASK_DEBUG          - Optional, set to 'True' for local development    ║
 ║  - GitHub_SECRET        - Optional, if using GitHub push trigger           ║
 ║  - EMAIL_FROM_ADDRESS   - matches your SMTP account                        ║
 ║  - SMTP_SERVER          - ie smtp.gmail.com                                ║
