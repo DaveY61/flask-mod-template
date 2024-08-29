@@ -46,7 +46,16 @@ def app():
         app.logger.removeHandler(handler)
         if isinstance(handler, logging.FileHandler):
             handler.close()
-    shutil.rmtree(temp_dir)
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # Clean up any other temporary directories created during tests
+    for root, dirs, files in os.walk(tempfile.gettempdir(), topdown=False):
+        for name in dirs:
+            if name.startswith('pytest-of-'):
+                try:
+                    shutil.rmtree(os.path.join(root, name), ignore_errors=True)
+                except Exception as e:
+                    print(f"Failed to remove directory {name}: {e}")
 
 def test_setup_logger(app):
     with app.app_context():
