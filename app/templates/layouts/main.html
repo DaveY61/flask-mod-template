@@ -121,6 +121,7 @@
                 {% if is_admin %}
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item text-warning" href="{{ url_for('admin.setup') }}">Admin Setup</a></li>
+                  <li><a class="dropdown-item text-info" href="{{ url_for('log.log_viewer') }}">Log Viewer</a></li>
                 {% endif %}
               </ul>
             </li>
