@@ -157,7 +157,7 @@ def print_env_reminder():
 ║  - SMTP_SERVER          - ie smtp.gmail.com                                ║
 ║  - SMTP_USERNAME        - Required, SMTP email for user registration       ║
 ║  - SMTP_PASSWORD        - Required, SMTP email for user registration       ║
-║  - ADMIN_USER_LIST      - Required, intial Admin login, Admin Setup        ║
+║  - ADMIN_USER_LIST      - Required for Admin access (see README_FMT.md)    ║
 ║  - RECAPTCHA_SITE_KEY   - Optional, if reCAPTCHA used for registraion      ║
 ║  - RECAPTCHA_SECRET_KEY - Optional, if reCAPTCHA used for registraion      ║
 ║                                                                            ║
