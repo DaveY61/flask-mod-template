@@ -52,17 +52,32 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         self.prefix = "app"
         self.ext = ".log"
         self.backupCount = backupCount
+        self.header = "Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n"
         
         # Ensure the initial filename is in the correct format
         dir_name = os.path.dirname(filename)
         self.baseFilename = os.path.join(dir_name, self._get_formatted_filename())
         
         super().__init__(self.baseFilename, when, interval, backupCount, encoding, utc=utc, atTime=atTime)
-        self.header_written = False
 
     def _get_formatted_filename(self):
         current_time = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
         return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}{self.ext}"
+
+    def _open(self):
+        if not os.path.exists(self.baseFilename):
+            # If the file doesn't exist, create it and write the header
+            with open(self.baseFilename, 'w', encoding=self.encoding) as f:
+                f.write(self.header)
+        else:
+            # If the file exists, check its size
+            if os.path.getsize(self.baseFilename) == 0:
+                # If the file is empty, write the header
+                with open(self.baseFilename, 'w', encoding=self.encoding) as f:
+                    f.write(self.header)
+        
+        # Open the file in append mode
+        return open(self.baseFilename, 'a', encoding=self.encoding)
 
     def doRollover(self):
         if self.stream:
@@ -74,7 +89,6 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         self.stream = self._open()
         
         self.rolloverAt = self.computeRollover(int(time.time()))
-        self.header_written = False
         
         # Clean up old log files
         self.deleteOldLogs()
@@ -105,10 +119,6 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         try:
             if self.shouldRollover(record):
                 self.doRollover()
-            if not self.header_written:
-                header = "Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n"
-                self.stream.write(header)
-                self.header_written = True
             super().emit(record)
             self.flush()
         except Exception:
