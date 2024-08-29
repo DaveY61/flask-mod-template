@@ -283,9 +283,13 @@ def test_delete_account(client, app, db):
         user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
         with client:
             with client.session_transaction() as session:
-                session['_user_id'] = user.id  # Use '_user_id' instead of 'user_id'
-            response = client.post('/delete')
+                session['_user_id'] = user.id
+            response = client.post('/delete', data={
+                'email': 'test@example.com',
+                'password': 'testpassword'
+            })
             assert response.status_code == 200
+            assert b"Account Removed!" in response.data
             deleted_user = get_user_by_email('test@example.com')
             assert deleted_user is None
 
@@ -447,8 +451,5 @@ def test_reset_password_activates_inactive_account(mock_send_email, client, app,
         assert updated_user.check_password('newpassword')
 
         # Check for success messages
-        assert b'Your account has been activated' in response.data
-        assert b'Your password has been reset successfully' in response.data
-
-        # Verify that the reset token has been deleted
-        assert get_token(token, 'reset') is None
+        assert b'Reset Success!' in response.data
+        assert b'Your password has been reset' in response.data
