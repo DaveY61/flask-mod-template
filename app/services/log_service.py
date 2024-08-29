@@ -1,12 +1,11 @@
 import logging
-import os
 from logging.handlers import TimedRotatingFileHandler
 from flask import request, has_request_context
-from flask.logging import default_handler
-import smtplib
 from email.message import EmailMessage
 from datetime import datetime
+import smtplib
 import time
+import os
 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -155,11 +154,12 @@ def setup_logger(app):
         email_handler.setFormatter(formatter)
         app.logger.addHandler(email_handler)
 
-    # Always add console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.DEBUG)
-    app.logger.addHandler(console_handler)
+    # Add console handler only if DEBUG is True
+    if app.config['DEBUG']:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(logging.DEBUG)
+        app.logger.addHandler(console_handler)
 
     # Ensure all messages are passed to handlers
     app.logger.setLevel(logging.DEBUG)
