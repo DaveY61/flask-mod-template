@@ -157,10 +157,6 @@ def setup_logger(app):
     return app.logger.handlers
 
 def init_logger(app):
-    # Check if this is the main process
-    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        return  # Skip logger initialization for reloader process
-
     # Get the log directory from the config
     log_dir = app.config['LOG_FILE_DIRECTORY']
 
@@ -183,13 +179,3 @@ def init_logger(app):
         else:
             request.user_id = 'N/A'
             request.user_email = 'N/A'
-
-    # Log App Startup
-    app.logger.info("Application started")
-
-    # Log Test log entries
-    app.logger.debug("Debug log test")
-    app.logger.info("Info log test")
-    app.logger.warning("Warning log test")
-    app.logger.error("Error log test")
-    app.logger.critical("Critical log test")
