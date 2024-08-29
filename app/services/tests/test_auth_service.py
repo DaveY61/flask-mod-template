@@ -67,7 +67,8 @@ def app(db):
         'APPLICATION_ROOT': '/', 
         'PREFERRED_URL_SCHEME': 'http',
         'ROLE_LIST': None,
-        'ENABLE_REGISTRATION_CAPTCHA': False
+        'ENABLE_REGISTRATION_CAPTCHA': False,
+        'ENABLE_EULA': False
     })
     
     app.template_folder = os.path.join(project_path, 'app', 'templates')
