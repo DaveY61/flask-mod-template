@@ -36,7 +36,6 @@ def get_log_content():
                 'level': parts[1],
                 'module': parts[2],
                 'message': parts[3],
-                'user_id': parts[4],
                 'user_email': parts[5],
                 'remote_addr': parts[6],
                 'url': parts[7],

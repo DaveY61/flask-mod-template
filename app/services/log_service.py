@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from flask import request, has_request_context
+from flask_login import current_user
 from email.message import EmailMessage
 from datetime import datetime
 import smtplib
@@ -12,8 +13,12 @@ class RequestFormatter(logging.Formatter):
         if has_request_context():
             record.url = request.url
             record.remote_addr = request.remote_addr
-            record.user_id = getattr(request, 'user_id', 'N/A')
-            record.user_email = getattr(request, 'user_email', 'N/A')
+            if current_user.is_authenticated:
+                record.user_id = current_user.id
+                record.user_email = current_user.email
+            else:
+                record.user_id = 'N/A'
+                record.user_email = 'N/A'
         else:
             record.url = None
             record.remote_addr = None
@@ -180,12 +185,3 @@ def init_logger(app):
 
     # Create the logger handlers (which also makes the folder if needed)
     setup_logger(app)
-
-    @app.before_request
-    def add_user_info_to_request():
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            request.user_id = request.user.id
-            request.user_email = request.user.email
-        else:
-            request.user_id = 'N/A'
-            request.user_email = 'N/A'
