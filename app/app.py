@@ -97,6 +97,7 @@ def create_app():
 
     # Initialize the app logger service
     init_logger(app)
+    app.logger.info("Application started")
 
     return app
 
@@ -201,9 +202,8 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
+                    current_app.logger.error(f"Blueprint not found for module: {module_name} in file:{module_file}")
                     abort(404)
-                
-                blueprint = module_file.blueprint
                 
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
                 
@@ -215,6 +215,7 @@ def module_proxy(module_path):
                             break
                 
                 if view_function is None:
+                    current_app.logger.error(f"view_function not found for module: {module_name} in file:{module_file}")
                     abort(404)
                 
                 def custom_render_template(template_name, **context):
@@ -226,6 +227,7 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
+                        current_app.logger.error(f"FileNotFoundError for template {template_name} in file:{module_file}")
                         abort(404)
                     
                     return render_template_string(template_content, **context)
@@ -233,9 +235,15 @@ def module_proxy(module_path):
                 module_file.url_for = custom_url_for
                 module_file.render_template = custom_render_template
                 
-                return view_function()
+                try:
+                    return view_function()
+                except Exception as e:
+                    current_app.logger.error(f"Error executing view function for {module_name}: {str(e)}")
+                    abort(500)
             
             except Exception as e:
+                current_app.logger.error(f"Error importing module {module_name}: {str(e)}")
                 abort(500)
     
+    current_app.logger.warning(f"Module path:{module_path} not found in module list.")
     abort(404)

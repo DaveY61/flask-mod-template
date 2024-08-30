@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, current_app
+from flask import Blueprint, render_template, jsonify, request, current_app, redirect, url_for
 from flask_login import login_required
 from app.services.auth_service_db import admin_required
 import os
@@ -19,10 +19,15 @@ def log_viewer():
 def get_log_content():
     log_file = request.args.get('file')
     log_dir = current_app.config['LOG_FILE_DIRECTORY']
-    file_path = os.path.join(log_dir, log_file)
+    try:
+        file_path = os.path.join(log_dir, log_file)
+    except:
+        current_app.logger.warning(f"Missing/blank log file.")
+        return redirect(url_for('log.log_viewer'))
     
     if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
+        current_app.logger.warning(f"Missing log file: {file_path}")
+        return redirect(url_for('log.log_viewer'))
 
     with open(file_path, 'r') as f:
         lines = f.readlines()[1:]  # Skip the header line
