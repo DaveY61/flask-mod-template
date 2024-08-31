@@ -16,27 +16,31 @@ class Config:
     VS_PROJECT_FOLDER_NAME = os.environ.get('VS_PROJECT_FOLDER_NAME')
 
     #----------------------------------------------------------------------------
-    # Config the Log, Email, and Authentication Services
-
-    # Log Settings
-    LOG_FILE_DIRECTORY = os.environ.get('LOG_FILE_DIRECTORY') or './app_logs'
-    LOG_FILE_LEVEL = os.environ.get('LOG_FILE_LEVEL') or 'INFO'
-    LOG_RETENTION_DAYS = int(os.environ.get('LOG_RETENTION_DAYS', 30))
-    
-    # Email Settings
-    EMAIL_FAIL_DIRECTORY = os.environ.get('EMAIL_FAIL_DIRECTORY') or './app_data/email'
-    EMAIL_FROM_ADDRESS = os.environ.get('EMAIL_FROM_ADDRESS')
-    EMAIL_ENABLE_ERROR = os.environ.get('EMAIL_ENABLE_ERROR', '0').lower() in ('1', 'true', 'yes', 'on')
-    SMTP_SERVER = os.environ.get('SMTP_SERVER')
-    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
-    SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
-    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
-    ADMIN_USER_LIST = os.environ.get('ADMIN_USER_LIST', '').split(',')
+    # Config the Log, Email, and User Authentication Services
 
     # User Database Settings
     USER_DATABASE_FILENAME = os.environ.get('USER_DATABASE_FILENAME') or 'users.db'
     USER_DATABASE_DIRECTORY = os.environ.get('USER_DATABASE_DIRECTORY') or './app_data/users'
     USER_DATABASE_PATH = os.path.join(USER_DATABASE_DIRECTORY, USER_DATABASE_FILENAME)
+
+    # Admin User List (email addess)
+    ADMIN_USER_LIST = os.environ.get('ADMIN_USER_LIST', '').split(',')
+
+    # Log Settings
+    LOG_FILE_DIRECTORY = os.environ.get('LOG_FILE_DIRECTORY') or './app_logs'
+    LOG_FILE_LEVEL = os.environ.get('LOG_FILE_LEVEL') or 'INFO'
+    LOG_RETENTION_DAYS = int(os.environ.get('LOG_RETENTION_DAYS', 30))
+    LOG_EMAIL_ENABLE = os.environ.get('LOG_EMAIL_ENABLE', '0').lower() in ('1', 'true', 'yes', 'on')
+    LOG_EMAIL_LEVEL = os.environ.get('LOG_EMAIL_LEVEL') or 'ERROR'
+    # Log email is sent to the Admin User List (above)
+
+    # Email Settings
+    EMAIL_FAIL_DIRECTORY = os.environ.get('EMAIL_FAIL_DIRECTORY') or './app_data/email'
+    EMAIL_FROM_ADDRESS = os.environ.get('EMAIL_FROM_ADDRESS')
+    SMTP_SERVER = os.environ.get('SMTP_SERVER')
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+    SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
+    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
     # User Authentication reCAPTCHA
     ENABLE_REGISTRATION_CAPTCHA = False

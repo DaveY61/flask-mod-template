@@ -32,7 +32,7 @@ def app():
     app.config.update({
         'LOG_FILE_DIRECTORY': temp_dir,
         'LOG_RETENTION_DAYS': 3,
-        'EMAIL_ENABLE_ERROR': False,
+        'LOG_EMAIL_ENABLE': False,
         'ADMIN_USER_LIST': ['admin@example.com'],
         'EMAIL_FROM_ADDRESS': 'test@example.com',
         'SMTP_SERVER': 'smtp.example.com',
@@ -90,7 +90,7 @@ def test_log_format(app):
 
 @patch('smtplib.SMTP')
 def test_email_error_log(mock_smtp, app):
-    app.config['EMAIL_ENABLE_ERROR'] = True
+    app.config['LOG_EMAIL_ENABLE'] = True
     mock_smtp_instance = MagicMock()
     mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
 
@@ -131,7 +131,7 @@ def test_multiple_setup_logger_calls(app):
         assert set(type(h) for h in second_call_handlers) == set(type(h) for h in initial_handlers)
 
 def test_email_handler_creation(app):
-    app.config['EMAIL_ENABLE_ERROR'] = True
+    app.config['LOG_EMAIL_ENABLE'] = True
     with app.app_context():
         handlers = setup_logger(app)
         email_handlers = [h for h in handlers if isinstance(h, EmailHandler)]
@@ -139,7 +139,7 @@ def test_email_handler_creation(app):
 
 @patch('smtplib.SMTP')
 def test_log_levels(mock_smtp, app):
-    app.config['EMAIL_ENABLE_ERROR'] = True
+    app.config['LOG_EMAIL_ENABLE'] = True
     with app.app_context():
         setup_logger(app)
         with patch.object(app.logger.handlers[0], 'emit') as mock_file_emit, \
@@ -241,7 +241,7 @@ def test_request_formatter_without_context(app):
         assert 'None - None - N/A - N/A - Test message' in formatted
 
 def test_email_handler_configuration(app):
-    app.config['EMAIL_ENABLE_ERROR'] = True
+    app.config['LOG_EMAIL_ENABLE'] = True
     with app.app_context():
         handlers = setup_logger(app)
         email_handler = next((h for h in handlers if isinstance(h, EmailHandler)), None)

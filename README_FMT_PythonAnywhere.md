@@ -61,22 +61,7 @@ This guide provides step-by-step instructions for deploying the Flask Modular Te
 ## 5. Setting Up Environment Variables
 
 1. In the Web tab, go to the "Environment variables" section.
-2. Add each variable from your `.env` file:
-   - VS_PROJECT_FOLDER_NAME
-   - LOG_FILE_DIRECTORY
-   - LOG_RETENTION_DAYS
-   - EMAIL_FAIL_DIRECTORY
-   - EMAIL_FROM_ADDRESS
-   - EMAIL_ENABLE_ERROR
-   - SMTP_SERVER
-   - SMTP_PORT
-   - SMTP_USERNAME
-   - SMTP_PASSWORD
-   - ADMIN_USER_LIST
-   - USER_DATABASE_FILENAME
-   - USER_DATABASE_DIRECTORY
-   - RECAPTCHA_SITE_KEY
-   - RECAPTCHA_SECRET_KEY
+2. Add each variable from your `.env` file
 
 ## 6. Database Setup
 

@@ -34,10 +34,9 @@ class EmailHandler(logging.Handler):
         self.setLevel(logging.ERROR)
 
     def emit(self, record):
-        if record.levelno >= logging.ERROR:
-            subject = "Error Log Notification"
-            body = f"Error log entry:\n{self.format(record)}"
-            self.send_email(subject, body)
+        subject = "Error Log Notification"
+        body = f"Error log entry:\n{self.format(record)}"
+        self.send_email(subject, body)
 
     def send_email(self, subject, body):
         msg = EmailMessage()
@@ -150,17 +149,18 @@ def setup_logger(app):
         backupCount=app.config['LOG_RETENTION_DAYS']
     )
     file_handler.setFormatter(formatter)
-    file_handler.setLevel(app.config['LOG_FILE_LEVEL'])
+    file_handler.setLevel(getattr(logging, app.config.get('LOG_FILE_LEVEL', 'INFO')))
     app.logger.addHandler(file_handler)
 
-    # Only add email handler if EMAIL_ENABLE_ERROR is True
-    if app.config.get('EMAIL_ENABLE_ERROR', False):
+    # Only add email handler if LOG_EMAIL_ENABLE is True
+    if app.config.get('LOG_EMAIL_ENABLE', False):
         email_handler = EmailHandler(app.config)
         email_handler.setFormatter(formatter)
+        email_handler.setLevel(getattr(logging, app.config.get('LOG_EMAIL_LEVEL', 'ERROR')))
         app.logger.addHandler(email_handler)
 
     # Add console handler only if DEBUG is True
-    if app.config['DEBUG']:
+    if app.config.get('DEBUG', False):
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.DEBUG)

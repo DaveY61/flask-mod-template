@@ -21,20 +21,25 @@ GitHub_SECRET=your_github_secret_here
 USER_DATABASE_FILENAME=users.db
 USER_DATABASE_DIRECTORY=./app_data/users
 
+# Admin User List (email addess)
+ADMIN_USER_LIST=admin1@example.com,admin2@example.com
+
 # Logging Configuration
 LOG_FILE_DIRECTORY=./app_logs
 LOG_FILE_LEVEL=INFO
 LOG_RETENTION_DAYS=7
+LOG_EMAIL_ENABLE=True
+LOG_EMAIL_LEVEL=ERROR
+# Log email is sent to the Admin User List (above)
+# Log levels:  'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 
 # Email Configuration
 EMAIL_FAIL_DIRECTORY=./app_data/email
 EMAIL_FROM_ADDRESS=your_email_here
-EMAIL_ENABLE_ERROR=1
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your_smtp_username_here
 SMTP_PASSWORD=your_smtp_password_here
-ADMIN_USER_LIST=admin1@example.com,admin2@example.com
 
 # User Self-Registration reCAPTCHA
 RECAPTCHA_SITE_KEY=your_captcha_site_key
