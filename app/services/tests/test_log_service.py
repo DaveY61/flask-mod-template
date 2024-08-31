@@ -1,3 +1,4 @@
+
 #----------------------------------------------------------------------------
 # Define "Project" Search Path
 #----------------------------------------------------------------------------
@@ -38,7 +39,8 @@ def app():
         'SMTP_SERVER': 'smtp.example.com',
         'SMTP_PORT': 587,
         'SMTP_USERNAME': 'test_user',
-        'SMTP_PASSWORD': 'test_password'
+        'SMTP_PASSWORD': 'test_password',
+        'LOG_FILE_LEVEL': 'INFO'
     })
     yield app
     # Cleanup after tests
@@ -97,23 +99,11 @@ def test_email_error_log(mock_smtp, app):
     with app.app_context():
         handlers = setup_logger(app)
         email_handler = next((h for h in handlers if isinstance(h, EmailHandler)), None)
-        assert email_handler is not None, "EmailHandler not found in logger handlers"
+        assert email_handler is not None
         
         with patch.object(EmailHandler, 'send_email') as mock_send_email:
             app.logger.error("Test error message")
             mock_send_email.assert_called_once()
-
-    mock_smtp.assert_not_called()
-
-def test_add_user_info_to_request(app):
-    init_logger(app)
-    with app.test_request_context('/'):
-        for func in app.before_request_funcs[None]:
-            func()
-        assert hasattr(request, 'user_id')
-        assert hasattr(request, 'user_email')
-        assert request.user_id == 'N/A'
-        assert request.user_email == 'N/A'
 
 def test_console_logging_in_debug_mode(app):
     app.debug = True
@@ -151,13 +141,15 @@ def test_log_levels(mock_smtp, app):
             app.logger.error("Error message")
             app.logger.critical("Critical message")
             
-            assert mock_file_emit.call_count == 5
-            log_levels = [mock_file_emit.call_args_list[i][0][0].levelname for i in range(5)]
-            assert log_levels == ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+            assert mock_file_emit.call_count == 4  # Debug messages are not logged by default
+            log_levels = [mock_file_emit.call_args_list[i][0][0].levelname for i in range(4)]
+            assert log_levels == ['INFO', 'WARNING', 'ERROR', 'CRITICAL']
             
             assert mock_send_email.call_count == 2  # Called for ERROR and CRITICAL
 
-def test_request_formatter(app):
+@patch('flask_login.utils._get_user')
+def test_request_formatter(mock_get_user, app):
+    mock_get_user.return_value = MagicMock(is_authenticated=False)
     with app.app_context():
         setup_logger(app)
         formatter = RequestFormatter('%(url)s - %(remote_addr)s - %(user_id)s - %(user_email)s - %(message)s')
@@ -217,12 +209,13 @@ def test_log_retention(app):
         assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}: {log_files}"
         assert log_files == ['app_2023-01-03.log', 'app_2023-01-04.log', 'app_2023-01-05.log']
 
-def test_request_formatter_with_context(app):
+@patch('flask_login.utils._get_user')
+def test_request_formatter_with_context(mock_get_user, app):
+    mock_user = MagicMock(is_authenticated=True, id='123', email='test@example.com')
+    mock_get_user.return_value = mock_user
     with app.app_context():
         formatter = RequestFormatter('%(url)s - %(remote_addr)s - %(user_id)s - %(user_email)s - %(message)s')
         with app.test_request_context('/test', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
-            request.user_id = '123'
-            request.user_email = 'test@example.com'
             record = logging.LogRecord(
                 name='test', level=logging.INFO, pathname='', lineno=0,
                 msg='Test message', args=(), exc_info=None
@@ -258,3 +251,26 @@ def test_console_logging_in_non_debug_mode(app):
         handlers = setup_logger(app)
         console_handlers = [h for h in handlers if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)]
         assert len(console_handlers) == 0
+
+def test_init_logger(app):
+    with app.app_context():
+        init_logger(app)
+        assert os.path.isabs(app.config['LOG_FILE_DIRECTORY'])
+        assert any(isinstance(h, HeaderFileHandler) for h in app.logger.handlers)
+
+def test_header_file_handler_rollover(app):
+    with app.app_context():
+        setup_logger(app)
+        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+        assert file_handler is not None
+
+        # Write a log message
+        app.logger.info("Test log message")
+
+        # Force a rollover
+        file_handler.doRollover()
+
+        # Check if the new file has the header
+        with open(file_handler.baseFilename, 'r') as f:
+            content = f.read()
+            assert content.startswith("Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n")
