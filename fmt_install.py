@@ -23,6 +23,7 @@ USER_DATABASE_DIRECTORY=./app_data/users
 
 # Logging Configuration
 LOG_FILE_DIRECTORY=./app_logs
+LOG_FILE_LEVEL=INFO
 LOG_RETENTION_DAYS=7
 
 # Email Configuration

@@ -150,7 +150,7 @@ def setup_logger(app):
         backupCount=app.config['LOG_RETENTION_DAYS']
     )
     file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(app.config['LOG_FILE_LEVEL'])
     app.logger.addHandler(file_handler)
 
     # Only add email handler if EMAIL_ENABLE_ERROR is True

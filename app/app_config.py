@@ -20,6 +20,7 @@ class Config:
 
     # Log Settings
     LOG_FILE_DIRECTORY = os.environ.get('LOG_FILE_DIRECTORY') or './app_logs'
+    LOG_FILE_LEVEL = os.environ.get('LOG_FILE_LEVEL') or 'INFO'
     LOG_RETENTION_DAYS = int(os.environ.get('LOG_RETENTION_DAYS', 30))
     
     # Email Settings
