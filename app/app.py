@@ -4,6 +4,7 @@
 from flask import Flask, render_template, redirect, url_for, request, abort, send_from_directory, render_template_string, current_app
 from flask_login import LoginManager, current_user, login_required
 from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
+from jinja2.exceptions import TemplateNotFound
 from app.services.auth_service_db import setup_database, init_db
 from app.services.log_service import init_logger
 import pkgutil
@@ -195,7 +196,8 @@ def module_proxy(module_path):
         
         return send_from_directory(app.static_folder, static_path)
     
-    AbortERR = 404
+    error_logged = False
+
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
@@ -206,13 +208,14 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    current_app.logger.error(f"Blueprint NotFound for Module: {module_name} in File: {module_file_name}.py")
-                    AbortERR = 500
-                    abort(AbortERR)
+                    current_app.logger.error(f"NotFound Blueprint: '{blueprint_name}' for Module: {module_name} in File: {module_file_name}.py")
+                    error_logged = True
+                    abort(500)
                 
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
                 
                 view_function = None
+                func_name = None
                 for route, func_name in module['routes'].items():
                     if module_specific_path.startswith(route):
                         if hasattr(module_file, func_name):
@@ -220,11 +223,13 @@ def module_proxy(module_path):
                             break
                 
                 if view_function is None:
-                    current_app.logger.error(f"view_function NotFound for Module: {module_name} in File: {module_file_name}.py")
-                    AbortERR = 500
-                    abort(AbortERR)
+                    current_app.logger.error(f"NotFound view_function: '{func_name}()' for Module: {module_name} in File: {module_file_name}.py")
+                    error_logged = True
+                    abort(500)
                 
+                template_error = None
                 def custom_render_template(template_name, **context):
+                    nonlocal template_error
                     context['url_for'] = custom_url_for
                     
                     template_path = os.path.join(app.root_path, 'modules', module_name, 'templates', template_name)
@@ -233,9 +238,8 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        current_app.logger.error(f"Template NotFound '{template_name}' in File: {module_file_name}.py")
-                        AbortERR = 500
-                        abort(AbortERR)
+                        template_error = f"NotFound Template: '{template_name}' for Module: {module_name} in File: {module_file_name}.py"
+                        raise TemplateNotFound(template_name)
                     
                     return render_template_string(template_content, **context)
                 
@@ -244,12 +248,24 @@ def module_proxy(module_path):
                 
                 try:
                     return view_function()
+                except TemplateNotFound:
+                    if template_error:
+                        current_app.logger.error(template_error)
+                    else:
+                        current_app.logger.error(f"Unexpected TemplateNotFound in Module: {module_name}, File: {module_file_name}.py")
+                    error_logged = True
+                    abort(500)
                 except Exception as e:
-                    abort(AbortERR)
+                    if not error_logged:
+                        current_app.logger.error(f"Error in Module: {module_name}, File: {module_file_name}.py - {str(e)}")
+                        error_logged = True
+                    abort(500)
             
             except Exception as e:
-                abort(AbortERR)
-    
-    # Use 'AbortERR' to return a "404" but upgrade to '500' if a specific module error is detected
-    # This could be just an incorrectly entered URL (so not module or page problem)
-    abort(AbortERR)
+                if not error_logged:
+                    current_app.logger.error(f"Unexpected error in Module: {module_name}, File: {module_file_name}.py - {str(e)}")
+                    error_logged = True
+                abort(500)
+            
+    # If no module matched, it's a 404
+    abort(404)
