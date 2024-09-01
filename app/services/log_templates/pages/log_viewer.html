@@ -12,6 +12,17 @@
         height: calc(100vh - 150px);
         overflow-y: auto;
     }
+    #log-table .message-column {
+        max-width: 40%;
+        white-space: normal;
+        word-break: break-word;
+    }
+    #log-table .narrow-column {
+        width: 40px;
+        white-space: wrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
 {% endblock %}
 
@@ -32,16 +43,15 @@
                 <table id="log-table" class="table table-striped table-bordered">
                     <thead>
                         <tr>
-                            <th>Timestamp</th>
-                            <th>Level</th>
-                            <th>Module</th>
-                            <th>Message</th>
-                            <th>User Email</th>
-                            <th>Remote Addr</th>
-                            <th>URL</th>
-                            <th>Function</th>
-                            <th>Line</th>
-                            <th>Filename</th>
+                            <th class="narrow-column">Timestamp</th>
+                            <th class="narrow-column">Level</th>
+                            <th class="message-column">Message</th>
+                            <th class="narrow-column">User Email</th>
+                            <th class="narrow-column">Remote Addr</th>
+                            <th class="narrow-column">URL</th>
+                            <th class="narrow-column">Function</th>
+                            <th class="narrow-column">Line</th>
+                            <th class="narrow-column">Filename</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -60,20 +70,21 @@
 $(document).ready(function() {
     var table = $('#log-table').DataTable({
         columns: [
-            { data: 'timestamp' },
-            { data: 'level' },
-            { data: 'module' },
-            { data: 'message' },
-            { data: 'user_email' },
-            { data: 'remote_addr' },
-            { data: 'url' },
-            { data: 'function' },
-            { data: 'line' },
-            { data: 'filename' }
+            { data: 'timestamp', className: 'narrow-column' },
+            { data: 'level', className: 'narrow-column' },
+            { data: 'message', className: 'message-column' },
+            { data: 'user_email', className: 'narrow-column' },
+            { data: 'remote_addr', className: 'narrow-column' },
+            { data: 'url', className: 'narrow-column' },
+            { data: 'function', className: 'narrow-column' },
+            { data: 'line', className: 'narrow-column' },
+            { data: 'filename', className: 'narrow-column' }
         ],
         order: [[0, 'desc']],
         pageLength: 25,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        scrollX: true,
+        autoWidth: false
     });
 
     $('.log-file').on('click', function(e) {

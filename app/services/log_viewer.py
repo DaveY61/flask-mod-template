@@ -39,7 +39,6 @@ def get_log_content():
             log_entries.append({
                 'timestamp': parts[0],
                 'level': parts[1],
-                'module': parts[2],
                 'message': parts[3],
                 'user_email': parts[5],
                 'remote_addr': parts[6],

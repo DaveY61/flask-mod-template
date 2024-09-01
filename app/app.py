@@ -148,6 +148,7 @@ register_blueprints(app, 'services')
 # Error handlers
 @app.errorhandler(500)
 def internal_error(error):
+    current_app.logger.critical(f"{str(error)}")
     return render_template('errors/500.html', response_color="red"), 500
 
 @app.errorhandler(404)
@@ -157,6 +158,7 @@ def not_found_error(error):
 
 @app.errorhandler(403)
 def not_found_error(error):
+    current_app.logger.warning(f"{str(error)}")
     return render_template('errors/403.html', response_color="red"), 404
 
 # Proxy for enabled module pages
@@ -193,6 +195,7 @@ def module_proxy(module_path):
         
         return send_from_directory(app.static_folder, static_path)
     
+    AbortERR = 404
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
@@ -203,8 +206,9 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    current_app.logger.error(f"Blueprint not found for module: {module_name} in file:{module_file}")
-                    abort(404)
+                    current_app.logger.error(f"Blueprint NotFound, Module: {module_name}, File: {module_file_name}.py")
+                    AbortERR = 500
+                    abort(AbortERR)
                 
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
                 
@@ -216,8 +220,9 @@ def module_proxy(module_path):
                             break
                 
                 if view_function is None:
-                    current_app.logger.warning(f"view_function not found for module: {module_name} in file:{module_file}")
-                    abort(404)
+                    current_app.logger.error(f"view_function NotFound, Module: {module_name}, File: {module_file_name}.py")
+                    AbortERR = 500
+                    abort(AbortERR)
                 
                 def custom_render_template(template_name, **context):
                     context['url_for'] = custom_url_for
@@ -228,8 +233,9 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        current_app.logger.error(f"FileNotFoundError for template {template_name} in file:{module_file}")
-                        abort(404)
+                        current_app.logger.error(f"File NotFound Template: {template_name}, File: {module_file_name}.py")
+                        AbortERR = 500
+                        abort(500)
                     
                     return render_template_string(template_content, **context)
                 
@@ -239,10 +245,11 @@ def module_proxy(module_path):
                 try:
                     return view_function()
                 except Exception as e:
-                    current_app.logger.warning(f"Error executing view function for {module_name}: {str(e)}")
-                    abort(404)
+                    abort(AbortERR)
             
             except Exception as e:
-                abort(404)
+                abort(AbortERR)
     
-    abort(404)
+    # Use 'AbortERR' to return a "404" but upgrade to '500' if a specific module error is detected
+    # This could be just an incorrectly entered URL (so not module or page problem)
+    abort(AbortERR)
