@@ -152,6 +152,7 @@ def internal_error(error):
 
 @app.errorhandler(404)
 def not_found_error(error):
+    current_app.logger.warning(f"{str(error)}")
     return render_template('errors/404.html', response_color="red"), 404
 
 @app.errorhandler(403)
@@ -202,7 +203,7 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    current_app.logger.critical(f"Blueprint not found for module: {module_name} in file:{module_file}")
+                    current_app.logger.error(f"Blueprint not found for module: {module_name} in file:{module_file}")
                     abort(404)
                 
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
@@ -227,7 +228,7 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        current_app.logger.critical(f"FileNotFoundError for template {template_name} in file:{module_file}")
+                        current_app.logger.error(f"FileNotFoundError for template {template_name} in file:{module_file}")
                         abort(404)
                     
                     return render_template_string(template_content, **context)
@@ -242,8 +243,6 @@ def module_proxy(module_path):
                     abort(404)
             
             except Exception as e:
-                current_app.logger.warning(f"Error importing module {module_name}: {str(e)}")
                 abort(404)
     
-    current_app.logger.warning(f"Module path:{module_path} not found in module list.")
     abort(404)
