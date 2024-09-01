@@ -214,13 +214,24 @@ def module_proxy(module_path):
                 
                 module_specific_path = '/' + module_path[len(f"{blueprint_name}/"):]
                 
+                # Strict route matching
                 view_function = None
-                func_name = None
+                matched_route = None
                 for route, func_name in module['routes'].items():
-                    if module_specific_path.startswith(route):
+                    if module_specific_path == route:  # Exact match
+                        matched_route = route
                         if hasattr(module_file, func_name):
                             view_function = getattr(module_file, func_name)
                             break
+                
+                if view_function is None:
+                    if matched_route:
+                        current_app.logger.error(f"NotFound view_function: '{func_name}()' for Module: {module_name} in File: {module_file_name}.py")
+                        error_logged = True
+                        abort(500)
+                    else:
+                        # No matching route found, continue to next module or eventually 404
+                        continue
                 
                 if view_function is None:
                     current_app.logger.error(f"NotFound view_function: '{func_name}()' for Module: {module_name} in File: {module_file_name}.py")
