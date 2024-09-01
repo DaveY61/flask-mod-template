@@ -2,7 +2,7 @@
 {% block title %}Log Viewer {{ config.PROJECT_NAME }}{% endblock %}
 
 {% block additional_styles %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='libs/datatables/dataTables.bootstrap5.min.css') }}">
 <style>
     #log-files-list {
         height: calc(100vh - 200px);
@@ -53,8 +53,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap5.min.js"></script>
+{{ super() }}
+<script src="{{ url_for('static', filename='libs/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/datatables/dataTables.bootstrap5.min.js') }}"></script>
 <script>
 $(document).ready(function() {
     var table = $('#log-table').DataTable({
