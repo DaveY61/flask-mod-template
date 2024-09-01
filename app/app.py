@@ -206,7 +206,7 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    current_app.logger.error(f"Blueprint NotFound, Module: {module_name}, File: {module_file_name}.py")
+                    current_app.logger.error(f"Blueprint NotFound for Module: {module_name} in File: {module_file_name}.py")
                     AbortERR = 500
                     abort(AbortERR)
                 
@@ -220,7 +220,7 @@ def module_proxy(module_path):
                             break
                 
                 if view_function is None:
-                    current_app.logger.error(f"view_function NotFound, Module: {module_name}, File: {module_file_name}.py")
+                    current_app.logger.error(f"view_function NotFound for Module: {module_name} in File: {module_file_name}.py")
                     AbortERR = 500
                     abort(AbortERR)
                 
@@ -233,9 +233,9 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        current_app.logger.error(f"File NotFound Template: {template_name}, File: {module_file_name}.py")
+                        current_app.logger.error(f"Template NotFound {template_name} in File: {module_file_name}.py")
                         AbortERR = 500
-                        abort(500)
+                        abort(AbortERR)
                     
                     return render_template_string(template_content, **context)
                 
