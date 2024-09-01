@@ -233,7 +233,7 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        current_app.logger.error(f"Template NotFound {template_name} in File: {module_file_name}.py")
+                        current_app.logger.error(f"Template NotFound '{template_name}' in File: {module_file_name}.py")
                         AbortERR = 500
                         abort(AbortERR)
                     
