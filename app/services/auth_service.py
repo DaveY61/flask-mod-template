@@ -34,6 +34,16 @@ def handle_eula_acknowledgement(form_data, user=None):
             update_user_eula_acknowledgement(user.id, True)
     return True
 
+def activate_user_account(user, activation_method):
+    update_user_activation(user.id)
+    current_app.logger.info(f"User account activated: {user.username} (Email: {user.email}), Method: {activation_method}")
+
+def create_user_account(username, email, password, is_active=False, is_admin=False, user_role=None, eula_acknowledged=False, creation_method="self-registration"):
+    user_id = str(uuid.uuid4())
+    user = add_user(user_id, username, email, password, is_active, is_admin, user_role, eula_acknowledged)
+    current_app.logger.info(f"User account added: {username} (Email: {email}), Method: {creation_method}")
+    return user
+
 # Auth Service routes
 @blueprint.route('/register', methods=['GET', 'POST'])
 def register():
@@ -55,13 +65,11 @@ def register():
         return render_template('pages/invalid_input.html', response_color="red"), 400
 
     # Check if the email is in the ADMIN_USER_LIST
-    admin_emails = current_app.config['ADMIN_USER_LIST']
-    is_admin_email = email in admin_emails
+    is_admin = email in current_app.config['ADMIN_USER_LIST']
 
-    if is_admin_email and password == 'admin':
+    if is_admin and password == 'admin':
         # Create a new inactive admin user
-        user_id = str(uuid.uuid4())
-        user = add_user(user_id, username, email, 'temporary', is_active=False, is_admin=True, eula_acknowledged=eula_acknowledged)
+        user = create_user_account(username, email, password, is_active=False, is_admin=is_admin, eula_acknowledged=eula_acknowledged, creation_method="admin register")
         
         # Generate a token for password creation
         token = generate_token(user.id, 'activation', expiration=None)
@@ -96,18 +104,15 @@ def register():
     acknowledged = False
     if current_app.config['ENABLE_EULA'] and current_app.config['ENABLE_EULA_ACKNOWLEDGEMENT']:
         acknowledged = True
-    
-    user_id = str(uuid.uuid4())
-    is_admin = email in current_app.config['ADMIN_USER_LIST']
 
     # Pass all checks, add the new user
-    add_user(user_id, username, email, password, is_active=False, is_admin=is_admin, eula_acknowledged=acknowledged)
+    user = create_user_account(username, email, password, is_active=False, is_admin=is_admin, eula_acknowledged=acknowledged)
 
     default_role = get_default_role()
     if default_role:
-        update_user_role(user_id, default_role)
+        update_user_role(user.id, default_role)
 
-    token = generate_token(user_id, 'activation')
+    token = generate_token(user.id, 'activation')
     activation_link = url_for('auth.activate_account', token=token, _external=True)
     
     # Render the email template with the provided username and activation link
@@ -124,7 +129,7 @@ def activate_account(token):
 
     user = get_user(token_data.user_id)
     if user:
-        update_user_activation(user.id)
+        activate_user_account(user, "activation token")
         delete_token(token)
         return render_template('pages/activate_success.html', response_color="green"), 200
 
@@ -151,7 +156,7 @@ def create_password(token):
                 return render_template('forms/create_password.html', form=form, token=token, is_admin_setup=is_admin_setup, eula_acknowledged=eula_acknowledged)
 
             update_user_password(user.id, form.password.data)
-            update_user_activation(user.id)
+            activate_user_account(user, "create password")
             delete_token(token)
             # Clear the session data
             session.pop('eula_acknowledged', None)
@@ -187,8 +192,8 @@ def login():
     if is_admin_email and password == 'admin':
         if not user:
             # Create a new inactive admin user
-            user_id = str(uuid.uuid4())
-            user = add_user(user_id, email.split('@')[0], email, 'temporary', is_active=False, is_admin=True)
+            user = create_user_account(email.split('@')[0], email, 'temporary', is_active=False, is_admin=True, creation_method="admin login")
+
         elif not user.is_active:
             # If user exists but is not active, allow them to reset their password
             pass
@@ -278,14 +283,13 @@ def reset_password(token):
     
     # Check if the user's account is inactive, and activate it if so
     if not user.is_active:
-        update_user_activation(user.id)
+        activate_user_account(user, "password reset")
         flash('Your account has been activated.', 'success')
+    else:
+        current_app.logger.info(f"User account password reset: {user.username} (Email: {user.email})")
     
     delete_token(token)
     return render_template('pages/reset_success.html', response_color="green"), 200
-
-    form = ResetForm()
-    return render_template('forms/reset.html', token=token, form=form, user=user)
 
 @blueprint.route('/delete', methods=['GET', 'POST'])
 @login_required
@@ -311,6 +315,7 @@ def delete():
         flash('Incorrect password.', 'warning')
         return redirect(url_for('auth.delete'))
 
+    current_app.logger.info(f"User account removed: {current_user.username} (Email: {current_user.email}), Method: self-deletion")
     delete_user(current_user.id)
     logout_user()
 
