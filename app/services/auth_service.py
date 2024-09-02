@@ -215,6 +215,7 @@ def login():
     update_user(user)
 
     login_user(user)
+    current_app.logger.info(f"Successful login for user {user.username} (Email: {user.email})")
 
     # Redirect to the next URL or home if next is not provided or is invalid
     if not next_url or next_url == 'None':
@@ -225,6 +226,7 @@ def login():
 @blueprint.route('/logout', methods=['GET'])
 @login_required
 def logout():
+    current_app.logger.info(f"User logged out: {current_user.username} (Email: {current_user.email})")
     logout_user()
     session.clear()
     return redirect(url_for('home'))
