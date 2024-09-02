@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from app.services.auth_service_db import is_email_taken, add_user, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
+from app.services.auth_service import create_user_account
+from app.services.auth_service_db import is_email_taken, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
 from app.services.email_service import EmailService, EmailError
 from app.mod_config_manager import ConfigManager
 import logging
@@ -375,7 +376,10 @@ def setup_users():
         
         elif action == 'delete_user':
             user_id = request.form.get('user_id')
-            delete_user(user_id)
+            user = get_user(user_id)
+            current_app.logger.info(f"User account removed: {user.username} (Email: {user.email}), Method: admin deletion")
+
+            delete_user(user.id)
             flash('User deleted successfully', 'success')
         
         elif action == 'update_access_options':
@@ -404,11 +408,10 @@ def setup_users():
             if is_email_taken(new_email):
                 return jsonify({'status': 'error', 'message': 'Email address already exists'}), 400
 
-            user_id = str(uuid.uuid4())
-            add_user(user_id, new_username, new_email, current_app.config['SECRET_KEY'], is_active=False, user_role=new_role)
+            user = create_user_account(new_username, new_email, current_app.config['SECRET_KEY'], is_active=False, user_role=new_role, creation_method="admin creation")
             
             # Generate non-expiring token
-            token = generate_token(user_id, 'activation', expiration=None)
+            token = generate_token(user.id, 'activation', expiration=None)
             activation_link = url_for('auth.create_password', token=token, _external=True)
             
             # Send activation email
