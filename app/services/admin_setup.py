@@ -5,13 +5,10 @@ from app.services.auth_service import create_user_account
 from app.services.auth_service_db import is_email_taken, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
 from app.services.email_service import EmailService, EmailError
 from app.mod_config_manager import ConfigManager
-import logging
 import os
 import json
-import sys
 import ast
 import re
-import uuid
 from collections import defaultdict
 
 blueprint = Blueprint('admin', __name__, template_folder='admin_templates')
@@ -56,7 +53,7 @@ def update_module_list(app):
                         module_info['order'] = len(existing_modules)
                     updated_modules.append(module_info)
             except Exception as e:
-                logging.error(f"Error processing module {module_folder}: {str(e)}")
+                current_app.logger.error(f"Error processing module {module_folder}: {str(e)}")
 
     # Sort modules based on their order
     updated_modules.sort(key=lambda x: x['order'])
@@ -68,7 +65,7 @@ def update_module_list(app):
     try:
         save_module_config(app)
     except Exception as e:
-        logging.error(f"Error saving module configuration: {str(e)}")
+        current_app.logger.error(f"Error saving module configuration: {str(e)}")
 
 def extract_module_info(module_path, module_name):
     module_info = {
@@ -98,7 +95,7 @@ def extract_module_info(module_path, module_name):
                                     if module_info['primary_route'] is None or len(route) < len(module_info['primary_route']):
                                         module_info['primary_route'] = route
             except Exception as e:
-                logging.error(f"Error parsing file {file_path}: {str(e)}")
+                current_app.logger.error(f"Error parsing file {file_path}: {str(e)}")
     
     return module_info if module_info['routes'] and module_info['module_file'] else None
 
@@ -424,7 +421,7 @@ def setup_users():
                 email_status = "An activation email has been sent."
             except EmailError as e:
                 result = 'danger no-auto-dismiss'
-                logging.error(f"Failed to send activation email: {str(e)}")
+                current_app.logger.error(f"Failed to send activation email: {str(e)}")
                 email_status = "<br>Failed to send activation email. Please contact the user directly."
 
             flash(f'User {new_username} added successfully. {email_status}', result)
