@@ -278,7 +278,7 @@ def module_proxy(module_path):
                     error_logged = True
                     abort(500)
                 except FileNotFoundError as e:
-                    current_app.logger.error(f"NotFound Static File: {str(e)} for Module: {module_name}, File: {module_file_name}.py")
+                    current_app.logger.error(f"{str(e)} for Module: {module_name} in File: {module_file_name}.py")
                     error_logged = True
                     abort(500)
                 except Exception as e:
