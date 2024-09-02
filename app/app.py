@@ -170,6 +170,7 @@ def module_proxy(module_path):
     def custom_url_for(endpoint, **values):
         if endpoint == 'static':
             filename = values.get('filename')
+            template_name = request.template_name if hasattr(request, 'template_name') else 'Unknown template'
             if filename:
                 # Check both module-specific and main app static folders
                 for module in app.config['MODULE_LIST']:
@@ -184,7 +185,7 @@ def module_proxy(module_path):
                 if os.path.isfile(app_file_path):
                     return url_for('static', filename=filename)
                 
-                raise FileNotFoundError(f"Static file '{filename}' not found")
+                raise FileNotFoundError(f"Static file '{filename}' not found in '{template_name}'")
             
             return url_for('static', filename=filename)
         
@@ -251,6 +252,7 @@ def module_proxy(module_path):
                 template_error = None
                 def custom_render_template(template_name, **context):
                     nonlocal template_error
+                    request.template_name = template_name
                     context['url_for'] = custom_url_for
                     
                     template_path = os.path.join(app.root_path, 'modules', module_name, 'templates', template_name)
