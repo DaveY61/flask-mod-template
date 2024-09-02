@@ -171,7 +171,7 @@ def module_proxy(module_path):
         if endpoint == 'static':
             filename = values.get('filename')
             if filename:
-                # First, check if it's a module-specific static file
+                # Check both module-specific and main app static folders
                 for module in app.config['MODULE_LIST']:
                     if module['enabled']:
                         module_static_folder = os.path.join(app.root_path, 'modules', module['name'], 'static')
@@ -179,14 +179,12 @@ def module_proxy(module_path):
                         if os.path.isfile(file_path):
                             return f"/{module['blueprint']}/static/{filename}"
                 
-                # If not found in modules, check if it exists in the main app static folder
                 app_static_folder = os.path.join(app.root_path, 'static')
                 app_file_path = os.path.join(app_static_folder, filename)
                 if os.path.isfile(app_file_path):
                     return url_for('static', filename=filename)
                 
-                # If the file is not found in either place, raise a custom exception
-                raise FileNotFoundError(f"Static file: '{filename}' NOT Found")
+                raise FileNotFoundError(f"Static file '{filename}' not found")
             
             return url_for('static', filename=filename)
         
@@ -195,9 +193,10 @@ def module_proxy(module_path):
             for module in app.config['MODULE_LIST']:
                 if module['blueprint'] == blueprint:
                     return url_for('module_proxy', module_path=f"{blueprint}/{view}", **values)
-                
+        
         return url_for(endpoint, **values)
 
+    # Handle static file requests
     if 'static' in module_path:
         parts = module_path.split('/')
         blueprint_name = parts[0]
@@ -205,8 +204,7 @@ def module_proxy(module_path):
         
         for module in app.config['MODULE_LIST']:
             if module['blueprint'] == blueprint_name:
-                module_name = module['name']
-                static_folder = os.path.join(app.root_path, 'modules', module_name, 'static')
+                static_folder = os.path.join(app.root_path, 'modules', module['name'], 'static')
                 if os.path.isfile(os.path.join(static_folder, static_path)):
                     return send_from_directory(static_folder, static_path)
         
@@ -214,6 +212,7 @@ def module_proxy(module_path):
     
     error_logged = False
 
+    # Process module requests
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
             module_name = module['name']
@@ -224,7 +223,7 @@ def module_proxy(module_path):
                 module_file = importlib.import_module(f"app.modules.{module_name}.{module_file_name}")
                 
                 if not hasattr(module_file, 'blueprint'):
-                    current_app.logger.error(f"Blueprint: '{blueprint_name}' NOT Found for Module: {module_name} in File: {module_file_name}.py")
+                    current_app.logger.error(f"Blueprint '{blueprint_name}' not found for Module: {module_name} in File: {module_file_name}.py")
                     error_logged = True
                     abort(500)
                 
@@ -242,7 +241,7 @@ def module_proxy(module_path):
                 
                 if view_function is None:
                     if matched_route:
-                        current_app.logger.error(f"view_function: '{func_name}()' NOT Found for Module: {module_name} in File: {module_file_name}.py")
+                        current_app.logger.error(f"View function '{func_name}()' not found for Module: {module_name} in File: {module_file_name}.py")
                         error_logged = True
                         abort(500)
                     else:
@@ -260,7 +259,7 @@ def module_proxy(module_path):
                         with open(template_path, 'r') as file:
                             template_content = file.read()
                     except FileNotFoundError:
-                        template_error = f"Template: '{template_name}' NOT Found for Module: {module_name} in File: {module_file_name}.py"
+                        template_error = f"Template '{template_name}' not found for Module: {module_name} in File: {module_file_name}.py"
                         raise TemplateNotFound(template_name)
                     
                     return render_template_string(template_content, **context)
