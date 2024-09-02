@@ -11,6 +11,10 @@ blueprint = Blueprint('log', __name__, template_folder='log_templates')
 def log_viewer():
     log_dir = current_app.config['LOG_FILE_DIRECTORY']
     log_files = [f for f in os.listdir(log_dir) if f.endswith('.log')]
+
+    # Sort log files based on modification time (most recent first)
+    log_files.sort(key=lambda x: os.path.getmtime(os.path.join(log_dir, x)), reverse=True)
+    
     return render_template('pages/log_viewer.html', log_files=log_files)
 
 @blueprint.route('/log_content')
