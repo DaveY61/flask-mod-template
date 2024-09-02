@@ -216,6 +216,10 @@ def module_proxy(module_path):
     # Process module requests
     for module in app.config['MODULE_LIST']:
         if module['enabled'] and module_path.startswith(f"{module['blueprint']}/"):
+            # Check if the user has permission to access this module
+            if module['name'] not in current_user.get_allowed_modules():
+                abort(403)  # Forbidden access
+
             module_name = module['name']
             blueprint_name = module['blueprint']
             module_file_name = module['module_file']

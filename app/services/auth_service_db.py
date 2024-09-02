@@ -131,6 +131,7 @@ def admin_required(func):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
         if not current_user.is_admin:
+            current_app.logger.warning(f"User attempted unauthorized access to Admin Setup")
             flash("Access to Administer pages is restricted", "warning")
             return redirect(url_for('home'))
         return func(*args, **kwargs)
