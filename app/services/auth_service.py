@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, redirect, url_for, current_app, session, abort, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service_forms import RegisterForm, LoginForm, ForgotForm, ResetForm, RemoveForm, CreatePasswordForm
-from app.services.email_service import EmailService, EmailError
+from app.services.email_service import EmailService
 from app.services.auth_service_db import (
     add_user, get_user_by_email, get_user, get_default_role, delete_user,
     generate_token, get_token, delete_token, 
@@ -15,12 +15,13 @@ blueprint = Blueprint('auth', __name__, template_folder='auth_templates')
 
 # Auth Service Helper Functions
 def send_email_wrapper(to, subject, body, html=False):
-    try:
-        email_service = EmailService(current_app.config)
-        email_service.send_email(to, subject, body, html=html)
-    except EmailError as e:
-        flash(f"Failed to send email: {str(e)}", "danger")
-        current_app.logger.error(f"Email sending failed: {str(e)}")
+    email_service = EmailService(current_app.config)
+    result = email_service.send_email(to, subject, body, html=html)
+    
+    if not result.success:
+        flash(f"Failed to send email: {result.message}", "danger")
+    
+    return result.success
 
 def handle_eula_acknowledgement(form_data, user=None):
     if current_app.config['ENABLE_EULA'] and current_app.config['ENABLE_EULA_ACKNOWLEDGEMENT']:
