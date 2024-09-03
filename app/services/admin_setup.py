@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.services.auth_service import create_user_account
 from app.services.auth_service_db import is_email_taken, get_user, admin_required, get_all_users, update_user_role, delete_user, get_role_user_counts, get_default_role, update_default_role, generate_token
-from app.services.email_service import EmailService, EmailError
+from app.services.email_service import EmailService
 from app.mod_config_manager import ConfigManager
 import os
 import json
@@ -414,20 +414,17 @@ def setup_users():
             
             # Send activation email
             email_body = render_template('email/new_user_activation_email.html', username=new_username, activation_link=activation_link)
-            result = 'success'
+            
+            email_service = EmailService(current_app.config)
+            result = email_service.send_email([new_email], f"Activate your {current_app.config['PROJECT_NAME']} Account", email_body, html=True)
 
-            try:
-                email_service = EmailService(current_app.config)
-                email_service.send_email([new_email], f"Activate your {current_app.config['PROJECT_NAME']} Account", email_body, html=True)
-                email_status = "An activation email has been sent."
-            except EmailError as e:
-                result = 'danger no-auto-dismiss'
-                current_app.logger.error(f"Failed to send activation email: {str(e)}")
-                email_status = "<br>Failed to send activation email. Please contact the user directly."
-
-            flash(f'User {new_username} added successfully. {email_status}', result)
-            return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. {email_status}'})
-
+            if result.success:
+                flash(f'User {new_username} added successfully. An activation email has been sent.', 'success')
+                return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. An activation email has been sent.'})
+            else:
+                flash(f'User {new_username} added successfully, but failed to send activation email: {result.message} (for details, see Log Viewer)', 'danger no-auto-dismiss')
+                return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. BUT activation email has NOT been sent.'})
+            
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'status': 'success'})
         return redirect(url_for('admin.setup_type', setup_type='users'))
@@ -468,21 +465,20 @@ def setup_email():
                 'SMTP_PORT': int(request.form.get('smtp_port')),
                 'SMTP_USERNAME': request.form.get('smtp_username'),
                 'SMTP_PASSWORD': request.form.get('smtp_password'),
-                'EMAIL_FAIL_DIRECTORY': current_app.config['EMAIL_FAIL_DIRECTORY']  # Add this line
+                'EMAIL_FAIL_DIRECTORY': current_app.config['EMAIL_FAIL_DIRECTORY']
             }
             
-            try:
-                email_service = EmailService(temp_config)
-                email_service.send_email(
-                    [test_email],
-                    "Test Email from Admin Setup",
-                    "This is a test email sent from the Admin Setup page."
-                )
+            email_service = EmailService(temp_config)
+            result = email_service.send_email(
+                [request.form.get('test_email')],
+                "Test Email from Admin Setup",
+                "This is a test email sent from the Admin Setup page."
+            )
+            
+            if result.success:
                 return jsonify({'status': 'success', 'message': 'Test email sent successfully!'})
-            except EmailError as e:
-                return jsonify({'status': 'error', 'message': str(e)})
-            except Exception as e:
-                return jsonify({'status': 'error', 'message': f'Unexpected error: {str(e)}'})
+            else:
+                return jsonify({'status': 'error', 'message': result.message + " (for details, see 'Log Viewer')"})
 
         elif action == 'update_session':
             try:
