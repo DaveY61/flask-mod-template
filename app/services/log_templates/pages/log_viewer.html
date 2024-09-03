@@ -35,6 +35,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 1rem;
+        cursor: pointer;
     }
     .log-file-name {
         flex-grow: 1;
@@ -44,8 +45,10 @@
         margin-right: 10px;
     }
     .log-file-counts {
-        display: flex;
-        flex-shrink: 0;
+        margin-right:3px;
+    }
+    .log-count.active {
+        box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
     }
 </style>
 {% endblock %}
@@ -139,25 +142,37 @@ $(document).ready(function() {
         }
     }
 
-    $('.log-file').on('click', function(e) {
-        if (!$(e.target).hasClass('log-count')) {
-            var file = $(this).data('file');
-            $('.log-file').removeClass('active');
-            $(this).addClass('active');
+    function loadLogFile(file, level) {
+        $('.log-file').removeClass('active');
+        $('.log-file[data-file="' + file + '"]').addClass('active');
+        
+        $.getJSON('/log_content', { file: file }, function(data) {
+            table.clear().rows.add(data).draw();
+            updateLogCounts(file, data);
+            $('#log-content').scrollTop(0);
+            table.rows().invalidate().draw();
             
-            $.getJSON('/log_content', { file: file }, function(data) {
-                table.clear().rows.add(data).draw();
-                updateLogCounts(file, data);
-                $('#log-content').scrollTop(0);
-                table.rows().invalidate().draw();
-            });
-        }
+            if (level) {
+                table.column(1).search(level).draw();
+                $('.log-count').removeClass('active');
+                $('.log-file[data-file="' + file + '"] .log-count[data-level="' + level + '"]').addClass('active');
+            } else {
+                table.column(1).search('').draw();
+                $('.log-count').removeClass('active');
+            }
+        });
+    }
+
+    $('.log-file-name').on('click', function(e) {
+        var file = $(this).closest('.log-file').data('file');
+        loadLogFile(file);
     });
 
     $('.log-count').on('click', function(e) {
         e.stopPropagation();
+        var file = $(this).closest('.log-file').data('file');
         var level = $(this).data('level');
-        table.column(1).search(level).draw();
+        loadLogFile(file, level);
     });
 });
 </script>
