@@ -95,6 +95,10 @@ $(document).ready(function() {
         
         $.getJSON('/log_content', { file: file }, function(data) {
             table.clear().rows.add(data).draw();
+            // Reset the scroll position to the top
+            $('#log-content').scrollTop(0);
+            // Reset DataTables scroll
+            table.rows().invalidate().draw();
         });
     });
 });
