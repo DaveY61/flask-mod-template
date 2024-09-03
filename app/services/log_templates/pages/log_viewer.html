@@ -26,6 +26,26 @@
     .log-count {
         font-weight: bold;
         text-align: center;
+        margin: 0 1px;
+        width: 30px;
+        cursor: pointer;
+    }
+    .log-file {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+    }
+    .log-file-name {
+        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-right: 10px;
+    }
+    .log-file-counts {
+        display: flex;
+        flex-shrink: 0;
     }
 </style>
 {% endblock %}
@@ -38,15 +58,15 @@
             <h5>Available Logs</h5>
             <div id="log-files-list" class="list-group">
                 {% for file in log_files %}
-                <a href="#" class="list-group-item list-group-item-action log-file" data-file="{{ file }}">
+                <div class="list-group-item log-file" data-file="{{ file }}">
                     <span class="log-file-name">{{ file[4:-4] }}</span>
-                    <span class="float-end">
-                        <span class="badge bg-info log-count info-count" title="Info">0</span>
-                        <span class="badge bg-warning log-count warning-count" title="Warning">0</span>
-                        <span class="badge bg-danger log-count error-count" title="Error">0</span>
-                        <span class="badge bg-dark log-count critical-count" title="Critical">0</span>
+                    <span class="log-file-counts">
+                        <span class="badge bg-info log-count info-count" title="Info" data-level="INFO">0</span>
+                        <span class="badge bg-warning log-count warning-count" title="Warning" data-level="WARNING">0</span>
+                        <span class="badge bg-danger log-count error-count" title="Error" data-level="ERROR">0</span>
+                        <span class="badge bg-dark log-count critical-count" title="Critical" data-level="CRITICAL">0</span>
                     </span>
-                </a>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -100,47 +120,44 @@ $(document).ready(function() {
     });
 
     function updateLogCounts(logFile, data) {
-        var infoCounts = 0;
-        var warningCounts = 0;
-        var errorCounts = 0;
-        var criticalCounts = 0;
+        var counts = {
+            'INFO': 0,
+            'WARNING': 0,
+            'ERROR': 0,
+            'CRITICAL': 0
+        };
 
         data.forEach(function(entry) {
-            switch(entry.level) {
-                case 'INFO':
-                    infoCounts++;
-                    break;
-                case 'WARNING':
-                    warningCounts++;
-                    break;
-                case 'ERROR':
-                    errorCounts++;
-                    break;
-                case 'CRITICAL':
-                    criticalCounts++;
-                    break;
+            if (counts.hasOwnProperty(entry.level)) {
+                counts[entry.level]++;
             }
         });
 
         var $logFile = $('.log-file[data-file="' + logFile + '"]');
-        $logFile.find('.info-count').text(infoCounts);
-        $logFile.find('.warning-count').text(warningCounts);
-        $logFile.find('.error-count').text(errorCounts);
-        $logFile.find('.critical-count').text(criticalCounts);
+        for (var level in counts) {
+            $logFile.find('.log-count[data-level="' + level + '"]').text(counts[level]);
+        }
     }
 
     $('.log-file').on('click', function(e) {
-        e.preventDefault();
-        var file = $(this).data('file');
-        $('.log-file').removeClass('active');
-        $(this).addClass('active');
-        
-        $.getJSON('/log_content', { file: file }, function(data) {
-            table.clear().rows.add(data).draw();
-            updateLogCounts(file, data);
-            $('#log-content').scrollTop(0);
-            table.rows().invalidate().draw();
-        });
+        if (!$(e.target).hasClass('log-count')) {
+            var file = $(this).data('file');
+            $('.log-file').removeClass('active');
+            $(this).addClass('active');
+            
+            $.getJSON('/log_content', { file: file }, function(data) {
+                table.clear().rows.add(data).draw();
+                updateLogCounts(file, data);
+                $('#log-content').scrollTop(0);
+                table.rows().invalidate().draw();
+            });
+        }
+    });
+
+    $('.log-count').on('click', function(e) {
+        e.stopPropagation();
+        var level = $(this).data('level');
+        table.column(1).search(level).draw();
     });
 });
 </script>
