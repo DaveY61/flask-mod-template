@@ -23,6 +23,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    .log-count {
+        font-weight: bold;
+        text-align: center;
+    }
 </style>
 {% endblock %}
 
@@ -34,7 +38,15 @@
             <h5>Available Logs</h5>
             <div id="log-files-list" class="list-group">
                 {% for file in log_files %}
-                <a href="#" class="list-group-item list-group-item-action log-file" data-file="{{ file }}">{{ file }}</a>
+                <a href="#" class="list-group-item list-group-item-action log-file" data-file="{{ file }}">
+                    <span class="log-file-name">{{ file[4:-4] }}</span>
+                    <span class="float-end">
+                        <span class="badge bg-info log-count info-count" title="Info">0</span>
+                        <span class="badge bg-warning log-count warning-count" title="Warning">0</span>
+                        <span class="badge bg-danger log-count error-count" title="Error">0</span>
+                        <span class="badge bg-dark log-count critical-count" title="Critical">0</span>
+                    </span>
+                </a>
                 {% endfor %}
             </div>
         </div>
@@ -87,6 +99,36 @@ $(document).ready(function() {
         autoWidth: false
     });
 
+    function updateLogCounts(logFile, data) {
+        var infoCounts = 0;
+        var warningCounts = 0;
+        var errorCounts = 0;
+        var criticalCounts = 0;
+
+        data.forEach(function(entry) {
+            switch(entry.level) {
+                case 'INFO':
+                    infoCounts++;
+                    break;
+                case 'WARNING':
+                    warningCounts++;
+                    break;
+                case 'ERROR':
+                    errorCounts++;
+                    break;
+                case 'CRITICAL':
+                    criticalCounts++;
+                    break;
+            }
+        });
+
+        var $logFile = $('.log-file[data-file="' + logFile + '"]');
+        $logFile.find('.info-count').text(infoCounts);
+        $logFile.find('.warning-count').text(warningCounts);
+        $logFile.find('.error-count').text(errorCounts);
+        $logFile.find('.critical-count').text(criticalCounts);
+    }
+
     $('.log-file').on('click', function(e) {
         e.preventDefault();
         var file = $(this).data('file');
@@ -95,9 +137,8 @@ $(document).ready(function() {
         
         $.getJSON('/log_content', { file: file }, function(data) {
             table.clear().rows.add(data).draw();
-            // Reset the scroll position to the top
+            updateLogCounts(file, data);
             $('#log-content').scrollTop(0);
-            // Reset DataTables scroll
             table.rows().invalidate().draw();
         });
     });
