@@ -37,12 +37,12 @@ def handle_eula_acknowledgement(form_data, user=None):
 
 def activate_user_account(user, activation_method):
     update_user_activation(user.id)
-    current_app.logger.info(f"User account activated: {user.username} (Email: {user.email}), Method: {activation_method}")
+    current_app.logger.info(f"Account activated: {user.username} (Email: {user.email}), Method: {activation_method}")
 
 def create_user_account(username, email, password, is_active=False, is_admin=False, user_role=None, eula_acknowledged=False, creation_method="self-registration"):
     user_id = str(uuid.uuid4())
     user = add_user(user_id, username, email, password, is_active, is_admin, user_role, eula_acknowledged)
-    current_app.logger.info(f"User account added: {username} (Email: {email}), Method: {creation_method}")
+    current_app.logger.info(f"Account added: {username} (Email: {email}), Method: {creation_method}")
     return user
 
 # Auth Service routes
@@ -234,7 +234,7 @@ def login():
 
     login_user(user)
     reset_login_attempts(user.id)
-    current_app.logger.info(f"Successful login for user {user.username} (Email: {user.email})")
+    current_app.logger.info(f"Successful login: {user.username} (Email: {user.email})")
 
     # Redirect to the next URL or home if next is not provided or is invalid
     if not next_url or next_url == 'None':
@@ -245,7 +245,7 @@ def login():
 @blueprint.route('/logout', methods=['GET'])
 @login_required
 def logout():
-    current_app.logger.info(f"User logged out: {current_user.username} (Email: {current_user.email})")
+    current_app.logger.info(f"Logged out: {current_user.username} (Email: {current_user.email})")
     logout_user()
     session.clear()
     return redirect(url_for('home'))
@@ -307,7 +307,7 @@ def reset_password(token):
         activate_user_account(user, "password reset")
         flash('Your account has been activated.', 'success')
     else:
-        current_app.logger.info(f"User account password reset: {user.username} (Email: {user.email})")
+        current_app.logger.info(f"Password reset: {user.username} (Email: {user.email})")
     
     reset_login_attempts(user.id)
     delete_token(token)
@@ -337,7 +337,7 @@ def delete():
         flash('Incorrect password.', 'warning')
         return redirect(url_for('auth.delete'))
 
-    current_app.logger.info(f"User account removed: {current_user.username} (Email: {current_user.email}), Method: self-deletion")
+    current_app.logger.info(f"Account removed: {current_user.username} (Email: {current_user.email}), Method: self-deletion")
     delete_user(current_user.id)
     logout_user()
 
