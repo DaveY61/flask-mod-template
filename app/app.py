@@ -159,7 +159,7 @@ def not_found_error(error):
     return render_template('errors/404.html', response_color="red"), 404
 
 @app.errorhandler(403)
-def not_found_error(error):
+def forbidden_error(error):
     current_app.logger.warning(f"{str(error)}")
     return render_template('errors/403.html', response_color="red"), 404
 

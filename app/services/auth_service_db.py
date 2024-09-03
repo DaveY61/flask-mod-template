@@ -27,7 +27,7 @@ def increment_login_attempts(user_id):
         if user:
             lockout_triggered = user.increment_login_attempts()
             if lockout_triggered:
-                current_app.logger.warning(f"Account locked! Multiple failed login attempts: User: {user.username}, Email: {user.email}")
+                current_app.logger.warning(f"Account locked! Multiple failed login attempts: {user.username} (Email: {user.email})")
             session.commit()
 
 def reset_login_attempts(user_id):
@@ -167,7 +167,7 @@ def admin_required(func):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
         if not current_user.is_admin:
-            current_app.logger.warning(f"User attempted unauthorized access to Admin Setup")
+            current_app.logger.warning(f"Attempted unauthorized access to Admin Setup")
             flash("Access to Administer pages is restricted", "warning")
             return redirect(url_for('home'))
         return func(*args, **kwargs)
