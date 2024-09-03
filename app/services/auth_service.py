@@ -5,7 +5,8 @@ from app.services.email_service import EmailService, EmailError
 from app.services.auth_service_db import (
     add_user, get_user_by_email, get_user, get_default_role, delete_user,
     generate_token, get_token, delete_token, 
-    update_user, update_user_password, update_user_activation, update_user_role, update_user_eula_acknowledgement)
+    update_user, update_user_password, update_user_activation, update_user_role, update_user_eula_acknowledgement,
+    increment_login_attempts, reset_login_attempts)
 from datetime import datetime
 import uuid
 import requests
@@ -185,6 +186,12 @@ def login():
 
     user = get_user_by_email(email)
     
+    # Check for lockout immediately
+    if user and user.is_locked_out():
+        lockout_time = user.lockout_until - datetime.utcnow()
+        minutes = int(lockout_time.total_seconds() / 60)
+        return render_template('pages/login_lockout.html', minutes=minutes), 403
+
     # Check if the email is in the ADMIN_USER_LIST
     admin_emails = current_app.config['ADMIN_USER_LIST']
     is_admin_email = email in admin_emails
@@ -206,7 +213,17 @@ def login():
         
         # Redirect to create password form
         return redirect(url_for('auth.create_password', token=token))
+    
     elif not user or not user.check_password(password) or not user.is_active:
+
+        # Increment login attempt and Check for lockout 
+        if user:
+            increment_login_attempts(user.id)
+            if user.is_locked_out():
+                lockout_time = user.lockout_until - datetime.utcnow()
+                minutes = int(lockout_time.total_seconds() / 60)
+                return render_template('pages/login_lockout.html', minutes=minutes), 403
+        
         return render_template('pages/login_failure.html', response_color='red'), 400
 
     # Update is_admin status based on ADMIN_USER_LIST
@@ -215,6 +232,7 @@ def login():
     update_user(user)
 
     login_user(user)
+    reset_login_attempts(user.id)
     current_app.logger.info(f"Successful login for user {user.username} (Email: {user.email})")
 
     # Redirect to the next URL or home if next is not provided or is invalid
@@ -290,6 +308,7 @@ def reset_password(token):
     else:
         current_app.logger.info(f"User account password reset: {user.username} (Email: {user.email})")
     
+    reset_login_attempts(user.id)
     delete_token(token)
     return render_template('pages/reset_success.html', response_color="green"), 200
 

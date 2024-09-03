@@ -15,14 +15,27 @@ from datetime import datetime, timedelta
 engine = None
 Session = None
 
-# function to check for duplicate emails
+# Function to check for duplicate emails
 def is_email_taken(email):
     with get_db() as session:
         return session.query(User).filter(func.lower(User.email) == func.lower(email)).first() is not None
+    
+# Functions to manage login attempts
+def increment_login_attempts(user_id):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            lockout_triggered = user.increment_login_attempts()
+            if lockout_triggered:
+                current_app.logger.warning(f"Account locked! Multiple failed login attempts: User: {user.username}, Email: {user.email}")
+            session.commit()
 
-# function to ensure all columns exist
-def ensure_user_columns():
-    User.ensure_columns()
+def reset_login_attempts(user_id):
+    with get_db() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.reset_login_attempts()
+            session.commit()
 
 def get_base():
     Base = declarative_base()
@@ -38,6 +51,9 @@ def get_base():
         eula_acknowledged = Column(Boolean, default=False)
         created_at = Column(DateTime, default=func.now())
         user_role = Column(String)
+        login_attempts = Column(Integer, default=0)
+        last_attempt_time = Column(DateTime)
+        lockout_until = Column(DateTime)
         tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
                         
         def check_password(self, password):
@@ -53,6 +69,26 @@ def get_base():
                         allowed_modules.append(module['name'])
             
             return allowed_modules
+        
+        def increment_login_attempts(self):
+            self.login_attempts += 1
+            self.last_attempt_time = datetime.utcnow()
+            if self.login_attempts == 5:
+                self.lockout_until = datetime.utcnow() + timedelta(minutes=30)
+                return True  # Indicate that this attempt triggered a lockout
+            return False
+
+        def reset_login_attempts(self):
+            self.login_attempts = 0
+            self.last_attempt_time = None
+            self.lockout_until = None
+
+        def is_locked_out(self):
+            if self.lockout_until and self.lockout_until > datetime.utcnow():
+                return True
+            if self.lockout_until and self.lockout_until <= datetime.utcnow():
+                self.reset_login_attempts()
+            return False
 
     class Token(Base):
         __tablename__ = 'tokens'

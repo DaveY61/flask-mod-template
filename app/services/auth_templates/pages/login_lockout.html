@@ -1,0 +1,15 @@
+{% extends 'layouts/form_response.html' %}
+
+{% set message = "Account Locked" %}
+
+{% block title %}{{ message }}{% endblock %}
+{% block response %}{{ message }}{% endblock %}
+
+{% block content %}
+<p>Your account has been temporarily locked due to multiple failed login attempts.</p>
+<p>Please try again in {{ minutes }} minutes or use the password reset option.</p>
+<div class="d-flex justify-content-between mt-3">
+    <a href="{{ url_for('auth.forgot') }}" class="btn btn-primary">Reset Password</a>
+    <a href="{{ url_for('home') }}" class="btn btn-secondary">Home</a>
+</div>
+{% endblock %}
