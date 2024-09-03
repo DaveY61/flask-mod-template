@@ -24,11 +24,14 @@
         text-overflow: ellipsis;
     }
     .log-count {
-        font-weight: bold;
         text-align: center;
         margin: 0 1px;
         width: 30px;
         cursor: pointer;
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .log-file {
         display: flex;
@@ -42,13 +45,16 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-right: 10px;
     }
     .log-file-counts {
-        margin-right:3px;
+        align-items: center;
+        float:right;
     }
     .log-count.active {
         box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+    }
+    .log-count[data-bs-toggle="tooltip"] {
+        position: relative;
     }
 </style>
 {% endblock %}
@@ -138,8 +144,23 @@ $(document).ready(function() {
 
         var $logFile = $('.log-file[data-file="' + logFile + '"]');
         for (var level in counts) {
-            $logFile.find('.log-count[data-level="' + level + '"]').text(counts[level]);
+            var $badge = $logFile.find('.log-count[data-level="' + level + '"]');
+            var count = counts[level];
+            var displayText = count;
+
+            if (count > 100) {
+                $badge.attr('data-bs-toggle', 'tooltip')
+                      .attr('title', count.toLocaleString());
+            } else {
+                $badge.removeAttr('data-bs-toggle')
+                      .removeAttr('title');
+            }
+
+            $badge.text(displayText);
         }
+
+        // Initialize tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
     }
 
     function loadLogFile(file, level) {
