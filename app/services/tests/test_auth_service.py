@@ -25,6 +25,7 @@ from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import tempfile
+from freezegun import freeze_time
 
 @pytest.fixture(scope='function')
 def db():
@@ -453,3 +454,82 @@ def test_reset_password_activates_inactive_account(mock_send_email, client, app,
         # Check for success messages
         assert b'Reset Success!' in response.data
         assert b'Your password has been reset' in response.data
+
+def test_successful_login_clears_counter(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        
+        # Simulate 3 failed login attempts
+        for _ in range(3):
+            client.post('/login', data={'email': 'test@example.com', 'password': 'wrongpassword'})
+        
+        # Successful login
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpassword'})
+        assert response.status_code == 302  # Redirect after successful login
+        
+        # Check that login attempts are reset
+        updated_user = get_user('test_id')
+        assert updated_user.login_attempts == 0
+
+def test_lockout_on_fifth_attempt(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        
+        # Simulate 4 failed login attempts
+        for _ in range(4):
+            response = client.post('/login', data={'email': 'test@example.com', 'password': 'wrongpassword'})
+            assert response.status_code == 400  # Bad request for failed login
+        
+        # 5th attempt should trigger lockout
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'wrongpassword'})
+        assert response.status_code == 403
+        assert b"Account Locked" in response.data
+        
+        updated_user = get_user('test_id')
+        assert updated_user.is_locked_out()
+
+@freeze_time("2023-01-01 12:00:00")
+def test_lockout_persists_for_30_minutes(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        
+        # Simulate 5 failed login attempts
+        for _ in range(5):
+            client.post('/login', data={'email': 'test@example.com', 'password': 'wrongpassword'})
+        
+        # Try to login immediately after lockout
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpassword'})
+        assert response.status_code == 403
+        assert b"Account Locked" in response.data
+        
+        # Move time forward by 29 minutes
+        with freeze_time("2023-01-01 12:29:00"):
+            response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpassword'})
+            assert response.status_code == 403
+            assert b"Account Locked" in response.data
+        
+        # Move time forward by 31 minutes from the initial lockout
+        with freeze_time("2023-01-01 12:31:00"):
+            response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpassword'})
+            assert response.status_code == 302  # Redirect after successful login
+
+def test_password_reset_clears_counter(client, app, db):
+    with app.app_context():
+        user = add_user('test_id', 'testuser', 'test@example.com', 'testpassword', is_active=True)
+        
+        # Simulate 4 failed login attempts
+        for _ in range(4):
+            client.post('/login', data={'email': 'test@example.com', 'password': 'wrongpassword'})
+        
+        # Perform password reset
+        token = generate_token(user.id, 'reset')
+        response = client.post(f'/reset_password/{token}', data={'password': 'newpassword'})
+        assert response.status_code == 200
+        
+        # Check that login attempts are reset
+        updated_user = get_user('test_id')
+        assert updated_user.login_attempts == 0
+        
+        # Verify successful login with new password
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'newpassword'})
+        assert response.status_code == 302  # Redirect after successful login
