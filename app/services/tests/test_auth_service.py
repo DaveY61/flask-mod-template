@@ -485,8 +485,14 @@ def test_lockout_on_fifth_attempt(client, app, db):
         assert response.status_code == 403
         assert b"Account Locked" in response.data
         
+        # Verify that the user is locked out
         updated_user = get_user('test_id')
         assert updated_user.is_locked_out()
+        
+        # Attempt to login with correct password should still fail
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpassword'})
+        assert response.status_code == 403
+        assert b"Account Locked" in response.data
 
 @freeze_time("2023-01-01 12:00:00")
 def test_lockout_persists_for_30_minutes(client, app, db):

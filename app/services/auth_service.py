@@ -219,6 +219,7 @@ def login():
         # Increment login attempt and Check for lockout 
         if user:
             increment_login_attempts(user.id)
+            user = get_user_by_email(email)
             if user.is_locked_out():
                 lockout_time = user.lockout_until - datetime.utcnow()
                 minutes = int(lockout_time.total_seconds() / 60)
