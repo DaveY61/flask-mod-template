@@ -367,6 +367,7 @@ def setup_users():
             user = get_user(user_id)
             if user:
                 update_user_role(user_id, new_role)
+                current_app.logger.info(f"Role updated to '{new_role}' for {user.username} (Email: {user.email})")
                 flash(f'Role updated for user {user.username}', 'success')
             else:
                 flash('User not found', 'error')
