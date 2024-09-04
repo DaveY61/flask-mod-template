@@ -18,12 +18,15 @@
   - [End User License Agreement (EULA)](#end-user-license-agreement-eula)
 - [Email Setup](#email-setup)
 - [Error Handling and Logging](#error-handling-and-logging)
+  - [Log Viewer for Admin Users](#log-viewer-for-admin-users)
+  - [Using app.logger in Modules](#using-applogger-in-modules)
+  - [Debug Logging](#debug-logging)
 - [License](#license)
 - [Deployment](#deployment)
 
 ## Overview
 
-Flask Modular Template is a scalable and modular Python Flask application template. It provides a structured foundation for building web applications with easily extendable modules, user authentication, role-based access control, and an admin setup interface.
+Flask Modular Template is a scalable and modular Python Flask application template. It provides a structured foundation for building web applications with easily extendable modules, user authentication, role-based access control, an admin setup interface, and an admin application log viewer.
 
 ## Features
 
@@ -39,6 +42,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 - User management includes: require login for site access, disable self-registration, and enable reCAPTCHA for registration
 - Direct user addition by administrators with automatic activation email
 - Customizable End User License Agreement (EULA) with optional acknowledgment requirement
+- Improved error logging and Log Viewer for admin users
 
 ## Technologies Used
 
@@ -298,13 +302,64 @@ By following this process, you can ensure that your email configuration is worki
 
 ## Error Handling and Logging
 
-The application includes improved error handling and logging:
+The application includes improved error handling and logging capabilities:
 
 - Detailed error logs are stored in the `app_logs` directory
 - Error emails can be sent to administrators (configurable in the Email Setup)
 - User-friendly error pages for common HTTP errors (403, 404, 500)
 
-Administrators can review logs and configure email notifications to stay informed about application issues.
+### Log Viewer for Admin Users
+
+Admin users have access to a Log Viewer tool, which provides a user-friendly interface to view and analyze application logs:
+
+1. Log in with an admin account.
+2. Click on the account icon in the top-right corner and select "Log Viewer" from the dropdown menu.
+3. The Log Viewer displays a list of available log files and their content.
+4. You can filter log entries by log level (INFO, WARNING, ERROR, CRITICAL) and search for specific content.
+5. The Log Viewer provides a convenient way to monitor application activity and troubleshoot issues.
+
+### Using app.logger in Modules
+
+When adding new modules, you can use the `app.logger` to log various events and errors. Here's how to use it in your module code:
+
+```python
+from flask import current_app
+
+# In your module functions:
+def some_function():
+    # Log an info message
+    current_app.logger.info("This is an informational message")
+
+    # Log a warning
+    current_app.logger.warning("This is a warning message")
+
+    # Log an error
+    current_app.logger.error("This is an error message")
+
+    # Log a critical error
+    current_app.logger.critical("This is a critical error message")
+
+    # For debugging (only shown when DEBUG mode is enabled)
+    current_app.logger.debug("This is a debug message")
+```
+
+Using `current_app.logger` ensures that your logs are consistent with the main application's logging configuration.
+
+### Debug Logging
+
+Debug logging is controlled by the `FLASK_DEBUG` setting in your `.env` file:
+
+```
+FLASK_DEBUG=True
+```
+
+When `FLASK_DEBUG` is set to `True`:
+
+1. Debug-level log messages will be displayed in the console.
+2. The application will run in debug mode, providing detailed error messages and stack traces in the browser.
+3. The Flask development server will automatically reload when code changes are detected.
+
+For production environments, always set `FLASK_DEBUG=False` to disable debug logging and prevent sensitive information from being exposed.
 
 ## License
 
