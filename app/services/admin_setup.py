@@ -251,7 +251,9 @@ def setup_modules():
                 return jsonify({'status': 'success', 'message': 'Module configuration updated successfully!'})
             else:
                 flash('Module configuration updated successfully!', 'success')
+                
         except Exception as e:
+            current_app.logger.error(f"Error saving module configuration: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'error', 'message': str(e)}), 400
             else:
@@ -279,14 +281,15 @@ def setup_roles():
 
     if request.method == 'POST':
         action = request.form.get('action')
-        
+        success_msg = "" # Blank Msg = No Change
+
         if action == 'add_role':
             role_name = request.form.get('role_name')
             role_description = request.form.get('role_description')
             all_modules = request.form.get('all_modules') == 'on'
             is_default = request.form.get('new_role_default') == 'on'
             
-            if any(role['name'] == role_name for role in roles):
+            if any(role['name'].lower() == role_name.lower() for role in roles):
                 flash('A role with this name already exists. Please choose a different name.', 'danger')
             else:
                 if all_modules:
@@ -303,7 +306,9 @@ def setup_roles():
                 if is_default:
                     update_default_role(role_name)
                     default_role = role_name  # Update the local variable
-                flash('New role added successfully.', 'success')
+
+                # Set Msg, Roles Changed
+                success_msg = "New role added successfully."
         
         elif action == 'delete_role':
             role_name = request.form.get('role_name')
@@ -312,7 +317,10 @@ def setup_roles():
                 if default_role == role_name:
                     update_default_role(None)
                     default_role = None  # Update the local variable
-                flash('Role deleted successfully.', 'success')
+
+                # Set Msg, Roles Changed
+                success_msg = "Role deleted successfully."
+
             else:
                 flash('Cannot delete role while it\'s in use.', 'danger')
         
@@ -334,18 +342,27 @@ def setup_roles():
             elif default_role == role_name:
                 update_default_role(None)
                 default_role = None  # Update the local variable
-            
-            flash('Role updated successfully.', 'success')
         
-        # Save updated roles to file
-        with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:
-            json.dump(roles, f, indent=4)
-        
-        # Update the config
-        current_app.config['ROLE_LIST'] = roles
+            # Set Msg, Roles Changed
+            success_msg = "Role update successfully."
 
-        # Refresh roles_with_counts after any changes
-        roles_with_counts = add_user_counts(roles)
+        # Save updated roles (if changed)
+        if ( len(success_msg) > 0) :
+            try:
+                with open(current_app.config['ROLE_CONFIG_PATH'], 'w') as f:
+                    json.dump(roles, f, indent=4)
+
+                flash(success_msg, 'success')
+
+            except Exception as e:
+                current_app.logger.error(f"Error saving role configuration: {str(e)}")
+                flash('Error saving role config (for details, see \'Log Viewer\')', 'danger')        
+
+            # Update the config
+            current_app.config['ROLE_LIST'] = roles
+
+            # Refresh roles_with_counts after any changes
+            roles_with_counts = add_user_counts(roles)
 
     return render_template('pages/admin_setup_roles.html', 
                         roles=roles_with_counts, 
@@ -422,7 +439,7 @@ def setup_users():
                 flash(f'User {new_username} added successfully. An activation email has been sent.', 'success')
                 return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. An activation email has been sent.'})
             else:
-                flash(f'User {new_username} added successfully, but failed to send activation email: {result.message} (for details, see Log Viewer)', 'danger no-auto-dismiss')
+                flash(f'User {new_username} added successfully, but failed to send activation email: {result.message} (for details, see \'Log Viewer\')', 'danger no-auto-dismiss')
                 return jsonify({'status': 'success', 'message': f'User {new_username} added successfully. BUT activation email has NOT been sent.'})
             
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
