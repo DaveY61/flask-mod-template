@@ -18,6 +18,7 @@
   - [End User License Agreement (EULA)](#end-user-license-agreement-eula)
 - [Email Setup](#email-setup)
 - [Error Handling and Logging](#error-handling-and-logging)
+  - [Log Configuration in .env](#log-configuration-in-env)
   - [Log Viewer for Admin Users](#log-viewer-for-admin-users)
   - [Using app.logger in Modules](#using-applogger-in-modules)
   - [Debug Logging](#debug-logging)
@@ -307,6 +308,30 @@ The application includes improved error handling and logging capabilities:
 - Detailed error logs are stored in the `app_logs` directory
 - Error emails can be sent to administrators (configurable in the Email Setup)
 - User-friendly error pages for common HTTP errors (403, 404, 500)
+
+### Log Configuration in .env
+
+The logging system can be configured using the following variables in your `.env` file:
+
+- `LOG_FILE_DIRECTORY`: Specifies the directory where log files will be stored. Default is './app_logs'.
+- `LOG_FILE_LEVEL`: Sets the minimum level of messages to be logged to files. Options are 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'. Default is 'INFO'.
+- `LOG_RETENTION_DAYS`: Determines how many days of log files to keep before automatic deletion. Default is 7 days.
+- `LOG_EMAIL_ENABLE`: Enables or disables error email notifications. Set to 'True' to enable, 'False' to disable.
+- `LOG_EMAIL_LEVEL`: Sets the minimum level of messages that trigger email notifications. Options are 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'. Default is 'ERROR'.
+- `ADMIN_USER_LIST`: A comma-separated list of email addresses that will receive error notification emails.
+
+Example configuration:
+
+```
+LOG_FILE_DIRECTORY=./app_logs
+LOG_FILE_LEVEL=INFO
+LOG_RETENTION_DAYS=7
+LOG_EMAIL_ENABLE=True
+LOG_EMAIL_LEVEL=ERROR
+ADMIN_USER_LIST=admin1@example.com,admin2@example.com
+```
+
+This configuration stores logs in the './app_logs' directory, logs messages of level INFO and above, keeps log files for 7 days, enables error email notifications for ERROR and CRITICAL levels, and sends these notifications to the specified admin email addresses.
 
 ### Log Viewer for Admin Users
 
