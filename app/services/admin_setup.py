@@ -104,11 +104,7 @@ def save_module_config(app):
     with open(config_path, 'w') as config_file:
         json.dump(app.config['MODULE_LIST'], config_file, indent=2)
 
-# Function to save the user config
-def save_user_config(config):
-    with open(current_app.config['USER_CONFIG_PATH'], 'w') as f:
-        json.dump(config, f, indent=4)
-
+# Define blueprint for setup routes
 @blueprint.route('/setup', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -420,16 +416,24 @@ def setup_users():
             flash('User deleted successfully', 'success')
         
         elif action == 'update_access_options':
-            user_config = {
-                'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on',
-                'DISABLE_SELF_REGISTRATION': request.form.get('disable_self_registration') == 'on',
-                'ENABLE_REGISTRATION_CAPTCHA': request.form.get('enable_registration_captcha') == 'on',
-                'ENABLE_EULA': request.form.get('enable_eula') == 'on',
-                'ENABLE_EULA_ACKNOWLEDGEMENT': request.form.get('enable_eula_acknowledgement') == 'on'
-            }
-            save_user_config(user_config)
-            current_app.config.update(user_config)
-            flash('Access options updated successfully', 'success')
+            try:
+                user_config = {
+                    'REQUIRE_LOGIN_FOR_SITE_ACCESS': request.form.get('require_login_for_site_access') == 'on',
+                    'DISABLE_SELF_REGISTRATION': request.form.get('disable_self_registration') == 'on',
+                    'ENABLE_REGISTRATION_CAPTCHA': request.form.get('enable_registration_captcha') == 'on',
+                    'ENABLE_EULA': request.form.get('enable_eula') == 'on',
+                    'ENABLE_EULA_ACKNOWLEDGEMENT': request.form.get('enable_eula_acknowledgement') == 'on'
+                }
+
+                with open(current_app.config['USER_CONFIG_PATH'], 'w') as f:
+                    json.dump(user_config, f, indent=4)
+
+                current_app.config.update(user_config)
+                flash('Access options updated successfully', 'success')
+
+            except Exception as e:
+                current_app.logger.error(f"Failed to update access options: {str(e)}")
+                flash(f'Failed to update access options: {str(e)}', 'danger')
         
         elif action == 'add_user':
             new_username = request.form.get('new_username')
