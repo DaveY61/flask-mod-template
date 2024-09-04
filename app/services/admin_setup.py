@@ -405,15 +405,23 @@ def setup_users():
                 current_app.logger.info(f"Role updated to '{new_role}' for {user.username} (Email: {user.email})")
                 flash(f'Role updated for user {user.username}', 'success')
             else:
-                flash('User not found', 'error')
+                current_app.logger.warning(f"Attempted role update for non-existent user ID: {user_id}")
+                flash('User not found', 'warning')
         
         elif action == 'delete_user':
             user_id = request.form.get('user_id')
             user = get_user(user_id)
-            current_app.logger.info(f"User account removed: {user.username} (Email: {user.email}), Method: admin deletion")
-
-            delete_user(user.id)
-            flash('User deleted successfully', 'success')
+            if user:
+                try:
+                    delete_user(user.id)
+                    current_app.logger.info(f"User account removed: {user.username} (Email: {user.email}), Method: admin deletion")
+                    flash('User deleted successfully', 'success')
+                except Exception as e:
+                    current_app.logger.error(f"Failed to delete user {user.username} (Email: {user.email}): {str(e)}")
+                    flash(f'Failed to delete user {user.username}: {str(e)}', 'danger')
+            else:
+                current_app.logger.warning(f"Attempted to delete non-existent user ID: {user_id}")
+                flash('User not found', 'warning')
         
         elif action == 'update_access_options':
             try:
