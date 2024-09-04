@@ -401,11 +401,15 @@ def setup_users():
             new_role = request.form.get('user_role')
             user = get_user(user_id)
             if user:
-                update_user_role(user_id, new_role)
-                current_app.logger.info(f"Role updated to '{new_role}' for {user.username} (Email: {user.email})")
-                flash(f'Role updated for user {user.username}', 'success')
+                try:
+                    update_user_role(user_id, new_role)
+                    current_app.logger.info(f"Role updated to '{new_role}' for {user.username} (Email: {user.email})")
+                    flash(f'Role updated for user {user.username}', 'success')
+                except Exception as e:
+                    current_app.logger.error(f"Failed to update role for {user.username} (Email: {user.email}): {str(e)}")
+                    flash(f'Failed to update role for user {user.username}: {str(e)}', 'danger')
             else:
-                current_app.logger.warning(f"Attempted role update for non-existent user ID: {user_id}")
+                current_app.logger.warning(f"Attempted to update role for non-existent user ID: {user_id}")
                 flash('User not found', 'warning')
         
         elif action == 'delete_user':
