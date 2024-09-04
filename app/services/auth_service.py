@@ -83,6 +83,7 @@ def register():
         return redirect(url_for('auth.create_password', token=token))
 
     if get_user_by_email(email):
+        current_app.logger.warning(f"Registration attempt with existing email: {email}")
         return render_template('pages/register_failure.html', response_color="red"), 400
 
     # Verify reCAPTCHA
