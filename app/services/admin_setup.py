@@ -137,44 +137,66 @@ def setup_gui():
     gui_config_path = current_app.config['GUI_CONFIG_PATH']
     
     if request.method == 'POST':
-        # Update GUI config
-        new_gui_values = {
-            'COMPANY_NAME': request.form.get('company_name'),
-            'COMPANY_ADDRESS': request.form.get('company_address'),
-            'COMPANY_CONTACT': request.form.get('company_contact'),
-            'JURISDICTION': request.form.get('jurisdiction'),
+        try:
+            # Update GUI config
+            new_gui_values = {
+                'COMPANY_NAME': request.form.get('company_name'),
+                'COMPANY_ADDRESS': request.form.get('company_address'),
+                'COMPANY_CONTACT': request.form.get('company_contact'),
+                'JURISDICTION': request.form.get('jurisdiction'),
 
-            'BODY_COLOR': request.form.get('body_color'),
+                'BODY_COLOR': request.form.get('body_color'),
 
-            'PROJECT_NAME': request.form.get('project_name'),
-            'PROJECT_NAME_COLOR': request.form.get('project_name_color')
-        }
+                'PROJECT_NAME': request.form.get('project_name'),
+                'PROJECT_NAME_COLOR': request.form.get('project_name_color')
+            }
 
-        with open(gui_config_path, 'w') as f:
-            json.dump(new_gui_values, f, indent=4)
-        
-        for key, value in new_gui_values.items():
-            current_app.config[key] = value
+            with open(gui_config_path, 'w') as f:
+                json.dump(new_gui_values, f, indent=4)
+            
+            for key, value in new_gui_values.items():
+                current_app.config[key] = value
+
+            flash('GUI configuration updated successfully!', 'success')
+            current_app.logger.info("GUI configuration updated successfully")
+
+        except Exception as e:
+            flash(f'Error updating GUI configuration: {str(e)}', 'danger')
+            current_app.logger.error(f"Error updating GUI configuration: {str(e)}")
 
         # Handle project icon upload
         if 'project_icon' in request.files:
             project_icon = request.files['project_icon']
             if project_icon and project_icon.filename.lower().endswith('.png'):
-                filename = secure_filename('project_icon.png')
-                icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
-                project_icon.save(icon_path)
-                flash('Project icon updated successfully!', 'success')
+                try:
+                    filename = secure_filename('project_icon.png')
+                    icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
+                    project_icon.save(icon_path)
+                    flash('Project icon updated successfully!', 'success')
+                    current_app.logger.info("Project icon updated successfully")
+                except Exception as e:
+                    flash(f'Error updating project icon: {str(e)}', 'danger')
+                    current_app.logger.error(f"Error updating project icon: {str(e)}")
+            elif project_icon:
+                flash('Invalid file format for project icon. Please use PNG.', 'warning')
+                current_app.logger.warning("Invalid file format for project icon upload attempt")
 
         # Handle account icon upload
         if 'account_icon' in request.files:
             account_icon = request.files['account_icon']
             if account_icon and account_icon.filename.lower().endswith('.png'):
-                filename = secure_filename('account_icon.png')
-                icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
-                account_icon.save(icon_path)
-                flash('Account icon updated successfully!', 'success')
-
-        flash('GUI configuration updated successfully!', 'success')
+                try:
+                    filename = secure_filename('account_icon.png')
+                    icon_path = os.path.join(current_app.root_path, 'static', 'img', filename)
+                    account_icon.save(icon_path)
+                    flash('Account icon updated successfully!', 'success')
+                    current_app.logger.info("Account icon updated successfully")
+                except Exception as e:
+                    flash(f'Error updating account icon: {str(e)}', 'danger')
+                    current_app.logger.error(f"Error updating account icon: {str(e)}")
+            elif account_icon:
+                flash('Invalid file format for account icon. Please use PNG.', 'warning')
+                current_app.logger.warning("Invalid file format for account icon upload attempt")
 
     # Read current GUI values
     form_data = {
