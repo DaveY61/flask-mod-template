@@ -5,7 +5,6 @@ from flask_login import current_user
 from email.message import EmailMessage
 from datetime import datetime
 import smtplib
-import time
 import os
 
 class RequestFormatter(logging.Formatter):
@@ -62,9 +61,13 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         self.baseFilename = os.path.join(dir_name, self._get_formatted_filename())
         
         super().__init__(self.baseFilename, when, interval, backupCount, encoding, utc=utc, atTime=atTime)
+        self.date = self.get_current_date()
 
+    def get_current_date(self):
+        return datetime.now().date()
+    
     def _get_formatted_filename(self):
-        current_time = datetime.now()
+        current_time = self.get_current_date()
         return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}.{self.ext}"
 
     def _open(self):
@@ -86,16 +89,20 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         # Open the file in append mode
         return open(self.baseFilename, 'a', encoding=self.encoding)
 
+    def shouldRollover(self, record):
+        if self.date != self.get_current_date():
+            return True
+        return False
+    
     def doRollover(self):
         if self.stream:
             self.stream.close()
             self.stream = None
         
+        self.date = self.get_current_date()
         self.baseFilename = os.path.join(os.path.dirname(self.baseFilename), self._get_formatted_filename())
         
         self.stream = self._open()
-        
-        self.rolloverAt = self.computeRollover(int(time.time()))
         
         # Clean up old log files
         self.deleteOldLogs()
@@ -116,8 +123,8 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         # Sort log files by date, newest first
         log_files.sort(reverse=True)
         
-        # Keep only the most recent backupCount files
-        files_to_delete = log_files[self.backupCount:]
+        # Keep only the most recent backupCount files (plus the current day)
+        files_to_delete = log_files[self.backupCount + 1:]
         
         for _, filename in files_to_delete:
             os.remove(os.path.join(dir_name, filename))
