@@ -31,8 +31,9 @@ def app():
     app = Flask(__name__)
     temp_dir = tempfile.mkdtemp()
     app.config.update({
+        'TESTING': True,
         'LOG_FILE_DIRECTORY': temp_dir,
-        'LOG_RETENTION_DAYS': 3,
+        'LOG_RETENTION_DAYS': 7,
         'LOG_EMAIL_ENABLE': False,
         'ADMIN_USER_LIST': ['admin@example.com'],
         'EMAIL_FROM_ADDRESS': 'test@example.com',
@@ -40,9 +41,17 @@ def app():
         'SMTP_PORT': 587,
         'SMTP_USERNAME': 'test_user',
         'SMTP_PASSWORD': 'test_password',
-        'LOG_FILE_LEVEL': 'INFO'
+        'LOG_FILE_LEVEL': 'INFO',
+        'SERVER_NAME': 'localhost',
+        'APPLICATION_ROOT': '/',
+        'PREFERRED_URL_SCHEME': 'http'
     })
+
+    with app.app_context():
+        setup_logger(app)
+
     yield app
+
     # Cleanup after tests
     for handler in app.logger.handlers[:]:
         app.logger.removeHandler(handler)
@@ -130,6 +139,7 @@ def test_email_handler_creation(app):
 @patch('smtplib.SMTP')
 def test_log_levels(mock_smtp, app):
     app.config['LOG_EMAIL_ENABLE'] = True
+    app.config['LOG_FILE_LEVEL'] = 'DEBUG'  # Temporarily set to DEBUG for this test
     with app.app_context():
         setup_logger(app)
         with patch.object(app.logger.handlers[0], 'emit') as mock_file_emit, \
@@ -141,9 +151,9 @@ def test_log_levels(mock_smtp, app):
             app.logger.error("Error message")
             app.logger.critical("Critical message")
             
-            assert mock_file_emit.call_count == 4  # Debug messages are not logged by default
-            log_levels = [mock_file_emit.call_args_list[i][0][0].levelname for i in range(4)]
-            assert log_levels == ['INFO', 'WARNING', 'ERROR', 'CRITICAL']
+            assert mock_file_emit.call_count == 5  # Debug messages are logged for this test
+            log_levels = [mock_file_emit.call_args_list[i][0][0].levelname for i in range(5)]
+            assert log_levels == ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
             
             assert mock_send_email.call_count == 2  # Called for ERROR and CRITICAL
 
@@ -160,54 +170,6 @@ def test_request_formatter(mock_get_user, app):
             )
             formatted = formatter.format(record)
             assert 'http://localhost/test - 127.0.0.1 - N/A - N/A - Test message' in formatted
-
-@freeze_time("2023-01-01")
-def test_log_file_rotation(app):
-    with app.app_context():
-        setup_logger(app)
-        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
-        assert file_handler is not None
-
-        # Log a message to create the initial log file
-        app.logger.info("Test log message")
-        log_file_path = file_handler.baseFilename
-        assert os.path.exists(log_file_path)
-        assert log_file_path.endswith("app_2023-01-01.log")
-
-        # Move time forward to trigger rotation
-        with freeze_time("2023-01-02"):
-            app.logger.info("New day log message")
-            file_handler.doRollover()  # Force rollover
-            new_log_file_path = file_handler.baseFilename
-            assert os.path.exists(new_log_file_path)
-            assert new_log_file_path.endswith("app_2023-01-02.log")
-
-        # Check if both log files exist
-        assert os.path.exists(os.path.join(app.config['LOG_FILE_DIRECTORY'], "app_2023-01-01.log"))
-        assert os.path.exists(os.path.join(app.config['LOG_FILE_DIRECTORY'], "app_2023-01-02.log"))
-
-@freeze_time("2023-01-01")
-def test_log_retention(app):
-    with app.app_context():
-        app.config['LOG_RETENTION_DAYS'] = 3
-        setup_logger(app)
-        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
-        assert file_handler is not None
-
-        # Create log files for five days
-        for i in range(5):
-            with freeze_time(datetime(2023, 1, 1) + timedelta(days=i)):
-                app.logger.info(f"Log message for day {i+1}")
-                file_handler.doRollover()  # Force rollover
-
-        # Move to the last day to trigger cleanup
-        with freeze_time("2023-01-05"):
-            file_handler.doRollover()
-
-        # Check that only the last 3 log files exist
-        log_files = sorted(os.listdir(app.config['LOG_FILE_DIRECTORY']))
-        assert len(log_files) == 3, f"Expected 3 log files, found {len(log_files)}: {log_files}"
-        assert log_files == ['app_2023-01-03.log', 'app_2023-01-04.log', 'app_2023-01-05.log']
 
 @patch('flask_login.utils._get_user')
 def test_request_formatter_with_context(mock_get_user, app):
@@ -258,19 +220,97 @@ def test_init_logger(app):
         assert os.path.isabs(app.config['LOG_FILE_DIRECTORY'])
         assert any(isinstance(h, HeaderFileHandler) for h in app.logger.handlers)
 
-def test_header_file_handler_rollover(app):
+@pytest.fixture
+def app_with_logger(app):
     with app.app_context():
+        app.config['LOG_RETENTION_DAYS'] = 7
         setup_logger(app)
-        file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
-        assert file_handler is not None
+        yield app
+ 
+def test_comprehensive_log_handling(app):
+    log_dir = app.config['LOG_FILE_DIRECTORY']
+    file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
+    assert file_handler is not None
 
-        # Write a log message
-        app.logger.info("Test log message")
-
-        # Force a rollover
-        file_handler.doRollover()
-
-        # Check if the new file has the header
-        with open(file_handler.baseFilename, 'r') as f:
+    # 1. Header is added to a new file
+    with freeze_time("2023-01-01 10:00:00"):
+        app.logger.info("First log entry")
+        log_file = os.path.join(log_dir, "app_2023-01-01.log")
+        with open(log_file, 'r') as f:
             content = f.read()
-            assert content.startswith("Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n")
+            assert content.startswith("Timestamp\tLog Level\tModule\tMessage\t")
+            assert "First log entry" in content
+
+    # 2. Header is added only once for a file even if the app stops and restarts
+    with freeze_time("2023-01-01 12:00:00"):
+        file_handler.close()
+        setup_logger(app)  # Simulate restart
+        app.logger.info("Second log entry")
+        with open(log_file, 'r') as f:
+            content = f.read()
+            assert content.count("Timestamp\tLog Level\tModule\tMessage\t") == 1
+            assert "Second log entry" in content
+
+    # 3. A new log is started when the date rolls over (while app is running)
+    with freeze_time("2023-01-02 00:00:01"):
+        app.logger.info("New day log entry")
+        new_log_file = os.path.join(log_dir, "app_2023-01-02.log")
+        assert os.path.exists(new_log_file)
+        with open(new_log_file, 'r') as f:
+            content = f.read()
+            assert "New day log entry" in content
+
+    # 4. A new log is started when the app stops and restarts on the next day
+    with freeze_time("2023-01-03 10:00:00"):
+        file_handler.close()
+        setup_logger(app)  # Simulate restart
+        app.logger.info("Next day restart entry")
+        next_day_log_file = os.path.join(log_dir, "app_2023-01-03.log")
+        assert os.path.exists(next_day_log_file)
+        with open(next_day_log_file, 'r') as f:
+            content = f.read()
+            assert "Next day restart entry" in content
+
+    # 5. The existing log is appended when the app stops and starts on the same day
+    with freeze_time("2023-01-03 14:00:00"):
+        file_handler.close()
+        setup_logger(app)  # Simulate restart
+        app.logger.info("Same day restart entry")
+        with open(next_day_log_file, 'r') as f:
+            content = f.read()
+            assert "Next day restart entry" in content
+            assert "Same day restart entry" in content
+
+    # 6 & 7. Old log clearing on app start and date rollover
+    # First, create some old log files
+    old_dates = [datetime(2023, 1, 3) - timedelta(days=i) for i in range(1, 10)]
+    for date in old_dates:
+        with open(os.path.join(log_dir, f"app_{date.strftime('%Y-%m-%d')}.log"), 'w') as f:
+            f.write("Old log content")
+
+    # Simulate app restart (should trigger old log clearing)
+    with freeze_time("2023-01-04 00:00:01"):
+        file_handler.close()
+        setup_logger(app)
+        app.logger.info("Trigger old log clearing")
+
+        # Check that only 7 old files + 1 new file exist
+        log_files = sorted(os.listdir(log_dir))
+        assert len(log_files) == 8, f"Expected 8 log files, found {len(log_files)}: {log_files}"
+        assert log_files[0] == 'app_2022-12-28.log'  # Oldest retained log
+        assert log_files[-1] == 'app_2023-01-04.log'  # Newest log (current day)
+
+    # Simulate date rollover while app is running
+    with freeze_time("2023-01-05 00:00:01"):
+        app.logger.info("Trigger rollover and old log clearing")
+
+        # Check that oldest log is removed and new log is created
+        log_files = sorted(os.listdir(log_dir))
+        assert len(log_files) == 8, f"Expected 8 log files, found {len(log_files)}: {log_files}"
+        assert log_files[0] == 'app_2022-12-29.log'  # New oldest retained log
+        assert log_files[-1] == 'app_2023-01-05.log'  # Newest log
+
+    # Final check
+    log_files = sorted(os.listdir(log_dir))
+    assert len(log_files) == 8, f"Expected 8 log files at the end, found {len(log_files)}: {log_files}"
+    assert (datetime.now().date() - datetime.strptime(log_files[0].split('_')[1].split('.')[0], "%Y-%m-%d").date()).days == 7
