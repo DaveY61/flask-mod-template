@@ -64,7 +64,7 @@ class HeaderFileHandler(TimedRotatingFileHandler):
         super().__init__(self.baseFilename, when, interval, backupCount, encoding, utc=utc, atTime=atTime)
 
     def _get_formatted_filename(self):
-        current_time = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
+        current_time = datetime.now()
         return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}.{self.ext}"
 
     def _open(self):
@@ -72,6 +72,10 @@ class HeaderFileHandler(TimedRotatingFileHandler):
             # If the file doesn't exist, create it and write the header
             with open(self.baseFilename, 'w', encoding=self.encoding) as f:
                 f.write(self.header)
+
+            # New File/Date so check and delete old logs
+            self.deleteOldLogs()
+            
         else:
             # If the file exists, check its size
             if os.path.getsize(self.baseFilename) == 0:
