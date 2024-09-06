@@ -53,7 +53,7 @@ class EmailHandler(logging.Handler):
 class HeaderFileHandler(TimedRotatingFileHandler):
     def __init__(self, filename, when='midnight', interval=1, backupCount=0, encoding=None, utc=False, atTime=None):
         self.prefix = "app"
-        self.ext = ".log"
+        self.ext = "log"
         self.backupCount = backupCount
         self.header = "Timestamp\tLog Level\tModule\tMessage\tUser ID\tUser Email\tRemote Address\tURL\tFunction\tLine\tFilename\n"
         
@@ -65,7 +65,7 @@ class HeaderFileHandler(TimedRotatingFileHandler):
 
     def _get_formatted_filename(self):
         current_time = datetime.now() if not hasattr(time, '_fake_time') else datetime.fromtimestamp(time.time())
-        return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}{self.ext}"
+        return f"{self.prefix}_{current_time.strftime('%Y-%m-%d')}.{self.ext}"
 
     def _open(self):
         if not os.path.exists(self.baseFilename):
