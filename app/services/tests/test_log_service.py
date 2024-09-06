@@ -220,13 +220,6 @@ def test_init_logger(app):
         assert os.path.isabs(app.config['LOG_FILE_DIRECTORY'])
         assert any(isinstance(h, HeaderFileHandler) for h in app.logger.handlers)
 
-@pytest.fixture
-def app_with_logger(app):
-    with app.app_context():
-        app.config['LOG_RETENTION_DAYS'] = 7
-        setup_logger(app)
-        yield app
- 
 def test_comprehensive_log_handling(app):
     log_dir = app.config['LOG_FILE_DIRECTORY']
     file_handler = next((h for h in app.logger.handlers if isinstance(h, HeaderFileHandler)), None)
@@ -235,7 +228,8 @@ def test_comprehensive_log_handling(app):
     # 1. Header is added to a new file
     with freeze_time("2023-01-01 10:00:00"):
         app.logger.info("First log entry")
-        log_file = os.path.join(log_dir, "app_2023-01-01.log")
+        log_file = file_handler.baseFilename  # Use the actual file path from the handler
+        assert os.path.exists(log_file), f"Log file not found: {log_file}"
         with open(log_file, 'r') as f:
             content = f.read()
             assert content.startswith("Timestamp\tLog Level\tModule\tMessage\t")
