@@ -17,7 +17,7 @@ class RegisterForm(Form):
 
 class CreatePasswordForm(Form):
     password = PasswordField(
-        'New Password', validators=[DataRequired(), Length(min=6, max=40)]
+        'New Password', validators=[DataRequired(), Length(min=4, max=40)]
     )
     confirm = PasswordField(
         'Confirm Password', validators=[
@@ -31,7 +31,7 @@ class LoginForm(Form):
         'Email', validators=[DataRequired(), Length(min=6, max=40)]
     )
     password = PasswordField(
-        'Password', validators=[DataRequired(), Length(min=6, max=40)]
+        'Password', validators=[DataRequired(), Length(min=4, max=40)]
     )
 
 class ForgotForm(Form):
@@ -41,7 +41,7 @@ class ForgotForm(Form):
 
 class ResetForm(Form):
     password = PasswordField(
-        'Password', validators=[DataRequired(), Length(min=6, max=40)]
+        'Password', validators=[DataRequired(), Length(min=4, max=40)]
     )
 
 class RemoveForm(Form):
@@ -49,5 +49,5 @@ class RemoveForm(Form):
         'Email', validators=[DataRequired(), Length(min=6, max=40)]
     )
     password = PasswordField(
-        'Password', validators=[DataRequired(), Length(min=6, max=40)]
+        'Password', validators=[DataRequired(), Length(min=4, max=40)]
     )
