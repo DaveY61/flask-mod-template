@@ -5,7 +5,6 @@ import requests
 from packaging import version
 import tkinter as tk
 from tkinter import ttk, messagebox
-import tkinter.simpledialog as simpledialog
 import threading
 import logging
 
@@ -38,6 +37,7 @@ class UpdateApp(tk.Tk):
 
     def start_update(self):
         self.start_button.config(state='disabled')
+        self.log_text.delete(1.0, tk.END)  # Clear previous log
         threading.Thread(target=self.update_process, daemon=True).start()
 
     def update_process(self):
@@ -50,15 +50,15 @@ class UpdateApp(tk.Tk):
         ]
 
         total_steps = len(steps)
-        for i, (step_name, step_function) in enumerate(steps):
-            self.update_status(f"Step {i+1}/{total_steps}: {step_name}")
-            self.progress['value'] = (i / total_steps) * 100
+        for i, (step_name, step_function) in enumerate(steps, 1):
+            self.update_status(f"Step {i}/{total_steps}: {step_name}")
+            self.progress['value'] = ((i - 1) / total_steps) * 100
             success, message = step_function()
-            self.log_message(f"{step_name}: {'Success' if success else 'Failed'}")
-            self.log_message(message)
+            self.log_message(f"{i}. {step_name}: {'Success' if success else 'Failed'}")
+            self.log_message(f"   - {message}")
             if not success:
                 self.update_status("Update failed")
-                messagebox.showerror("Error", f"Failed at step: {step_name}\n{message}")
+                messagebox.showerror("Error", f"Failed at step {i}: {step_name}\n{message}")
                 break
         else:
             self.update_status("Update completed successfully")
@@ -109,23 +109,20 @@ class UpdateApp(tk.Tk):
         if not newer_releases:
             return False, "No newer versions available"
         
+        # Sort releases from newest to oldest
+        sorted_releases = sorted(newer_releases, key=lambda r: version.parse(r['tag_name']), reverse=True)
+        
         # Create a list of version strings
-        version_list = [f"{r['tag_name']} - {r['name']}" for r in newer_releases]
+        version_list = [f"{r['tag_name']} - {r['name']}" for r in sorted_releases]
         
         # Show a dialog to select the version
-        choice = simpledialog.askstring(
-            "Select Version",
-            "Choose a version to update to:",
-            parent=self,
-            initialvalue=version_list[0]
-        )
-        
-        if choice is None:  # User cancelled
+        selection = SelectVersionDialog(self, "Select Version", "Choose a version to update to:", version_list)
+        if selection.result is None:  # User cancelled
             return False, "Version selection cancelled"
         
         # Find the selected release
-        selected_version = choice.split(' - ')[0]
-        self.selected_release = next((r for r in newer_releases if r['tag_name'] == selected_version), None)
+        selected_version = selection.result.split(' - ')[0]
+        self.selected_release = next((r for r in sorted_releases if r['tag_name'] == selected_version), None)
         
         if self.selected_release is None:
             return False, "Invalid version selected"
@@ -168,6 +165,33 @@ class UpdateApp(tk.Tk):
         with open('fmt_version.txt', 'w') as f:
             f.write(self.selected_release['tag_name'])
         return True, f"Updated version file to {self.selected_release['tag_name']}"
+
+class SelectVersionDialog(tk.Toplevel):
+    def __init__(self, parent, title, prompt, choices):
+        super().__init__(parent)
+        self.title(title)
+        self.result = None
+        
+        tk.Label(self, text=prompt).pack(padx=10, pady=10)
+        
+        self.combo = ttk.Combobox(self, values=choices, state="readonly")
+        self.combo.set(choices[0])  # Set default value
+        self.combo.pack(padx=10, pady=10)
+        
+        tk.Button(self, text="OK", command=self.on_ok).pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Button(self, text="Cancel", command=self.on_cancel).pack(side=tk.RIGHT, padx=10, pady=10)
+        
+        self.transient(parent)
+        self.grab_set()
+        parent.wait_window(self)
+
+    def on_ok(self):
+        self.result = self.combo.get()
+        self.destroy()
+
+    def on_cancel(self):
+        self.result = None
+        self.destroy()
 
 if __name__ == "__main__":
     app = UpdateApp()
