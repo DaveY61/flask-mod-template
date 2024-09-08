@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 import requests
 from packaging import version
@@ -7,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import logging
+import chardet
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "UpdateTestRepo"
@@ -147,20 +147,74 @@ class UpdateApp(tk.Tk):
         if code != 0:
             return False, f"Tag {release_tag} does not exist in the template repository"
 
-        branch_name = f"template-update-{release_tag}"
-        _, _, code = self.run_command(f"git checkout -b {branch_name} {release_tag}")
+        # Fetch the specific tag
+        _, error, code = self.run_command(f"git fetch template {release_tag}")
         if code != 0:
-            if "already exists" in _:
-                self.run_command(f"git checkout {branch_name}")
-            else:
-                return False, f"Failed to create or switch to branch: {branch_name}"
+            return False, f"Failed to fetch template content: {error}"
 
-        _, _, code = self.run_command(f"git reset --hard {release_tag}")
+        # Check for local modifications
+        modified_files = self.get_modified_files(release_tag)
+        if modified_files:
+            message = "The following files have modifications compared to the template and will be overwritten:\n\n"
+            message += "\n".join(modified_files)
+            message += "\n\nDo you want to proceed with the update? This will overwrite these changes."
+            if not messagebox.askyesno("Warning", message):
+                return False, "Update cancelled due to local modifications"
+
+        # Create a temporary branch for the update
+        temp_branch = f"temp-template-update-{release_tag}"
+        _, _, code = self.run_command(f"git checkout -b {temp_branch}")
         if code != 0:
-            return False, f"Failed to reset to tag: {release_tag}"
+            return False, f"Failed to create temporary branch: {temp_branch}"
+
+        # Reset the temporary branch to the fetched content
+        _, error, code = self.run_command("git reset --hard FETCH_HEAD")
+        if code != 0:
+            self.run_command(f"git checkout - && git branch -D {temp_branch}")  # Clean up
+            return False, f"Failed to reset to template content: {error}"
+
+        # If successful, create or update the template update branch
+        branch_name = f"template-update-{release_tag}"
+        _, _, code = self.run_command(f"git branch -D {branch_name}")  # Delete if exists
+        _, _, code = self.run_command(f"git checkout -b {branch_name}")
+        if code != 0:
+            self.run_command(f"git checkout - && git branch -D {temp_branch}")  # Clean up
+            return False, f"Failed to create update branch: {branch_name}"
+
+        # Clean up the temporary branch
+        self.run_command(f"git branch -D {temp_branch}")
 
         return True, "Template updated successfully"
 
+    def get_modified_files(self, release_tag):
+        # Fetch the specific tag
+        self.run_command(f"git fetch template {release_tag}")
+        
+        # Get list of files in the template
+        output, _, _ = self.run_command("git ls-tree -r --name-only FETCH_HEAD")
+        template_files = set(output.strip().split('\n'))
+
+        modified_files = []
+        for file in template_files:
+            if os.path.exists(file):
+                # Compare local file with template file
+                try:
+                    with open(file, 'rb') as f:
+                        local_content = f.read()
+                    local_encoding = chardet.detect(local_content)['encoding']
+                    local_content = local_content.decode(local_encoding)
+                except Exception as e:
+                    print(f"Error reading local file {file}: {str(e)}")
+                    continue
+
+                output, _, _ = self.run_command(f"git show FETCH_HEAD:{file}")
+                template_content = output
+
+                if local_content.strip() != template_content.strip():
+                    modified_files.append(file)
+
+        return modified_files
+        
     def finalize_update(self):
         with open('fmt_version.txt', 'w') as f:
             f.write(self.selected_release['tag_name'])
