@@ -5,7 +5,7 @@ import shutil
 import requests
 
 REPO_OWNER = "DaveY61"
-REPO_NAME = "UpdateTestRepo"
+REPO_NAME = "flask-mod-template"
 
 # Get the current working directory name
 project_folder_name = os.path.basename(os.getcwd())

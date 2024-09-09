@@ -8,7 +8,7 @@ import logging
 from packaging import version
 
 REPO_OWNER = "DaveY61"
-REPO_NAME = "UpdateTestRepo"
+REPO_NAME = "flask-mod-template"
 
 # Set up logging
 logging.basicConfig(filename='fmt_update_log.txt', level=logging.DEBUG, 
