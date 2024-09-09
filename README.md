@@ -23,6 +23,7 @@
   - [Log Viewer for Admin Users](#log-viewer-for-admin-users)
   - [Using app.logger in Modules](#using-applogger-in-modules)
   - [Debug Logging](#debug-logging)
+- [FMT Testing](#fmt_testing)
 - [License](#license)
 - [Deployment](#deployment)
 
@@ -84,8 +85,9 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    - Rename example files (removing .example extensions)
    - Update .gitignore
    - Create a .env file
+   - Create a `fmt_version.txt` file to track the in-use template version
 
-4. Update the `.env` file with your specific configuration values.
+4. Update the `.env` file with your specific configuration values, paying special attention to the email-related variables which are crucial for user registration and password reset functionality.
 
 ### Establish Admin User
 
@@ -95,10 +97,10 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    python run_local.py
    ```
 3. Open your web browser and navigate to `http://localhost:5000`.
-4. Click on "Login" and use your email address (from `.env`) with the password "admin".
+4. Click on "Sign p" and use your email address (from `.env`) with the password "admin".
 5. You will be redirected to the Create Password page. Set your new admin password.
 
-**Note:** If you initially created your account without using the admin password, you can still use "admin" as the password during login to activate your Admin account. This feature allows you to gain admin access even if you registered through the normal process first.
+**Note:** If you initially created your account without using the admin password, you can still use "admin" as the password during login to activate your Admin account. This feature allows you to gain admin access even if you started registration without using the special password.
 
 ### Review Admin Setup
 
@@ -114,7 +116,7 @@ Refer to the linked sections in this document for more details on each setup are
 
 ### Updating Your Project
 
-To update your project to the latest teemplate version, you can use the `fmt_update.py` script. This script automates the update process and helps you manage potential conflicts. Here's how to use it:
+To update your project to the latest template version, you can use the `fmt_update.py` script. This script automates the update process and helps you manage potential conflicts. Here's how to use it:
 
 1. Ensure you have committed or stashed any local changes.
 2. Run the update script:
@@ -184,6 +186,8 @@ Note: Icon images should be in PNG format and appropriately sized for best resul
 4. Add any static files (CSS, JS) in `app/modules/new_module/static/`.
 
 5. The module will be automatically discovered by the application. You don't need to manually update any configuration files or restart the application.
+
+6. Follow the structure of the example modules provided in the `flask_mod_template` file set to ensure compatibility with the admin setup interface.
 
 ## Enabling Modules and Managing Access
 
@@ -412,6 +416,25 @@ When `FLASK_DEBUG` is set to `True`:
 3. The Flask development server will automatically reload when code changes are detected.
 
 For production environments, always set `FLASK_DEBUG=False` to disable debug logging and prevent sensitive information from being exposed.
+
+## FMT Testing
+
+The Flask Modular Template project includes a set of test files to ensure the functionality of various components. These tests are located in the `app/services/tests/` directory. To run the tests:
+
+1. Ensure you're in the project's root directory and your virtual environment is activated.
+2. Run the tests using pytest:
+   ```
+   pytest app/services/tests/
+   ```
+
+The test files cover different aspects of the application:
+
+- `test_auth_service.py`: Tests for authentication-related functions
+- `test_auth_service_db.py`: Tests for database operations related to authentication
+- `test_email_service.py`: Tests for email service functionality
+- `test_log_service.py`: Tests for logging service
+
+Running these tests regularly can help catch potential issues early in the development process and ensure that core functionalities are working as expected.
 
 ## License
 
