@@ -9,6 +9,7 @@
   - [Make Local Repository](#make-local-repository)
   - [Establish Admin User](#establish-admin-user)
   - [Review Admin Setup](#review-admin-setup)
+  - [Updating Your Project](#updating-your-project)
 - [GUI Customization](#gui-customization)
 - [Adding New Modules](#adding-new-modules)
 - [Enabling Modules and Managing Access](#enabling-modules-and-managing-access)
@@ -110,6 +111,32 @@ After logging in as an admin, you can access the Admin Setup page. Here are the 
 - [Email Setup](#email-setup): Configure email settings for the application
 
 Refer to the linked sections in this document for more details on each setup area.
+
+### Updating Your Project
+
+To update your project to the latest teemplate version, you can use the `fmt_update.py` script. This script automates the update process and helps you manage potential conflicts. Here's how to use it:
+
+1. Ensure you have committed or stashed any local changes.
+2. Run the update script:
+   ```
+   python fmt_update.py
+   ```
+3. The script will guide you through the following steps:
+   - Check for any existing worktrees and offer to remove them
+   - Determine your current version
+   - Fetch available versions from the GitHub repository
+   - Allow you to select the version to update to
+   - Attempt to merge the selected version with your local changes
+
+The `fmt_update.py` script works by:
+- Creating a temporary branch with the selected update version
+- Attempting to merge this branch with your main branch
+- Handling merge conflicts if they occur
+- Updating the `fmt_version.txt` file to reflect the new version
+
+If merge conflicts occur, the script will notify you and provide instructions on how to resolve them manually. After resolving conflicts, you can run the script again to complete the update process.
+
+This update method allows you to keep your local customizations while still benefiting from the latest improvements and features of the Flask Modular Template.
 
 ## GUI Customization
 
