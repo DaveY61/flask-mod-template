@@ -2,6 +2,10 @@ import os
 import sys
 import subprocess
 import shutil
+import requests
+
+REPO_OWNER = "DaveY61"
+REPO_NAME = "UpdateTestRepo"
 
 # Get the current working directory name
 project_folder_name = os.path.basename(os.getcwd())
@@ -172,6 +176,24 @@ def print_env_reminder():
 """
     print(reminder)
 
+def get_latest_release_version(repo_owner, repo_name):
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()['tag_name']
+        else:
+            print(f"Failed to fetch latest release: HTTP {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error fetching latest release: {str(e)}")
+        return None
+
+def create_version_file(version):
+    with open('fmt_version.txt', 'w') as f:
+        f.write(version)
+    print(f"Created fmt_version.txt with version: {version}")
+
 def main():
     # Check and exit if already performed
     confirm_new_install()
@@ -182,6 +204,13 @@ def main():
     create_directories()
     rename_example_files()
     update_gitignore()
+
+    # Fetch the latest release version
+    latest_version = get_latest_release_version(REPO_OWNER, REPO_NAME)
+    if latest_version:
+        create_version_file(latest_version)
+    else:
+        print("Warning: Could not determine the latest version. fmt_version.txt not created.")
 
     # Create a template .env file
     write_env_template()

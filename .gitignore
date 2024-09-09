@@ -21,6 +21,7 @@ env
 venv
 
 # Ignore specific template files
+fmt_version.txt
 modules/
 project_icon.png
 account_icon.png

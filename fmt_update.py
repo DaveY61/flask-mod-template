@@ -1,12 +1,11 @@
 import os
 import subprocess
 import requests
-from packaging import version
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import logging
-import chardet
+from packaging import version
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "UpdateTestRepo"
@@ -40,13 +39,34 @@ class UpdateApp(tk.Tk):
         self.log_text.delete(1.0, tk.END)  # Clear previous log
         threading.Thread(target=self.update_process, daemon=True).start()
 
+    def check_and_remove_worktrees(self):
+        output, error, code = self.run_command('git worktree list')
+        if code == 0:
+            worktrees = [line.split() for line in output.split('\n') if line.strip()]
+            if len(worktrees) > 1:  # More than just the main worktree
+                current_dir = os.path.abspath(os.getcwd())
+                main_worktree = worktrees[0][0]  # The first worktree is always the main one
+                
+                if current_dir != main_worktree:
+                    return False, f"Please run this script from the main worktree at: {main_worktree}"
+                
+                message = "Multiple worktrees detected. This may interfere with the update process.\n\n"
+                message += "Do you want to remove all additional worktrees?"
+                if messagebox.askyesno("Worktrees Detected", message):
+                    for worktree in worktrees[1:]:  # Skip the first (main) worktree
+                        self.run_command(f'git worktree remove "{worktree[0]}"')
+                    return True, "Removed additional worktrees"
+                else:
+                    return False, "Update cancelled due to existing worktrees"
+        return True, "No additional worktrees found or running from main worktree"
+
     def update_process(self):
         steps = [
+            ("Checking for worktrees", self.check_and_remove_worktrees),
             ("Checking current version", self.get_current_version),
             ("Fetching available versions", self.get_github_releases),
             ("Selecting update version", self.select_version),
-            ("Initializing/Updating template", self.initialize_or_update_template),
-            ("Finalizing update", self.finalize_update)
+            ("Updating from template", self.update_from_template)
         ]
 
         total_steps = len(steps)
@@ -57,8 +77,12 @@ class UpdateApp(tk.Tk):
             self.log_message(f"{i}. {step_name}: {'Success' if success else 'Failed'}")
             self.log_message(f"   - {message}")
             if not success:
-                self.update_status("Update failed")
-                messagebox.showerror("Error", f"Failed at step {i}: {step_name}\n{message}")
+                if "Merge conflicts occurred" in message:
+                    self.update_status("Merge conflicts detected")
+                    messagebox.showinfo("Merge Conflicts", message)
+                else:
+                    self.update_status("Update failed")
+                    messagebox.showerror("Error", f"Failed at step {i}: {step_name}\n{message}")
                 break
         else:
             self.update_status("Update completed successfully")
@@ -109,18 +133,13 @@ class UpdateApp(tk.Tk):
         if not newer_releases:
             return False, "No newer versions available"
         
-        # Sort releases from newest to oldest
         sorted_releases = sorted(newer_releases, key=lambda r: version.parse(r['tag_name']), reverse=True)
-        
-        # Create a list of version strings
         version_list = [f"{r['tag_name']} - {r['name']}" for r in sorted_releases]
         
-        # Show a dialog to select the version
         selection = SelectVersionDialog(self, "Select Version", "Choose a version to update to:", version_list)
-        if selection.result is None:  # User cancelled
+        if selection.result is None:
             return False, "Version selection cancelled"
         
-        # Find the selected release
         selected_version = selection.result.split(' - ')[0]
         self.selected_release = next((r for r in sorted_releases if r['tag_name'] == selected_version), None)
         
@@ -129,96 +148,73 @@ class UpdateApp(tk.Tk):
         
         return True, f"Selected version: {self.selected_release['tag_name']}"
 
-    def initialize_or_update_template(self):
-        release_tag = self.selected_release['tag_name']
-        
-        if not os.path.isdir('.git'):
-            self.run_command("git init")
+    def update_from_template(self):
+        template_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}.git"
+        template_tag = self.selected_release['tag_name']
+        update_branch_name = f"template-update-{template_tag}"
 
-        _, _, code = self.run_command("git remote get-url template")
-        if code != 0:
-            self.run_command(f"git remote add template https://github.com/{REPO_OWNER}/{REPO_NAME}.git")
+        try:
+            # Set up the template repo as a remote
+            self.run_command('git remote remove template')  # Remove if exists
+            output, error, code = self.run_command(f'git remote add template {template_url}')
+            if code != 0:
+                return False, f"Failed to add template remote: {error}"
 
-        _, _, code = self.run_command("git fetch template --tags")
-        if code != 0:
-            return False, "Failed to fetch tags"
+            # Fetch the template changes
+            output, error, code = self.run_command(f'git fetch template {template_tag}')
+            if code != 0:
+                return False, f"Failed to fetch template: {error}"
 
-        _, _, code = self.run_command(f"git rev-parse --verify refs/tags/{release_tag}")
-        if code != 0:
-            return False, f"Tag {release_tag} does not exist in the template repository"
+            # Create a new branch for the update based on the fetched tag
+            output, error, code = self.run_command(f'git checkout -b {update_branch_name} FETCH_HEAD')
+            if code != 0:
+                return False, f"Failed to create update branch: {error}"
 
-        # Fetch the specific tag
-        _, error, code = self.run_command(f"git fetch template {release_tag}")
-        if code != 0:
-            return False, f"Failed to fetch template content: {error}"
+            # Switch back to the main branch
+            output, error, code = self.run_command('git checkout main')
+            if code != 0:
+                return False, f"Failed to switch back to main branch: {error}"
 
-        # Check for local modifications
-        modified_files = self.get_modified_files(release_tag)
-        if modified_files:
-            message = "The following files have modifications compared to the template and will be overwritten:\n\n"
-            message += "\n".join(modified_files)
-            message += "\n\nDo you want to proceed with the update? This will overwrite these changes."
-            if not messagebox.askyesno("Warning", message):
-                return False, "Update cancelled due to local modifications"
+            # Attempt to merge the update branch
+            output, error, code = self.run_command(f'git merge {update_branch_name} --allow-unrelated-histories')
+            if code != 0:
+                # Merge conflict occurred
+                conflicted_files = self.get_conflicted_files()
+                conflict_message = "Merge conflicts occurred in the following files:\n\n"
+                conflict_message += "\n".join(conflicted_files)
+                conflict_message += "\n\nPlease resolve these conflicts manually and then:\n"
+                conflict_message += "1. Stage the resolved files using 'git add <file>'\n"
+                conflict_message += "2. Commit the changes using 'git commit -m \"Merge template update\"'\n"
+                conflict_message += "3. Run this update script again to complete the process"
 
-        # Create a temporary branch for the update
-        temp_branch = f"temp-template-update-{release_tag}"
-        _, _, code = self.run_command(f"git checkout -b {temp_branch}")
-        if code != 0:
-            return False, f"Failed to create temporary branch: {temp_branch}"
+                # Abort the merge to leave the repository in a clean state
+                self.run_command('git merge --abort')
 
-        # Reset the temporary branch to the fetched content
-        _, error, code = self.run_command("git reset --hard FETCH_HEAD")
-        if code != 0:
-            self.run_command(f"git checkout - && git branch -D {temp_branch}")  # Clean up
-            return False, f"Failed to reset to template content: {error}"
+                return False, conflict_message
 
-        # If successful, create or update the template update branch
-        branch_name = f"template-update-{release_tag}"
-        _, _, code = self.run_command(f"git branch -D {branch_name}")  # Delete if exists
-        _, _, code = self.run_command(f"git checkout -b {branch_name}")
-        if code != 0:
-            self.run_command(f"git checkout - && git branch -D {temp_branch}")  # Clean up
-            return False, f"Failed to create update branch: {branch_name}"
+            # Update fmt_version.txt after successful merge
+            with open('fmt_version.txt', 'w') as f:
+                f.write(template_tag)
+            
+            # Commit the version update
+            self.run_command('git add fmt_version.txt')
+            self.run_command(f'git commit -m "Update fmt_version.txt to {template_tag}"')
 
-        # Clean up the temporary branch
-        self.run_command(f"git branch -D {temp_branch}")
+            return True, "Template update completed successfully"
 
-        return True, "Template updated successfully"
+        except Exception as e:
+            return False, f"Unexpected error during update: {str(e)}"
 
-    def get_modified_files(self, release_tag):
-        # Fetch the specific tag
-        self.run_command(f"git fetch template {release_tag}")
-        
-        # Get list of files in the template
-        output, _, _ = self.run_command("git ls-tree -r --name-only FETCH_HEAD")
-        template_files = set(output.strip().split('\n'))
+        finally:
+            # Clean up: delete the temporary branch and remote
+            self.run_command(f'git branch -D {update_branch_name}')
+            self.run_command('git remote remove template')
 
-        modified_files = []
-        for file in template_files:
-            if os.path.exists(file):
-                # Compare local file with template file
-                try:
-                    with open(file, 'rb') as f:
-                        local_content = f.read()
-                    local_encoding = chardet.detect(local_content)['encoding']
-                    local_content = local_content.decode(local_encoding)
-                except Exception as e:
-                    print(f"Error reading local file {file}: {str(e)}")
-                    continue
-
-                output, _, _ = self.run_command(f"git show FETCH_HEAD:{file}")
-                template_content = output
-
-                if local_content.strip() != template_content.strip():
-                    modified_files.append(file)
-
-        return modified_files
-        
-    def finalize_update(self):
-        with open('fmt_version.txt', 'w') as f:
-            f.write(self.selected_release['tag_name'])
-        return True, f"Updated version file to {self.selected_release['tag_name']}"
+    def get_conflicted_files(self):
+        output, error, code = self.run_command('git diff --name-only --diff-filter=U')
+        if code == 0:
+            return output.split('\n')
+        return []
 
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
