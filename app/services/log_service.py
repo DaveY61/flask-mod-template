@@ -30,12 +30,29 @@ class EmailHandler(logging.Handler):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.setLevel(logging.ERROR)
+        self.setLevel(getattr(logging, config.get('LOG_EMAIL_LEVEL', 'ERROR')))
 
     def emit(self, record):
-        subject = "Error Log Notification"
-        body = f"Error log entry:\n{self.format(record)}"
-        self.send_email(subject, body)
+        if not self.config.get('LOG_EMAIL_ENABLE', False):
+            return
+
+        try:
+            subject = "Error Log Notification"
+            body = f"Error log entry:\n{self.format(record)}"
+            self.send_email(subject, body)
+        except Exception as e:
+            # Temporarily disable email logging to avoid infinite loop
+            original_email_enable = self.config['LOG_EMAIL_ENABLE']
+            self.config['LOG_EMAIL_ENABLE'] = False
+            
+            try:
+                # Log the error using the application logger
+                from flask import current_app
+                current_app.logger.critical(f"Failed to send error email. Reason: {str(e)}")
+                current_app.logger.critical(f"Original error: {self.format(record)}")
+            finally:
+                # Restore the original email logging setting
+                self.config['LOG_EMAIL_ENABLE'] = original_email_enable
 
     def send_email(self, subject, body):
         msg = EmailMessage()
@@ -167,7 +184,6 @@ def setup_logger(app):
     if app.config.get('LOG_EMAIL_ENABLE', False):
         email_handler = EmailHandler(app.config)
         email_handler.setFormatter(formatter)
-        email_handler.setLevel(getattr(logging, app.config.get('LOG_EMAIL_LEVEL', 'ERROR')))
         app.logger.addHandler(email_handler)
 
     # Add console handler only if DEBUG is True
