@@ -175,6 +175,10 @@ class UpdateApp(tk.Tk):
             if code != 0:
                 return False, f"Failed to switch back to main branch: {error}"
 
+            # Always keep the local .gitignore
+            self.run_command('git checkout --ours .gitignore')
+            self.run_command('git add .gitignore')
+
             # Attempt to merge the update branch
             output, error, code = self.run_command(f'git merge {update_branch_name} --allow-unrelated-histories')
             if code != 0:
@@ -206,8 +210,9 @@ class UpdateApp(tk.Tk):
             return False, f"Unexpected error during update: {str(e)}"
 
         finally:
-            # Clean up: delete the temporary branch and remote
-            self.run_command(f'git branch -D {update_branch_name}')
+            # Only remove the temporary branch if the update was successful
+            if self.run_command(f'git rev-parse --verify {update_branch_name}')[2] == 0:
+                self.run_command(f'git branch -D {update_branch_name}')
             self.run_command('git remote remove template')
 
     def get_conflicted_files(self):
