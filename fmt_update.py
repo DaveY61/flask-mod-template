@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox
 import threading
 import logging
 from packaging import version
+from datetime import datetime
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "flask-mod-template"
@@ -18,10 +19,9 @@ class UpdateApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Template Update Tool")
-        self.geometry("600x400")
-        self.keep_examples = False  # Default to ignoring example files and folders
+        self.geometry("600x450")
+        self.keep_examples = tk.BooleanVar(value=False)
         self.create_widgets()
-
 
     def create_widgets(self):
         self.progress = ttk.Progressbar(self, length=500, mode='determinate')
@@ -33,9 +33,6 @@ class UpdateApp(tk.Tk):
         self.start_button = ttk.Button(self, text="Start Update", command=self.start_update)
         self.start_button.pack(pady=10)
 
-        self.log_text = tk.Text(self, height=15, width=70)
-        self.log_text.pack(pady=10)
-
         self.keep_examples_check = ttk.Checkbutton(
             self, 
             text="Keep example files and folders", 
@@ -44,31 +41,16 @@ class UpdateApp(tk.Tk):
         )
         self.keep_examples_check.pack(pady=5)
 
+        self.log_text = tk.Text(self, height=15, width=70)
+        self.log_text.pack(pady=10)
+
+    def toggle_keep_examples(self):
+        logging.info(f"Keep examples toggled: {self.keep_examples.get()}")
+
     def start_update(self):
         self.start_button.config(state='disabled')
         self.log_text.delete(1.0, tk.END)  # Clear previous log
         threading.Thread(target=self.update_process, daemon=True).start()
-
-    def check_and_remove_worktrees(self):
-        output, error, code = self.run_command('git worktree list')
-        if code == 0:
-            worktrees = [line.split() for line in output.split('\n') if line.strip()]
-            if len(worktrees) > 1:  # More than just the main worktree
-                current_dir = os.path.abspath(os.getcwd())
-                main_worktree = worktrees[0][0]  # The first worktree is always the main one
-                
-                if current_dir != main_worktree:
-                    return False, f"Please run this script from the main worktree at: {main_worktree}"
-                
-                message = "Multiple worktrees detected. This may interfere with the update process.\n\n"
-                message += "Do you want to remove all additional worktrees?"
-                if messagebox.askyesno("Worktrees Detected", message):
-                    for worktree in worktrees[1:]:  # Skip the first (main) worktree
-                        self.run_command(f'git worktree remove "{worktree[0]}"')
-                    return True, "Removed additional worktrees"
-                else:
-                    return False, "Update cancelled due to existing worktrees"
-        return True, "No additional worktrees found or running from main worktree"
 
     def update_process(self):
         steps = [
@@ -158,6 +140,27 @@ class UpdateApp(tk.Tk):
         
         return True, f"Selected version: {self.selected_release['tag_name']}"
 
+    def check_and_remove_worktrees(self):
+        output, error, code = self.run_command('git worktree list')
+        if code == 0:
+            worktrees = [line.split() for line in output.split('\n') if line.strip()]
+            if len(worktrees) > 1:  # More than just the main worktree
+                current_dir = os.path.abspath(os.getcwd())
+                main_worktree = worktrees[0][0]  # The first worktree is always the main one
+                
+                if current_dir != main_worktree:
+                    return False, f"Please run this script from the main worktree at: {main_worktree}"
+                
+                message = "Multiple worktrees detected. This may interfere with the update process.\n\n"
+                message += "Do you want to remove all additional worktrees?"
+                if messagebox.askyesno("Worktrees Detected", message):
+                    for worktree in worktrees[1:]:  # Skip the first (main) worktree
+                        self.run_command(f'git worktree remove "{worktree[0]}"')
+                    return True, "Removed additional worktrees"
+                else:
+                    return False, "Update cancelled due to existing worktrees"
+        return True, "No additional worktrees found or running from main worktree"
+
     def get_current_branch(self):
         output, _, _ = self.run_command('git rev-parse --abbrev-ref HEAD')
         return output.strip()
@@ -211,7 +214,7 @@ class UpdateApp(tk.Tk):
                     continue
                 
                 # Skip .example files and folders if keep_examples is False
-                if not self.keep_examples:
+                if not self.keep_examples.get():
                     if file.endswith('.example') or any(part.endswith('.example') for part in file.split(os.sep)):
                         continue
 
@@ -264,12 +267,6 @@ class UpdateApp(tk.Tk):
         finally:
             # Always remove the template remote
             self.run_command('git remote remove template')
-
-    def get_conflicted_files(self):
-        output, error, code = self.run_command('git diff --name-only --diff-filter=U')
-        if code == 0:
-            return output.split('\n')
-        return []
 
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
