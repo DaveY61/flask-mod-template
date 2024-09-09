@@ -23,7 +23,7 @@
   - [Log Viewer for Admin Users](#log-viewer-for-admin-users)
   - [Using app.logger in Modules](#using-applogger-in-modules)
   - [Debug Logging](#debug-logging)
-- [FMT Testing](#fmt_testing)
+- [FMT Testing](#fmt-testing)
 - [License](#license)
 - [Deployment](#deployment)
 
