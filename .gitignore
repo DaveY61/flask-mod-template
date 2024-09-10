@@ -7,6 +7,7 @@ app_test_results/
 project_tree.txt
 project_code.txt
 fmt_update_log.txt
+fmt_update_backups/
 
 # Ignore Python files
 *.pyo
@@ -21,7 +22,6 @@ env
 venv
 
 # Ignore specific template files
-fmt_version.txt
 modules/
 project_icon.png
 account_icon.png
