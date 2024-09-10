@@ -7,12 +7,14 @@ import threading
 import logging
 from packaging import version
 from datetime import datetime
+import shlex
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "flask-mod-template"
 
 # Set up logging
-logging.basicConfig(filename='fmt_update_log.txt', level=logging.DEBUG, 
+LOG_FILE = 'fmt_update_log.txt'
+logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 class UpdateApp(tk.Tk):
@@ -72,6 +74,10 @@ class UpdateApp(tk.Tk):
         threading.Thread(target=self.update_process, daemon=True).start()
 
     def update_process(self):
+        # Clear the log file
+        open(LOG_FILE, 'w').close()
+        logging.info("Starting new update session")
+
         steps = [
             ("Checking for worktrees", self.check_and_remove_worktrees),
             ("Checking current version", self.get_current_version),
@@ -252,21 +258,21 @@ class UpdateApp(tk.Tk):
                     os.makedirs(dir_name, exist_ok=True)
                 
                 # Check if file exists in current branch
-                output, error, code = self.run_command(f'git ls-files --error-unmatch {file}')
+                output, error, code = self.run_command(f'git ls-files --error-unmatch "{file}"')
                 file_exists = code == 0
 
                 if file_exists:
                     # If file exists, create a backup
                     backup_file = f"{file}.backup"
-                    self.run_command(f'git show HEAD:{file} > {backup_file}')
+                    self.run_command(f'git show HEAD:"{file}" > "{backup_file}"')
                     backup_files.append(backup_file)
                 
                 # Copy file from template
-                output, error, code = self.run_command(f'git show FETCH_HEAD:{file} > {file}')
+                output, error, code = self.run_command(f'git show FETCH_HEAD:"{file}" > "{file}"')
                 if code != 0:
                     return False, f"Failed to copy file {file} from template: {error}"
                 
-                self.run_command(f'git add {file}')
+                self.run_command(f'git add "{file}"')
 
             # Check if there are changes to commit
             status_output, _, _ = self.run_command('git status --porcelain')
