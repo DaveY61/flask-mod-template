@@ -270,6 +270,7 @@ class UpdateApp(tk.Tk):
         template_tag = self.selected_release['tag_name']
         update_branch_name = f"template-update-{template_tag}"
         backup_dir = os.path.join("fmt_update_backups", template_tag)
+        replaced_files = []
 
         try:
             # Create version-specific backup directory
@@ -292,6 +293,7 @@ class UpdateApp(tk.Tk):
                     backup_path = os.path.join(backup_dir, file)
                     os.makedirs(os.path.dirname(backup_path), exist_ok=True)
                     shutil.copy2(file, backup_path)
+                    replaced_files.append(file)
 
                 # Copy file from template
                 self.run_command(f'git checkout FETCH_HEAD -- "{file}"')
@@ -315,7 +317,17 @@ class UpdateApp(tk.Tk):
             self.run_command(f'git branch -D {update_branch_name}')
             self.run_command('git remote remove template')
 
-            return True, f"Template updated to version {template_tag}"
+            # Prepare summary message
+            summary = f"Template updated to version {template_tag}\n\n"
+            summary += f"Files replaced by the template:\n"
+            for file in replaced_files:
+                summary += f"- {file}\n"
+            summary += f"\nBackups of replaced files are stored in:\n{os.path.abspath(backup_dir)}"
+
+            # Show summary to the user
+            messagebox.showinfo("Update Summary", summary)
+
+            return True, summary
 
         except Exception as e:
             return False, f"Unexpected error during update: {str(e)}"
