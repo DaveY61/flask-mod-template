@@ -18,6 +18,10 @@ logging.basicConfig(filename='fmt_update_log.txt', level=logging.DEBUG,
 class UpdateApp(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        style = ttk.Style()
+        style.configure('Accent.TButton', foreground='navy', background='#007bff', font=('Helvetica', 10, 'bold'))
+
         self.title("Template Update Tool")
         self.geometry("600x500")
         self.keep_examples = tk.BooleanVar(value=False)
@@ -31,7 +35,7 @@ class UpdateApp(tk.Tk):
         self.status_label = ttk.Label(self, text="Ready to start")
         self.status_label.pack(pady=10)
 
-        self.start_button = ttk.Button(self, text="Start Update", command=self.start_update)
+        self.start_button = ttk.Button(self, text="Start Update", command=self.start_update, style='Accent.TButton')
         self.start_button.pack(pady=10)
 
         self.keep_examples_check = ttk.Checkbutton(
