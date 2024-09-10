@@ -19,8 +19,9 @@ class UpdateApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Template Update Tool")
-        self.geometry("600x450")
+        self.geometry("600x500")
         self.keep_examples = tk.BooleanVar(value=False)
+        self.keep_readmes = tk.BooleanVar(value=False)
         self.create_widgets()
 
     def create_widgets(self):
@@ -35,17 +36,28 @@ class UpdateApp(tk.Tk):
 
         self.keep_examples_check = ttk.Checkbutton(
             self, 
-            text="Keep example files and folders", 
+            text="Copy FMT 'example' files and folders (may add clutter to your project)", 
             variable=self.keep_examples,
             command=self.toggle_keep_examples
         )
         self.keep_examples_check.pack(pady=5)
+
+        self.keep_readmes_check = ttk.Checkbutton(
+            self, 
+            text="Copy FMT 'README' files (may overwrite your files)", 
+            variable=self.keep_readmes,
+            command=self.toggle_keep_readmes
+        )
+        self.keep_readmes_check.pack(pady=5)
 
         self.log_text = tk.Text(self, height=15, width=70)
         self.log_text.pack(pady=10)
 
     def toggle_keep_examples(self):
         logging.info(f"Keep examples toggled: {self.keep_examples.get()}")
+
+    def toggle_keep_readmes(self):
+        logging.info(f"Keep READMEs toggled: {self.keep_readmes.get()}")
 
     def start_update(self):
         self.start_button.config(state='disabled')
@@ -169,6 +181,7 @@ class UpdateApp(tk.Tk):
         template_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}.git"
         template_tag = self.selected_release['tag_name']
         update_branch_name = f"template-update-{template_tag}"
+        backup_files = []
 
         try:
             current_branch = self.get_current_branch()
@@ -208,7 +221,12 @@ class UpdateApp(tk.Tk):
                 return False, "No files found in the template. This is unexpected and may indicate an issue with the template repository."
 
             # Manually copy each file from the template
-            for file in template_files:
+            total_files = len(template_files)
+            for index, file in enumerate(template_files, 1):
+                # Update progress
+                self.progress['value'] = (index / total_files) * 100
+                self.update_status(f"Copying files: {index}/{total_files}")
+
                 # Skip .gitignore
                 if file == '.gitignore':
                     continue
@@ -216,6 +234,11 @@ class UpdateApp(tk.Tk):
                 # Skip .example files and folders if keep_examples is False
                 if not self.keep_examples.get():
                     if file.endswith('.example') or any(part.endswith('.example') for part in file.split(os.sep)):
+                        continue
+
+                # Skip README files if keep_readmes is False
+                if not self.keep_readmes.get():
+                    if os.path.basename(file).startswith('README'):
                         continue
 
                 # Create directory if it doesn't exist
@@ -229,7 +252,9 @@ class UpdateApp(tk.Tk):
 
                 if file_exists:
                     # If file exists, create a backup
-                    self.run_command(f'git show HEAD:{file} > {file}.backup')
+                    backup_file = f"{file}.backup"
+                    self.run_command(f'git show HEAD:{file} > {backup_file}')
+                    backup_files.append(backup_file)
                 
                 # Copy file from template
                 output, error, code = self.run_command(f'git show FETCH_HEAD:{file} > {file}')
@@ -238,10 +263,26 @@ class UpdateApp(tk.Tk):
                 
                 self.run_command(f'git add {file}')
 
-            # Commit the changes
-            output, error, code = self.run_command(f'git commit -m "Update to template version {template_tag}"')
-            if code != 0:
-                return False, f"Failed to commit changes: {error}"
+            # Check if there are changes to commit
+            status_output, _, _ = self.run_command('git status --porcelain')
+            
+            # Update fmt_version.txt
+            with open('fmt_version.txt', 'w') as f:
+                f.write(template_tag)
+            self.run_command('git add fmt_version.txt')
+            
+            if status_output.strip():
+                # There are changes to commit
+                output, error, code = self.run_command(f'git commit -m "Update to template version {template_tag}"')
+                if code != 0:
+                    return False, f"Failed to commit changes: {error}"
+                commit_message = f"Template updated to version {template_tag}"
+            else:
+                # No changes to commit except fmt_version.txt
+                output, error, code = self.run_command(f'git commit -m "Update fmt_version.txt to {template_tag}"')
+                if code != 0:
+                    return False, f"Failed to commit version update: {error}"
+                commit_message = f"Project already up-to-date. Updated fmt_version.txt to {template_tag}"
 
             # Switch back to main and merge
             self.run_command('git checkout main')
@@ -250,16 +291,15 @@ class UpdateApp(tk.Tk):
             if code != 0:
                 return False, f"Failed to merge changes: {error}\n\nPlease resolve conflicts manually and then run this script again."
 
-            # Update fmt_version.txt
-            with open('fmt_version.txt', 'w') as f:
-                f.write(template_tag)
-            self.run_command('git add fmt_version.txt')
-            self.run_command(f'git commit -m "Update fmt_version.txt to {template_tag}"')
-
             # Clean up
             self.run_command(f'git branch -D {update_branch_name}')
 
-            return True, "Template update completed successfully"
+            # Remove backup files
+            for backup_file in backup_files:
+                if os.path.exists(backup_file):
+                    os.remove(backup_file)
+
+            return True, commit_message
 
         except Exception as e:
             return False, f"Unexpected error during update: {str(e)}"
@@ -267,6 +307,12 @@ class UpdateApp(tk.Tk):
         finally:
             # Always remove the template remote
             self.run_command('git remote remove template')
+            
+            # Clean up any remaining backup files
+            for root, dirs, files in os.walk('.'):
+                for file in files:
+                    if file.endswith('.backup'):
+                        os.remove(os.path.join(root, file))
 
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
