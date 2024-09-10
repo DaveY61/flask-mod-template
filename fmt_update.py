@@ -269,10 +269,10 @@ class UpdateApp(tk.Tk):
         template_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}.git"
         template_tag = self.selected_release['tag_name']
         update_branch_name = f"template-update-{template_tag}"
-        backup_dir = "fmt_update_backups"
+        backup_dir = os.path.join("fmt_update_backups", template_tag)
 
         try:
-            # Create backup directory
+            # Create version-specific backup directory
             os.makedirs(backup_dir, exist_ok=True)
 
             # Set up the template repo as a remote
