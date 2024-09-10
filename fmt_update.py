@@ -6,8 +6,6 @@ from tkinter import ttk, messagebox
 import threading
 import logging
 from packaging import version
-from datetime import datetime
-import shlex
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "flask-mod-template"
@@ -244,6 +242,10 @@ class UpdateApp(tk.Tk):
                 if file == '.gitignore':
                     continue
                 
+                # Skip LICENSE
+                if file == 'LICENSE':
+                    continue
+
                 # Skip .example files and folders if keep_examples is False
                 if not self.keep_examples.get():
                     if file.endswith('.example') or any(part.endswith('.example') for part in file.split(os.sep)):
