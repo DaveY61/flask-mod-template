@@ -18,6 +18,10 @@ logging.basicConfig(filename='fmt_update_log.txt', level=logging.DEBUG,
 class UpdateApp(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        style = ttk.Style()
+        style.configure('Accent.TButton', foreground='navy', background='#007bff', font=('Helvetica', 10, 'bold'))
+
         self.title("Template Update Tool")
         self.geometry("600x500")
         self.keep_examples = tk.BooleanVar(value=False)
@@ -31,24 +35,27 @@ class UpdateApp(tk.Tk):
         self.status_label = ttk.Label(self, text="Ready to start")
         self.status_label.pack(pady=10)
 
-        self.start_button = ttk.Button(self, text="Start Update", command=self.start_update)
+        self.start_button = ttk.Button(self, text="Start Update", command=self.start_update, style='Accent.TButton')
         self.start_button.pack(pady=10)
 
+        self.checkbox_frame = ttk.Frame(self)
+        self.checkbox_frame.pack(fill='x', padx=20, pady=10)  # padx adds left and right margin
+
         self.keep_examples_check = ttk.Checkbutton(
-            self, 
+            self.checkbox_frame,  # Parent is now the checkbox_frame
             text="Copy FMT 'example' files and folders (may add clutter to your project)", 
             variable=self.keep_examples,
             command=self.toggle_keep_examples
         )
-        self.keep_examples_check.pack(pady=5)
+        self.keep_examples_check.pack(anchor='w', pady=5)  # 'w' means west (left) alignment
 
         self.keep_readmes_check = ttk.Checkbutton(
-            self, 
+            self.checkbox_frame,  # Parent is now the checkbox_frame
             text="Copy FMT 'README' files (may overwrite your files)", 
             variable=self.keep_readmes,
             command=self.toggle_keep_readmes
         )
-        self.keep_readmes_check.pack(pady=5)
+        self.keep_readmes_check.pack(anchor='w', pady=5)  # 'w' means west (left) alignment
 
         self.log_text = tk.Text(self, height=15, width=70)
         self.log_text.pack(pady=10)
