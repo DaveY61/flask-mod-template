@@ -125,9 +125,15 @@ class UpdateApp(tk.Tk):
         logging.debug(f"Running command: {command}")
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = process.communicate()
-        logging.debug(f"Output: {output.decode('utf-8').strip()}")
-        logging.debug(f"Error: {error.decode('utf-8').strip()}")
-        return output.decode('utf-8').strip(), error.decode('utf-8').strip(), process.returncode
+        output_str = output.decode('utf-8').strip()
+        error_str = error.decode('utf-8').strip()
+        
+        if output_str:
+            logging.debug(f"Output: {output_str}")
+        if error_str:
+            logging.debug(f"Error: {error_str}")
+        
+        return output_str, error_str, process.returncode
 
     def get_current_version(self):
         try:
