@@ -79,6 +79,7 @@ class UpdateApp(tk.Tk):
         logging.info("Starting new update session")
 
         steps = [
+            ("Checking current branch", self.check_current_branch),
             ("Checking for worktrees", self.check_and_remove_worktrees),
             ("Checking current version", self.get_current_version),
             ("Fetching available versions", self.get_github_releases),
@@ -86,7 +87,6 @@ class UpdateApp(tk.Tk):
             ("Updating from template", self.update_from_template)
         ]
 
-        total_steps = len(steps)
         for i, (step_name, step_function) in enumerate(steps, 1):
             self.update_status("Update in progress!")
             success, message = step_function()
@@ -105,6 +105,12 @@ class UpdateApp(tk.Tk):
             messagebox.showinfo("Success", "Template update completed successfully")
         
         self.start_button.config(state='normal')
+
+    def check_current_branch(self):
+        current_branch = self.get_current_branch()
+        if current_branch != 'main':
+            return False, f"Please switch to the 'main' branch before updating. Current branch: {current_branch}"
+        return True, "Current branch is 'main'"
 
     def update_status(self, message):
         self.status_label.config(text=message)
@@ -195,10 +201,6 @@ class UpdateApp(tk.Tk):
         backup_files = []
 
         try:
-            current_branch = self.get_current_branch()
-            if current_branch != 'main':
-                return False, f"Please switch to the 'main' branch before updating. Current branch: {current_branch}"
-
             # Set up the template repo as a remote
             self.run_command('git remote remove template')  # Remove if exists
             output, error, code = self.run_command(f'git remote add template {template_url}')
