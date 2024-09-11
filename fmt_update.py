@@ -226,7 +226,7 @@ class UpdateApp(tk.Tk):
         backup_dir = os.path.join("fmt_update_backups", template_tag)
         replaced_files = []
         local_changes = []
-        special_files = ['.gitignore', 'LICENSE']
+        ignored_files = ['.gitignore', 'LICENSE']
 
         try:
             # Create version-specific backup directory
@@ -266,6 +266,14 @@ class UpdateApp(tk.Tk):
             files_to_update = template_files - local_files
             files_to_update.update(template_files.intersection(local_files))
 
+            # Filter out ignored files and handle README and .example files
+            files_to_update = {
+                file for file in files_to_update
+                if file not in ignored_files
+                and not (file.startswith('README') and not self.keep_readmes.get())
+                and not (file.endswith('.example') and not self.keep_examples.get())
+            }
+
             if not files_to_update:
                 return False, f"No changes detected between current version and template version ({template_tag})"
 
@@ -274,15 +282,6 @@ class UpdateApp(tk.Tk):
 
             # Apply template changes
             for file in files_to_update:
-                # Handle special files
-                if file in special_files:
-                    if not self.handle_special_file(file, template_tag):
-                        continue
-                elif file.startswith('README') and not self.keep_readmes.get():
-                    continue
-                elif file.endswith('.example') and not self.keep_examples.get():
-                    continue
-
                 # Backup existing file if it exists
                 if os.path.exists(file):
                     backup_path = os.path.join(backup_dir, file)
@@ -330,28 +329,6 @@ class UpdateApp(tk.Tk):
 
         except Exception as e:
             return False, f"Unexpected error during update: {str(e)}"
-
-    def handle_special_file(self, file, template_tag):
-        if file == '.gitignore':
-            # Merge .gitignore files
-            with open('.gitignore', 'r') as f:
-                current_content = f.readlines()
-            self.run_command(f'git show template/{template_tag}:.gitignore > .gitignore.template')
-            with open('.gitignore.template', 'r') as f:
-                template_content = f.readlines()
-            merged_content = list(set(current_content + template_content))
-            with open('.gitignore', 'w') as f:
-                f.writelines(sorted(merged_content))
-            os.remove('.gitignore.template')
-            self.run_command('git add .gitignore')
-            return True
-        elif file == 'LICENSE':
-            # Ask user what to do with LICENSE
-            response = messagebox.askyesno("Update LICENSE", "Do you want to update the LICENSE file from the template?")
-            if response:
-                self.run_command(f'git checkout template/{template_tag} -- LICENSE')
-                return True
-        return False
 
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
