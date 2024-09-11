@@ -244,15 +244,6 @@ class UpdateApp(tk.Tk):
             # Fetch all tags from the template
             self.run_command('git fetch template --tags')
 
-            # Check for local changes
-            output, _, _ = self.run_command('git status --porcelain')
-            if output:
-                local_changes = [line.split()[1] for line in output.splitlines()]
-                changes_msg = "Local changes detected in the following files:\n" + "\n".join(local_changes)
-                changes_msg += "\n\nDo you want to proceed? These changes may be overwritten."
-                if not messagebox.askyesno("Local Changes Detected", changes_msg):
-                    return False, "Update cancelled due to local changes"
-
             # Get list of all tags
             output, _, _ = self.run_command('git ls-remote --tags template')
             all_tags = []
@@ -292,7 +283,12 @@ class UpdateApp(tk.Tk):
                 current_tag = tags_to_process[i]
                 next_tag = tags_to_process[i + 1]
                 self.log_message(f"Comparing changes between {current_tag} and {next_tag}")
-                output, error, code = self.run_command(f'git diff --name-only template/{current_tag} template/{next_tag}')
+                
+                # Ensure we have both tags locally
+                self.run_command(f'git fetch template {current_tag}:{current_tag}')
+                self.run_command(f'git fetch template {next_tag}:{next_tag}')
+                
+                output, error, code = self.run_command(f'git diff --name-only {current_tag} {next_tag}')
                 if code != 0:
                     self.log_message(f"Error comparing tags: {error}")
                 else:
