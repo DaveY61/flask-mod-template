@@ -139,7 +139,9 @@ class UpdateApp(tk.Tk):
                 version = f.read().strip()
             return True, f"Current version: {version}"
         except FileNotFoundError:
-            return True, "Current version: 0.0.0"
+            # If fmt_version.txt doesn't exist, use the current commit hash
+            commit_hash, _, _ = self.run_command('git rev-parse --short HEAD')
+            return True, f"Current version: commit {commit_hash.strip()}"
 
     def get_github_releases(self):
         url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases"
@@ -234,8 +236,8 @@ class UpdateApp(tk.Tk):
             self.run_command('git remote remove template')  # Remove if exists
             self.run_command(f'git remote add template {template_url}')
 
-            # Fetch the template changes
-            self.run_command(f'git fetch template {template_tag}')
+            # Fetch all tags from the template
+            self.run_command('git fetch template --tags')
 
             # Check for local changes
             output, _, _ = self.run_command('git status --porcelain')
@@ -246,13 +248,19 @@ class UpdateApp(tk.Tk):
                 if not messagebox.askyesno("Local Changes Detected", changes_msg):
                     return False, "Update cancelled due to local changes"
 
+            # Get the current commit hash
+            current_commit, _, _ = self.run_command('git rev-parse HEAD')
+
             # Get the list of files changed in the template
-            current_version = self.get_current_version()[1].split(': ')[1]
-            output, _, _ = self.run_command(f'git diff --name-only {current_version}..template/{template_tag}')
+            output, error, code = self.run_command(f'git diff --name-only {current_commit}..template/{template_tag}')
+            
+            if code != 0:
+                return False, f"Failed to detect changes: {error}"
+
             changed_files = output.splitlines()
 
             if not changed_files:
-                return False, f"No changes detected between current version ({current_version}) and template version ({template_tag})"
+                return False, f"No changes detected between current version and template version ({template_tag})"
 
             # Create a new branch for the update
             self.run_command(f'git checkout -b {update_branch_name}')
