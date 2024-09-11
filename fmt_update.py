@@ -315,10 +315,16 @@ class UpdateApp(tk.Tk):
             self.run_command(f'git checkout -b {update_branch_name}')
 
             # Apply template changes
-            for file in files_to_update:
+            total_files = len(files_to_update)
+            for index, file in enumerate(files_to_update, 1):
+                # Update progress
+                self.progress['value'] = (index / total_files) * 100
+                self.update_status(f"Copying files: {index}/{total_files}")
+
                 self.log_message(f"Attempting to checkout file: {file}")
                 result, error, code = self.run_command(f'git checkout refs/tags/{template_tag} -- "{file}"')
-                self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
+                if code != 0:
+                    self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
 
                 if code == 0:
                     # Backup existing file if it exists
