@@ -5,7 +5,6 @@ from flask import Flask, render_template, redirect, url_for, request, abort, sen
 from flask_login import LoginManager, current_user, login_required
 from jinja2 import FileSystemLoader, ChoiceLoader, PrefixLoader
 from jinja2.exceptions import TemplateNotFound
-import werkzeug.exceptions
 from app.services.auth_service_db import setup_database, init_db
 from app.services.log_service import init_logger
 import pkgutil
