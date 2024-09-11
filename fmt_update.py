@@ -248,25 +248,32 @@ class UpdateApp(tk.Tk):
                 if not messagebox.askyesno("Local Changes Detected", changes_msg):
                     return False, "Update cancelled due to local changes"
 
-            # Get the current commit hash
-            current_commit, _, _ = self.run_command('git rev-parse HEAD')
-
-            # Get the list of files changed in the template
-            output, error, code = self.run_command(f'git diff --name-only {current_commit}..template/{template_tag}')
-            
+            # Get list of files in the template
+            output, error, code = self.run_command(f'git ls-tree -r --name-only template/{template_tag}')
             if code != 0:
-                return False, f"Failed to detect changes: {error}"
+                return False, f"Failed to list template files: {error}"
 
-            changed_files = output.splitlines()
+            template_files = set(output.splitlines())
 
-            if not changed_files:
+            # Get list of files in the current project
+            output, error, code = self.run_command('git ls-tree -r --name-only HEAD')
+            if code != 0:
+                return False, f"Failed to list local files: {error}"
+
+            local_files = set(output.splitlines())
+
+            # Determine files to update or add
+            files_to_update = template_files - local_files
+            files_to_update.update(template_files.intersection(local_files))
+
+            if not files_to_update:
                 return False, f"No changes detected between current version and template version ({template_tag})"
 
             # Create a new branch for the update
             self.run_command(f'git checkout -b {update_branch_name}')
 
             # Apply template changes
-            for file in changed_files:
+            for file in files_to_update:
                 # Handle special files
                 if file in special_files:
                     if not self.handle_special_file(file, template_tag):
