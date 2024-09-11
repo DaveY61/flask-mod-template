@@ -248,19 +248,29 @@ class UpdateApp(tk.Tk):
                     return False, "Update cancelled due to local changes"
 
             # Get list of all tags
-            output, _, _ = self.run_command('git tag -l')
-            all_tags = sorted(output.splitlines(), key=lambda v: [int(x) for x in v.lstrip('v').split('.')])
+            output, _, _ = self.run_command('git ls-remote --tags template')
+            all_tags = sorted([tag.split('/')[-1] for tag in output.splitlines() if tag.endswith('^{}')], 
+                            key=lambda v: [int(x) for x in v.lstrip('v').split('.')])
 
             # Determine the range of tags to process
             if current_version == "0.0.0":
-                start_tag = all_tags[0]
+                start_index = 0
+                self.log_message("No current version detected. Will update from the first available version.")
             else:
-                start_tag = current_version
-            end_tag = template_tag
+                try:
+                    start_index = all_tags.index(current_version)
+                except ValueError:
+                    self.log_message(f"Current version {current_version} not found in tags. Starting from the earliest version.")
+                    start_index = 0
 
-            start_index = all_tags.index(start_tag)
-            end_index = all_tags.index(end_tag)
+            try:
+                end_index = all_tags.index(template_tag)
+            except ValueError:
+                return False, f"Selected version {template_tag} not found in available tags."
+
             tags_to_process = all_tags[start_index:end_index+1]
+
+            self.log_message(f"Processing tags from {tags_to_process[0]} to {tags_to_process[-1]}")
 
             files_to_update = set()
 
@@ -268,9 +278,13 @@ class UpdateApp(tk.Tk):
             for i in range(len(tags_to_process) - 1):
                 current_tag = tags_to_process[i]
                 next_tag = tags_to_process[i + 1]
-                output, _, _ = self.run_command(f'git diff --name-only {current_tag} template/{next_tag}')
-                files_to_update.update(output.splitlines())
-
+                self.log_message(f"Comparing changes between {current_tag} and {next_tag}")
+                output, error, code = self.run_command(f'git diff --name-only template/{current_tag} template/{next_tag}')
+                if code != 0:
+                    self.log_message(f"Error comparing tags: {error}")
+                else:
+                    files_to_update.update(output.splitlines())
+                    
             # Filter out ignored files and handle README and .example files
             files_to_update = {
                 file for file in files_to_update
@@ -287,17 +301,19 @@ class UpdateApp(tk.Tk):
 
             # Apply template changes
             for file in files_to_update:
-                # Backup existing file if it exists
-                if os.path.exists(file):
-                    backup_path = os.path.join(backup_dir, file)
-                    os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-                    shutil.copy2(file, backup_path)
-                    replaced_files.append(file)
-
-                # Copy file from template
                 self.log_message(f"Attempting to checkout file: {file}")
                 result, error, code = self.run_command(f'git checkout template/{template_tag} -- "{file}"')
                 self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
+
+                if code == 0:
+                    # Backup existing file if it exists
+                    if os.path.exists(file):
+                        backup_path = os.path.join(backup_dir, file)
+                        os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                        shutil.copy2(file, backup_path)
+                    replaced_files.append(file)
+                else:
+                    self.log_message(f"Failed to checkout file: {file}")
 
             # Update fmt_version.txt
             with open('fmt_version.txt', 'w') as f:
@@ -335,6 +351,7 @@ class UpdateApp(tk.Tk):
             return True, summary
 
         except Exception as e:
+            self.log_message(f"Unexpected error: {str(e)}")
             return False, f"Unexpected error during update: {str(e)}"
 
 class SelectVersionDialog(tk.Toplevel):
