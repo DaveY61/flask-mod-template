@@ -83,8 +83,6 @@ class UpdateApp(tk.Tk):
             ("Checking current version", self.get_current_version),
             ("Fetching available versions", self.get_github_releases),
             ("Selecting update version", self.select_version),
-            ("Detecting conflicts", self.detect_conflicts),
-            ("Presenting update summary", self.present_update_summary),
             ("Updating from template", self.update_from_template)
         ]
 
@@ -201,52 +199,6 @@ class UpdateApp(tk.Tk):
         output, _, _ = self.run_command('git rev-parse --abbrev-ref HEAD')
         return output.strip()
 
-    def detect_conflicts(self):
-        template_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}.git"
-        template_tag = self.selected_release['tag_name']
-        temp_branch = f"temp-conflict-detection-{template_tag}"
-
-        try:
-            # Create a temporary branch
-            self.run_command(f'git checkout -b {temp_branch}')
-
-            # Fetch the template
-            self.run_command(f'git fetch {template_url} {template_tag}')
-
-            # Try to merge
-            output, error, code = self.run_command(f'git merge --no-commit --no-ff FETCH_HEAD')
-
-            # Get list of conflicting files
-            all_conflicting_files = self.get_conflict_files()
-
-            # Filter out .gitignore, LICENSE, and conditionally README files
-            self.conflicting_files = [
-                file for file in all_conflicting_files
-                if file not in ['.gitignore', 'LICENSE'] and
-                not (file.startswith('README') and not self.keep_readmes.get())
-            ]
-
-            # Get list of changed files
-            changed_output, _, _ = self.run_command('git diff --name-only ORIG_HEAD')
-            all_changed_files = changed_output.splitlines()
-
-            # Filter out .gitignore, LICENSE, and conditionally README files from changed files
-            self.changed_files = [
-                file for file in all_changed_files
-                if file not in ['.gitignore', 'LICENSE'] and
-                not (file.startswith('README') and not self.keep_readmes.get()) and
-                not (file.endswith('.example') and not self.keep_examples.get())
-            ]
-
-            # Abort the merge and delete the temporary branch
-            self.run_command('git merge --abort')
-            self.run_command('git checkout main')
-            self.run_command(f'git branch -D {temp_branch}')
-
-            return True, f"Detected {len(self.conflicting_files)} conflicts and {len(self.changed_files)} changed files"
-        except Exception as e:
-            return False, f"Error during conflict detection: {str(e)}"
-
     def present_update_summary(self):
         message = "Update Summary:\n\n"
         message += f"Files to be updated: {len(self.changed_files)}\n"
@@ -271,6 +223,8 @@ class UpdateApp(tk.Tk):
         update_branch_name = f"template-update-{template_tag}"
         backup_dir = os.path.join("fmt_update_backups", template_tag)
         replaced_files = []
+        local_changes = []
+        special_files = ['.gitignore', 'LICENSE']
 
         try:
             # Create version-specific backup directory
@@ -283,11 +237,33 @@ class UpdateApp(tk.Tk):
             # Fetch the template changes
             self.run_command(f'git fetch template {template_tag}')
 
+            # Check for local changes
+            output, _, _ = self.run_command('git status --porcelain')
+            if output:
+                local_changes = [line.split()[1] for line in output.splitlines()]
+                changes_msg = "Local changes detected in the following files:\n" + "\n".join(local_changes)
+                changes_msg += "\n\nDo you want to proceed? These changes may be overwritten."
+                if not messagebox.askyesno("Local Changes Detected", changes_msg):
+                    return False, "Update cancelled due to local changes"
+
             # Create a new branch for the update
             self.run_command(f'git checkout -b {update_branch_name}')
 
+            # Get the list of files changed in the template
+            output, _, _ = self.run_command(f'git diff --name-only HEAD..template/{template_tag}')
+            changed_files = output.splitlines()
+
             # Apply template changes
-            for file in self.changed_files:
+            for file in changed_files:
+                # Handle special files
+                if file in special_files:
+                    if not self.handle_special_file(file, template_tag):
+                        continue
+                elif file.startswith('README') and not self.keep_readmes.get():
+                    continue
+                elif file.endswith('.example') and not self.keep_examples.get():
+                    continue
+
                 # Backup existing file if it exists
                 if os.path.exists(file):
                     backup_path = os.path.join(backup_dir, file)
@@ -296,7 +272,7 @@ class UpdateApp(tk.Tk):
                     replaced_files.append(file)
 
                 # Copy file from template
-                self.run_command(f'git checkout FETCH_HEAD -- "{file}"')
+                self.run_command(f'git checkout template/{template_tag} -- "{file}"')
 
             # Update fmt_version.txt
             with open('fmt_version.txt', 'w') as f:
@@ -306,12 +282,13 @@ class UpdateApp(tk.Tk):
             # Commit the changes
             self.run_command(f'git commit -m "Update to template version {template_tag}"')
 
-            # Switch back to main and merge
+            # Switch back to main and cherry-pick the update commit
             self.run_command('git checkout main')
-            output, error, code = self.run_command(f'git merge --no-ff {update_branch_name}')
+            update_commit_hash, _, _ = self.run_command(f'git rev-parse {update_branch_name}')
+            output, error, code = self.run_command(f'git cherry-pick {update_commit_hash}')
 
             if code != 0:
-                return False, f"Failed to merge changes into main: {error}"
+                return False, f"Failed to apply changes to main: {error}"
 
             # Clean up
             self.run_command(f'git branch -D {update_branch_name}')
@@ -322,6 +299,10 @@ class UpdateApp(tk.Tk):
             summary += f"Files replaced by the template:\n"
             for file in replaced_files:
                 summary += f"- {file}\n"
+            if local_changes:
+                summary += f"\nLocal changes detected in:\n"
+                for file in local_changes:
+                    summary += f"- {file}\n"
             summary += f"\nBackups of replaced files are stored in:\n{os.path.abspath(backup_dir)}"
 
             # Show summary to the user
@@ -332,9 +313,27 @@ class UpdateApp(tk.Tk):
         except Exception as e:
             return False, f"Unexpected error during update: {str(e)}"
 
-    def get_conflict_files(self):
-        output, _, _ = self.run_command('git diff --name-only --diff-filter=U')
-        return output.splitlines()
+    def handle_special_file(self, file, template_tag):
+        if file == '.gitignore':
+            # Merge .gitignore files
+            with open('.gitignore', 'r') as f:
+                current_content = f.readlines()
+            self.run_command(f'git show template/{template_tag}:.gitignore > .gitignore.template')
+            with open('.gitignore.template', 'r') as f:
+                template_content = f.readlines()
+            merged_content = list(set(current_content + template_content))
+            with open('.gitignore', 'w') as f:
+                f.writelines(sorted(merged_content))
+            os.remove('.gitignore.template')
+            self.run_command('git add .gitignore')
+            return True
+        elif file == 'LICENSE':
+            # Ask user what to do with LICENSE
+            response = messagebox.askyesno("Update LICENSE", "Do you want to update the LICENSE file from the template?")
+            if response:
+                self.run_command(f'git checkout template/{template_tag} -- LICENSE')
+                return True
+        return False
 
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
