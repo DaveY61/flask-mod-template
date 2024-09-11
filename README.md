@@ -128,7 +128,7 @@ To update your project to the latest template version, you can use the `fmt_upda
    - Determine your current version
    - Fetch available versions from the GitHub repository
    - Allow you to select the version to update to
-   - Attempt to merge the selected version with your local changes
+   - Attempt to your project from the selected template version
 
 The `fmt_update.py` script works by:
 - Creating a temporary branch with the selected update version
@@ -136,7 +136,18 @@ The `fmt_update.py` script works by:
 - Handling merge conflicts if they occur
 - Updating the `fmt_version.txt` file to reflect the new version
 
-If merge conflicts occur, the script will notify you and provide instructions on how to resolve them manually. After resolving conflicts, you can run the script again to complete the update process.
+Key features of the update process:
+- **Logging**: The script creates a log file named `fmt_update_log.txt` in the project root directory. This log file contains detailed information about the update process, including any errors or warnings encountered.
+- **Backups**: Before applying changes, the script creates backups of modified files. These backups are stored in a version-specific directory within `fmt_update_backups/` in your project root. For example, if you're updating to version 1.2.3, backups will be in `fmt_update_backups/1.2.3/`.
+- **Incremental Updates**: The script processes all versions between your current version and the selected target version, ensuring that all incremental changes are applied.
+- **Conflict Resolution**: If merge conflicts occur, the script will notify you and provide instructions on how to resolve them manually.
+
+After running the script:
+1. Review the `fmt_update_log.txt` file for any important messages or warnings.
+2. Check the `fmt_update_backups/` directory if you need to reference or restore any previous file versions.
+3. If conflicts occurred, resolve them manually in your project files.
+4. Test your application thoroughly to ensure the update didn't introduce any issues.
+5. Commit the changes to your repository.
 
 This update method allows you to keep your local customizations while still benefiting from the latest improvements and features of the Flask Modular Template.
 
