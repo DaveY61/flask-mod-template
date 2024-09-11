@@ -241,6 +241,15 @@ class UpdateApp(tk.Tk):
             self.run_command('git remote remove template')  # Remove if exists
             self.run_command(f'git remote add template {template_url}')
 
+            # Check for local changes
+            output, _, _ = self.run_command('git status --porcelain')
+            if output:
+                local_changes = [line.split()[1] for line in output.splitlines()]
+                changes_msg = "Local changes detected in the following files:\n" + "\n".join(local_changes)
+                changes_msg += "\n\nDo you want to proceed? These changes may be overwritten."
+                if not messagebox.askyesno("Local Changes Detected", changes_msg):
+                    return False, "Update cancelled due to local changes"
+
             # Fetch all tags from the template
             self.run_command('git fetch template --tags')
 
@@ -276,6 +285,7 @@ class UpdateApp(tk.Tk):
             tags_to_process = all_tags[start_index:end_index+1]
 
             self.log_message(f"Processing tags from {tags_to_process[0]} to {tags_to_process[-1]}")
+
             files_to_update = set()
 
             # Get list of changed files for each tag in the range
@@ -293,7 +303,7 @@ class UpdateApp(tk.Tk):
                     self.log_message(f"Error comparing tags: {error}")
                 else:
                     files_to_update.update(output.splitlines())
-                    
+
             # Filter out ignored files and handle README and .example files
             files_to_update = {
                 file for file in files_to_update
@@ -362,7 +372,7 @@ class UpdateApp(tk.Tk):
         except Exception as e:
             self.log_message(f"Unexpected error: {str(e)}")
             return False, f"Unexpected error during update: {str(e)}"
-
+        
 class SelectVersionDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, choices):
         super().__init__(parent)
