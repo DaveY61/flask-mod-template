@@ -48,7 +48,7 @@ class UpdateApp(tk.Tk):
 
         self.keep_examples_check = ttk.Checkbutton(
             self.checkbox_frame,
-            text="Copy FMT 'example' files and folders (may add clutter to your project)", 
+            text="Include FMT 'example' changes (may add clutter to your project)", 
             variable=self.keep_examples,
             command=self.toggle_keep_examples
         )
@@ -301,12 +301,12 @@ class UpdateApp(tk.Tk):
                 else:
                     files_to_update.update(output.splitlines())
 
-            # Filter out ignored files and handle README and .example files
+            # Filter out ignored files and handle README and .example files/folders
             files_to_update = {
                 file for file in files_to_update
                 if file not in ignored_files
                 and not (file.startswith('README') and not self.keep_readmes.get())
-                and not (file.endswith('.example') and not self.keep_examples.get())
+                and not ((file.endswith('.example') or '.example/' in file) and not self.keep_examples.get())
             }
 
             if not files_to_update:
