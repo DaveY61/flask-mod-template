@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from app.app_config import Config
 from app.mod_config_manager import ConfigManager
 import os
-import traceback
 
 #----------------------------------------------------------------------------#
 # Helper functions to register services and modules
@@ -150,8 +149,7 @@ register_blueprints(app, 'services')
 # Error handlers
 @app.errorhandler(500)
 def internal_error(error):
-    error_traceback = traceback.format_exc()
-    current_app.logger.critical(f"500 Internal Server Error: {str(error)}\n\nStack Trace:\n{error_traceback}")
+    current_app.logger.critical(f"{str(error)}")
     return render_template('errors/500.html', response_color="red"), 500
 
 @app.errorhandler(404)
