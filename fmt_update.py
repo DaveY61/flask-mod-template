@@ -251,9 +251,6 @@ class UpdateApp(tk.Tk):
                     return False, "Update cancelled due to local changes"
 
             # Fetch all content from the template
-            self.run_command('git fetch template')
-
-            # Fetch all tags from the template
             self.run_command('git fetch template --tags')
 
             # Get list of all tags
@@ -314,18 +311,13 @@ class UpdateApp(tk.Tk):
             if not files_to_update:
                 return False, f"No changes detected between current version and template version ({template_tag})"
 
-            # Verify the tag exists
-            output, _, code = self.run_command(f'git rev-parse --verify template/{template_tag}')
-            if code != 0:
-                return False, f"Tag {template_tag} does not exist in the template repository"
-
             # Create a new branch for the update
             self.run_command(f'git checkout -b {update_branch_name}')
 
             # Apply template changes
             for file in files_to_update:
                 self.log_message(f"Attempting to checkout file: {file}")
-                result, error, code = self.run_command(f'git checkout FETCH_HEAD -- "{file}"')
+                result, error, code = self.run_command(f'git checkout refs/tags/{template_tag} -- "{file}"')
                 self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
 
                 if code == 0:
