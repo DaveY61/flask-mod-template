@@ -97,7 +97,7 @@ Flask Modular Template is a scalable and modular Python Flask application templa
    python run_local.py
    ```
 3. Open your web browser and navigate to `http://localhost:5000`.
-4. Click on "Sign p" and use your email address (from `.env`) with the password "admin".
+4. Click on "Sign up" and use your email address (from `.env`) with the password "admin".
 5. You will be redirected to the Create Password page. Set your new admin password.
 
 **Note:** If you initially created your account without using the admin password, you can still use "admin" as the password during login to activate your Admin account. This feature allows you to gain admin access even if you started registration without using the special password.
