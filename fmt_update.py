@@ -268,7 +268,7 @@ class UpdateApp(tk.Tk):
             for i in range(len(tags_to_process) - 1):
                 current_tag = tags_to_process[i]
                 next_tag = tags_to_process[i + 1]
-                output, _, _ = self.run_command(f'git diff --name-only {current_tag} {next_tag}')
+                output, _, _ = self.run_command(f'git diff --name-only {current_tag} template/{next_tag}')
                 files_to_update.update(output.splitlines())
 
             # Filter out ignored files and handle README and .example files
@@ -295,7 +295,9 @@ class UpdateApp(tk.Tk):
                     replaced_files.append(file)
 
                 # Copy file from template
-                self.run_command(f'git checkout template/{template_tag} -- "{file}"')
+                self.log_message(f"Attempting to checkout file: {file}")
+                result, error, code = self.run_command(f'git checkout template/{template_tag} -- "{file}"')
+                self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
 
             # Update fmt_version.txt
             with open('fmt_version.txt', 'w') as f:
