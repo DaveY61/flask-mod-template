@@ -231,6 +231,7 @@ class UpdateApp(tk.Tk):
         backup_dir = os.path.join("fmt_update_backups", template_tag)
         replaced_files = []
         local_changes = []
+        removed_files = []
         ignored_files = ['.gitignore', 'LICENSE']
 
         try:
@@ -319,30 +320,53 @@ class UpdateApp(tk.Tk):
             for index, file in enumerate(files_to_update, 1):
                 # Update progress
                 self.progress['value'] = (index / total_files) * 100
-                self.update_status(f"Copying files: {index}/{total_files}")
+                self.update_status(f"Processing files: {index}/{total_files}")
 
-                self.log_message(f"Attempting to checkout file: {file}")
-                result, error, code = self.run_command(f'git checkout refs/tags/{template_tag} -- "{file}"')
-                if code != 0:
-                    self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
+                # Check if the file exists in the new template version
+                result, error, code = self.run_command(f'git ls-tree -r --name-only refs/tags/{template_tag} -- "{file}"')
+                file_in_template = (code == 0 and result.strip() == file)
 
-                if code == 0:
-                    # Backup existing file if it exists
-                    if os.path.exists(file):
-                        backup_path = os.path.join(backup_dir, file)
-                        os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-                        shutil.copy2(file, backup_path)
-                    replaced_files.append(file)
+                if file_in_template:
+                    # File exists in the template, so update it
+                    self.log_message(f"Attempting to checkout file: {file}")
+                    result, error, code = self.run_command(f'git checkout refs/tags/{template_tag} -- "{file}"')
+                    if code == 0:
+                        # Backup existing file if it exists
+                        if os.path.exists(file):
+                            backup_path = os.path.join(backup_dir, file)
+                            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                            shutil.copy2(file, backup_path)
+                        replaced_files.append(file)
+                    else:
+                        self.log_message(f"Checkout result: {result}, Error: {error}, Code: {code}")
+                        self.log_message(f"Failed to checkout file: {file}")
                 else:
-                    self.log_message(f"Failed to checkout file: {file}")
+                    # File doesn't exist in the template, so remove it from the project
+                    if os.path.exists(file):
+                        try:
+                            backup_path = os.path.join(backup_dir, file)
+                            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                            shutil.move(file, backup_path)
+                            self.run_command(f'git rm "{file}"')
+                            removed_files.append(file)
+                            self.log_message(f"Removed file from project: {file}")
+                        except Exception as e:
+                            self.log_message(f"Failed to remove file {file}: {str(e)}")
+                    else:
+                        self.log_message(f"File not found in project, skipping removal: {file}")
 
             # Update fmt_version.txt
             with open('fmt_version.txt', 'w') as f:
                 f.write(template_tag)
             self.run_command('git add fmt_version.txt')
 
-            # Commit the changes
-            self.run_command(f'git commit -m "Update to template version {template_tag}"')
+            # After the loop, update the commit message to include removed files
+            commit_message = f"Update to template version {template_tag}"
+            if removed_files:
+                commit_message += "\n\nRemoved files:\n" + "\n".join(removed_files)
+
+            # Use the updated commit message when committing changes
+            self.run_command(f'git commit -m "{commit_message}"')
 
             # Switch back to main and merge the update branch
             self.run_command('git checkout main')
@@ -357,14 +381,19 @@ class UpdateApp(tk.Tk):
 
             # Prepare summary message
             summary = f"Template updated to version {template_tag}\n\n"
-            summary += f"Files replaced by the template:\n"
-            for file in replaced_files:
-                summary += f"- {file}\n"
+            if replaced_files:
+                summary += f"Files replaced by the template:\n"
+                for file in replaced_files:
+                    summary += f"- {file}\n"
+            if removed_files:
+                summary += f"\nFiles removed (no longer in template):\n"
+                for file in removed_files:
+                    summary += f"- {file}\n"
             if local_changes:
                 summary += f"\nLocal changes detected in:\n"
                 for file in local_changes:
                     summary += f"- {file}\n"
-            summary += f"\nBackups of replaced files are stored in:\n{os.path.abspath(backup_dir)}"
+            summary += f"\nBackups of replaced and removed files are stored in:\n{os.path.abspath(backup_dir)}"
 
             # Show summary to the user
             messagebox.showinfo("Update Summary", summary)
