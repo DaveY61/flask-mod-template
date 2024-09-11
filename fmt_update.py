@@ -7,6 +7,7 @@ import threading
 import logging
 from packaging import version
 import shutil
+import re
 
 REPO_OWNER = "DaveY61"
 REPO_NAME = "flask-mod-template"
@@ -15,6 +16,9 @@ REPO_NAME = "flask-mod-template"
 LOG_FILE = 'fmt_update_log.txt'
 logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+def version_key(v):
+    return [int(x) for x in re.findall(r'\d+', v)]
 
 class UpdateApp(tk.Tk):
     def __init__(self):
@@ -146,7 +150,9 @@ class UpdateApp(tk.Tk):
         try:
             response = requests.get(url)
             if response.status_code == 200:
-                self.releases = response.json()
+                releases = response.json()
+                # Sort releases using the version_key function
+                self.releases = sorted(releases, key=lambda r: version_key(r['tag_name']), reverse=True)
                 return True, f"Found {len(self.releases)} releases"
             else:
                 return False, f"Failed to fetch releases: {response.status_code}"
@@ -249,8 +255,16 @@ class UpdateApp(tk.Tk):
 
             # Get list of all tags
             output, _, _ = self.run_command('git ls-remote --tags template')
-            all_tags = sorted([tag.split('/')[-1] for tag in output.splitlines() if tag.endswith('^{}')], 
-                            key=lambda v: [int(x) for x in v.lstrip('v').split('.')])
+            all_tags = []
+            for line in output.splitlines():
+                tag = line.split('refs/tags/')[-1]
+                if not tag.endswith('^{}'):
+                    all_tags.append(tag)
+
+            # Sort tags using version_key
+            all_tags.sort(key=version_key)
+
+            self.log_message(f"Available tags: {', '.join(all_tags)}")
 
             # Determine the range of tags to process
             if current_version == "0.0.0":
@@ -271,7 +285,6 @@ class UpdateApp(tk.Tk):
             tags_to_process = all_tags[start_index:end_index+1]
 
             self.log_message(f"Processing tags from {tags_to_process[0]} to {tags_to_process[-1]}")
-
             files_to_update = set()
 
             # Get list of changed files for each tag in the range
