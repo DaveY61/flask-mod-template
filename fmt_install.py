@@ -32,7 +32,7 @@ ADMIN_USER_LIST=admin1@example.com,admin2@example.com
 LOG_FILE_DIRECTORY=./app_logs
 LOG_FILE_LEVEL=INFO
 LOG_RETENTION_DAYS=7
-LOG_EMAIL_ENABLE=True
+LOG_EMAIL_ENABLE=False
 LOG_EMAIL_LEVEL=ERROR
 # Log email is sent to the Admin User List (above)
 # Log levels:  'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
