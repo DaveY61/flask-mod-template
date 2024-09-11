@@ -246,12 +246,16 @@ class UpdateApp(tk.Tk):
                 if not messagebox.askyesno("Local Changes Detected", changes_msg):
                     return False, "Update cancelled due to local changes"
 
+            # Get the list of files changed in the template
+            current_version = self.get_current_version()[1].split(': ')[1]
+            output, _, _ = self.run_command(f'git diff --name-only {current_version}..template/{template_tag}')
+            changed_files = output.splitlines()
+
+            if not changed_files:
+                return False, f"No changes detected between current version ({current_version}) and template version ({template_tag})"
+
             # Create a new branch for the update
             self.run_command(f'git checkout -b {update_branch_name}')
-
-            # Get the list of files changed in the template
-            output, _, _ = self.run_command(f'git diff --name-only HEAD..template/{template_tag}')
-            changed_files = output.splitlines()
 
             # Apply template changes
             for file in changed_files:
@@ -282,13 +286,12 @@ class UpdateApp(tk.Tk):
             # Commit the changes
             self.run_command(f'git commit -m "Update to template version {template_tag}"')
 
-            # Switch back to main and cherry-pick the update commit
+            # Switch back to main and merge the update branch
             self.run_command('git checkout main')
-            update_commit_hash, _, _ = self.run_command(f'git rev-parse {update_branch_name}')
-            output, error, code = self.run_command(f'git cherry-pick {update_commit_hash}')
+            output, error, code = self.run_command(f'git merge --no-ff {update_branch_name}')
 
             if code != 0:
-                return False, f"Failed to apply changes to main: {error}"
+                return False, f"Failed to merge changes into main: {error}"
 
             # Clean up
             self.run_command(f'git branch -D {update_branch_name}')
