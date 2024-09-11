@@ -56,7 +56,7 @@ class UpdateApp(tk.Tk):
 
         self.keep_readmes_check = ttk.Checkbutton(
             self.checkbox_frame,
-            text="Copy FMT 'README' files (may overwrite your files)", 
+            text="Include FMT 'README' changes (may overwrite your README files)", 
             variable=self.keep_readmes,
             command=self.toggle_keep_readmes
         )
