@@ -139,9 +139,7 @@ class UpdateApp(tk.Tk):
                 version = f.read().strip()
             return True, f"Current version: {version}"
         except FileNotFoundError:
-            # If fmt_version.txt doesn't exist, use the current commit hash
-            commit_hash, _, _ = self.run_command('git rev-parse --short HEAD')
-            return True, f"Current version: commit {commit_hash.strip()}"
+            return True, "Current version: 0.0.0"
 
     def get_github_releases(self):
         url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases"
@@ -221,6 +219,7 @@ class UpdateApp(tk.Tk):
 
     def update_from_template(self):
         template_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}.git"
+        current_version = self.get_current_version()[1].split(': ')[1]
         template_tag = self.selected_release['tag_name']
         update_branch_name = f"template-update-{template_tag}"
         backup_dir = os.path.join("fmt_update_backups", template_tag)
@@ -248,23 +247,29 @@ class UpdateApp(tk.Tk):
                 if not messagebox.askyesno("Local Changes Detected", changes_msg):
                     return False, "Update cancelled due to local changes"
 
-            # Get list of files in the template
-            output, error, code = self.run_command(f'git ls-tree -r --name-only template/{template_tag}')
-            if code != 0:
-                return False, f"Failed to list template files: {error}"
+            # Get list of all tags
+            output, _, _ = self.run_command('git tag -l')
+            all_tags = sorted(output.splitlines(), key=lambda v: [int(x) for x in v.lstrip('v').split('.')])
 
-            template_files = set(output.splitlines())
+            # Determine the range of tags to process
+            if current_version == "0.0.0":
+                start_tag = all_tags[0]
+            else:
+                start_tag = current_version
+            end_tag = template_tag
 
-            # Get list of files in the current project
-            output, error, code = self.run_command('git ls-tree -r --name-only HEAD')
-            if code != 0:
-                return False, f"Failed to list local files: {error}"
+            start_index = all_tags.index(start_tag)
+            end_index = all_tags.index(end_tag)
+            tags_to_process = all_tags[start_index:end_index+1]
 
-            local_files = set(output.splitlines())
+            files_to_update = set()
 
-            # Determine files to update or add
-            files_to_update = template_files - local_files
-            files_to_update.update(template_files.intersection(local_files))
+            # Get list of changed files for each tag in the range
+            for i in range(len(tags_to_process) - 1):
+                current_tag = tags_to_process[i]
+                next_tag = tags_to_process[i + 1]
+                output, _, _ = self.run_command(f'git diff --name-only {current_tag} {next_tag}')
+                files_to_update.update(output.splitlines())
 
             # Filter out ignored files and handle README and .example files
             files_to_update = {
