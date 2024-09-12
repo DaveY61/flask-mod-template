@@ -70,13 +70,17 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 
 1. Use 'Fork' or 'Use this template' to create your repository on GitHub.
 
-   **Fork** 
+   **Fork**
+   ``` 
    A fork is a copy of an existing repository that allows you to make changes without affecting the original project.
    Usage: Ideal for contributing to an existing project or experimenting with changes.
+   ```
 
    **Use this template**
+   ```
    A template repository is used to create a new repository with the same directory structure and files as the original, but without the commit history.
    Usage: Ideal for creating new projects with a predefined structure.
+   ```
 
 2. Clone your repository to your local PC:
    ```
