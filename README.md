@@ -68,8 +68,16 @@ Flask Modular Template is a scalable and modular Python Flask application templa
 
 ### Make Local Repository
 
-1. Fork the current repository on GitHub.
-2. Clone your forked repository to your local PC:
+1. Use 'Fork' or 'Use this template' to create your repository on GitHub.
+   **Fork** 
+   A fork is a copy of an existing repository that allows you to make changes without affecting the original project.
+   Usage: Ideal for contributing to an existing project or experimenting with changes.
+
+   **Use this template**
+   A template repository is used to create a new repository with the same directory structure and files as the original, but without the commit history.
+   Usage: Ideal for creating new projects with a predefined structure.
+
+2. Clone your repository to your local PC:
    ```
    git clone https://github.com/yourusername/flask-mod-template.git
    cd flask-mod-template
